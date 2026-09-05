@@ -1,6 +1,7 @@
 name: Bootstrap AudioWRT 25.12 branch
 
 on:
+  create:
   push:
     branches:
       - main
@@ -14,20 +15,23 @@ permissions:
 
 jobs:
   bootstrap:
+    if: github.event_name != 'create' || github.ref_name == 'audiowrt-25.12'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project metadata
         uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
 
-      - name: Create downstream branch if missing
+      - name: Bootstrap downstream source branch
         shell: bash
         run: |
           set -euo pipefail
 
-          if git ls-remote --exit-code --heads origin audiowrt-25.12 >/dev/null 2>&1; then
-            echo 'audiowrt-25.12 already exists; nothing to bootstrap.'
+          git fetch origin audiowrt-25.12:audiowrt-25.12 2>/dev/null || true
+          if git show audiowrt-25.12:rules.mk >/dev/null 2>&1; then
+            echo 'audiowrt-25.12 already contains an OpenWrt source tree; nothing to bootstrap.'
             exit 0
           fi
 
@@ -48,4 +52,4 @@ jobs:
           git -c user.name='AudioWRT Automation' \
               -c user.email='actions@users.noreply.github.com' \
               commit -m 'AudioWRT: bootstrap 25.12 distribution'
-          git push origin audiowrt-25.12
+          git push --force-with-lease origin audiowrt-25.12
