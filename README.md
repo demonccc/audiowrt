@@ -2,7 +2,69 @@
 
 AudioWRT is an audio-focused OpenWrt build system for turning compatible OpenWrt devices into lightweight, reliable network audio players.
 
-AudioWRT does **not** fork or vendor the OpenWrt source tree. Each build starts from a clean OpenWrt checkout, lets OpenWrt resolve the selected device and all hardware-specific packages, then applies the AudioWRT package policy, filesystem overlay and audio packages.
+AudioWRT does **not** fork or vendor the OpenWrt source tree. Each build starts from a clean OpenWrt checkout, lets OpenWrt resolve the selected device and all hardware-specific packages, then applies the AudioWRT package policy, filesystem overlay and reusable packages from [`demonccc/audiowrt-packages`](https://github.com/demonccc/audiowrt-packages).
+
+## MVP
+
+The current MVP is intended to be flashable and usable as a small network-audio appliance:
+
+```text
+flash AudioWRT
+      |
+      +--> Ethernet works as a DHCP client
+      |
+      +--> AudioWRT-XXXX temporary setup AP
+              |
+              v
+         http://192.168.77.1/
+              |
+              v
+         configure home Wi-Fi
+              |
+              v
+         AudioWRT switches to STA mode
+              |
+              v
+         connect a USB DAC
+              |
+              v
+       automatic ALSA output
+          + MPD
+          + AirPlay
+          + LuCI status
+```
+
+The runtime behavior is implemented in `audiowrt-packages`, not duplicated in this distribution repository.
+
+### First boot
+
+When Wi-Fi hardware is available, an unprovisioned device creates an isolated open setup AP named from the device MAC address, for example:
+
+```text
+AudioWRT-A4F2
+```
+
+Connect to it and open:
+
+```text
+http://192.168.77.1/
+```
+
+The setup page accepts the home Wi-Fi SSID, security mode and password. AudioWRT disables the temporary AP while attempting the STA connection. If the connection fails, the setup AP is restored automatically.
+
+After successful provisioning, losing Wi-Fi does **not** automatically reopen the setup AP. On devices with a WPS button, hold it for at least five seconds to explicitly re-enter provisioning mode.
+
+Ethernet remains a DHCP client and can be used independently of Wi-Fi.
+
+### Audio output
+
+AudioWRT detects the first USB Audio Class playback device and makes it the system ALSA `default` output. USB hotplug events update the selected output automatically.
+
+The MVP includes:
+
+- MPD configured for local files under `/mnt/music` and HTTP streams;
+- AirPlay through the minimal Shairport Sync variant;
+- a LuCI AudioWRT overview showing network and USB-audio state.
 
 ## Design principles
 
@@ -14,6 +76,7 @@ AudioWRT does **not** fork or vendor the OpenWrt source tree. Each build starts 
 - A build fails when USB host capability cannot be confirmed from the selected OpenWrt device profile.
 - The same build command is used locally and in GitHub Actions.
 - OpenWrt versions are build inputs, not AudioWRT branches.
+- Reusable runtime behavior belongs in `audiowrt-packages`.
 
 ## Hardware requirements
 
@@ -35,7 +98,7 @@ The build validates USB support from the OpenWrt source metadata for the selecte
 The easiest way to find it is:
 
 1. Open the [OpenWrt Firmware Selector](https://firmware-selector.openwrt.org/).
-2. Search for your exact device model and hardware revision.
+2. Search for the exact device model and hardware revision.
 3. Open the device entry.
 4. Use the OpenWrt profile/device identifier as `PLATFORM`.
 
@@ -72,15 +135,25 @@ make build \
   OPENWRT_REF=openwrt-25.12
 ```
 
-or:
+`OPENWRT_REF=stable` is the default.
+
+## AudioWRT package-feed selection
+
+By default, builds use the `main` branch of `demonccc/audiowrt-packages`:
+
+```sh
+make build PLATFORM=glinet_gl-mt6000
+```
+
+A package-feed branch or tag can be selected independently, which is useful when developing distribution and package changes together:
 
 ```sh
 make build \
   PLATFORM=glinet_gl-mt6000 \
-  OPENWRT_REF=v25.12.5
+  AUDIOWRT_PACKAGES_REF=feat/mvp-runtime
 ```
 
-`OPENWRT_REF=stable` is the default.
+The exact package-feed commit is recorded in the build manifest.
 
 ## Build process
 
@@ -138,27 +211,7 @@ After `make defconfig`, AudioWRT validates both lists. The build fails if a requ
 
 Everything under [`files/`](files/) is copied into OpenWrt's build-root overlay before compilation.
 
-Use this directory for AudioWRT defaults and files that belong in the firmware image, for example:
-
-```text
-files/
-└── etc/
-    ├── banner
-    ├── config/
-    └── uci-defaults/
-```
-
-Runtime services that belong to reusable audio functionality should normally live in [`audiowrt-packages`](https://github.com/demonccc/audiowrt-packages), not in this repository.
-
-## AudioWRT package feed
-
-The build automatically adds:
-
-```text
-src-git audiowrt https://github.com/demonccc/audiowrt-packages.git
-```
-
-The package repository can also be used independently from AudioWRT on a standard OpenWrt installation.
+The distribution overlay is intentionally small. Runtime services, network provisioning and audio behavior belong in [`audiowrt-packages`](https://github.com/demonccc/audiowrt-packages).
 
 ## Local build
 
@@ -177,6 +230,7 @@ Optional variables:
 make build \
   PLATFORM=glinet_gl-mt6000 \
   OPENWRT_REF=openwrt-25.12 \
+  AUDIOWRT_PACKAGES_REF=main \
   JOBS=8
 ```
 
@@ -193,29 +247,18 @@ make clean
 The `Build AudioWRT` workflow is manually runnable and accepts:
 
 - `platform`: required OpenWrt device profile identifier;
-- `openwrt_ref`: optional branch, tag or commit, defaulting to `stable`;
-- `jobs`: optional parallel build job count.
+- `openwrt_ref`: branch, tag or commit, defaulting to `stable`;
+- `audiowrt_packages_ref`: package-feed branch or tag, defaulting to `main`;
+- `jobs`: parallel build job count.
 
 The workflow calls the same `make build` entry point used locally and uploads the resulting `output/` directory as an artifact.
 
-## Networking direction
-
-The initial AudioWRT runtime model is intentionally smaller than a normal router firmware:
-
-- Ethernet: DHCP client.
-- Wi-Fi: station/client during normal operation.
-- First boot: temporary minimal Wi-Fi provisioning AP.
-- No normal NAT/router role.
-- No normal firewall management UI.
-- mDNS for local discovery.
-- Package management remains available underneath the appliance so drivers and audio extensions can be installed when needed.
-
-The provisioning implementation is tracked separately from the build-system architecture.
+Pull requests also run a complete MVP firmware build for `glinet_gl-mt6000` against OpenWrt 25.12. This integration build proves that the distribution and package feed resolve together and produce real firmware artifacts.
 
 ## Repository roles
 
-- [`demonccc/audiowrt`](https://github.com/demonccc/audiowrt): reproducible distribution build, package policy, defaults and image overlay.
-- [`demonccc/audiowrt-packages`](https://github.com/demonccc/audiowrt-packages): reusable OpenWrt packages and LuCI applications for AudioWRT functionality.
+- [`demonccc/audiowrt`](https://github.com/demonccc/audiowrt): reproducible distribution build, package policy and image overlay.
+- [`demonccc/audiowrt-packages`](https://github.com/demonccc/audiowrt-packages): functional, reusable OpenWrt packages and LuCI applications for AudioWRT runtime behavior.
 
 ## License
 
