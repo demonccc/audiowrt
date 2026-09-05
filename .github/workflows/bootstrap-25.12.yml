@@ -1,0 +1,51 @@
+name: Bootstrap AudioWRT 25.12 branch
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/bootstrap-25.12.yml'
+      - 'bootstrap/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project metadata
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create downstream branch if missing
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git ls-remote --exit-code --heads origin audiowrt-25.12 >/dev/null 2>&1; then
+            echo 'audiowrt-25.12 already exists; nothing to bootstrap.'
+            exit 0
+          fi
+
+          tmp="$(mktemp -d)"
+          cp -a bootstrap/. "$tmp/"
+
+          git remote add upstream https://github.com/openwrt/openwrt.git
+          git fetch --depth=1 upstream openwrt-25.12
+          git checkout -B audiowrt-25.12 FETCH_HEAD
+
+          if ! grep -q '^src-git audiowrt ' feeds.conf.default; then
+            printf '\nsrc-git audiowrt https://github.com/demonccc/audiowrt-packages.git\n' >> feeds.conf.default
+          fi
+
+          cp -a "$tmp/root/." .
+
+          git add feeds.conf.default package/audiowrt-profile
+          git -c user.name='AudioWRT Automation' \
+              -c user.email='actions@users.noreply.github.com' \
+              commit -m 'AudioWRT: bootstrap 25.12 distribution'
+          git push origin audiowrt-25.12
