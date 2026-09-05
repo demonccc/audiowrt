@@ -1,0 +1,7 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+
+uci -q set system.@system[0].hostname='AudioWRT'
+uci -q commit system
+
+exit 0

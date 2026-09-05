@@ -1,0 +1,33 @@
+name: Validate AudioWRT
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout AudioWRT
+        uses: actions/checkout@v4
+
+      - name: Validate shell scripts
+        run: |
+          for script in scripts/*.sh tests/*.sh; do
+            bash -n "$script"
+          done
+
+      - name: Validate Python scripts
+        run: python3 -m py_compile scripts/*.py
+
+      - name: Validate Makefile entry point
+        run: make help
+
+      - name: Test platform and USB metadata validation
+        run: bash tests/test-build-metadata.sh
