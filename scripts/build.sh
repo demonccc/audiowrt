@@ -7,6 +7,8 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 platform="${PLATFORM:-}"
 requested_ref="${OPENWRT_REF:-stable}"
 openwrt_repo="${OPENWRT_REPOSITORY:-https://github.com/openwrt/openwrt.git}"
+packages_repo="${AUDIOWRT_PACKAGES_REPOSITORY:-https://github.com/demonccc/audiowrt-packages.git}"
+packages_ref="${AUDIOWRT_PACKAGES_REF:-main}"
 jobs="${JOBS:-}"
 
 if [[ -z "$platform" ]]; then
@@ -29,6 +31,7 @@ printf 'AudioWRT build\n'
 printf '  Platform: %s\n' "$platform"
 printf '  Requested OpenWrt ref: %s\n' "$requested_ref"
 printf '  Resolved OpenWrt ref: %s\n' "$resolved_ref"
+printf '  AudioWRT packages ref: %s\n' "$packages_ref"
 printf '  Jobs: %s\n' "$jobs"
 
 rm -rf "$work_dir" "$output_dir"
@@ -41,8 +44,14 @@ git -C "$openwrt_dir" checkout --detach FETCH_HEAD
 
 cd "$openwrt_dir"
 cp feeds.conf.default feeds.conf
+
+feed_source="$packages_repo"
+if [[ -n "$packages_ref" && "$packages_ref" != "main" ]]; then
+    feed_source="${feed_source};${packages_ref}"
+fi
+
 if ! grep -qE '^src-git[[:space:]]+audiowrt[[:space:]]' feeds.conf; then
-    printf '\nsrc-git audiowrt https://github.com/demonccc/audiowrt-packages.git\n' >> feeds.conf
+    printf '\nsrc-git audiowrt %s\n' "$feed_source" >> feeds.conf
 fi
 
 ./scripts/feeds update -a
@@ -101,6 +110,8 @@ import sys
 metadata = json.load(open(sys.argv[1], encoding="utf-8"))
 manifest = {
     "audiowrt_commit": "$audiowrt_commit",
+    "audiowrt_packages_repository": "$packages_repo",
+    "audiowrt_packages_ref": "$packages_ref",
     "audiowrt_packages_commit": "$audiowrt_packages_commit",
     "openwrt_repository": "$openwrt_repo",
     "openwrt_requested_ref": "$requested_ref",

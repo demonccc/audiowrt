@@ -12,6 +12,11 @@ on:
         required: true
         default: stable
         type: string
+      audiowrt_packages_ref:
+        description: AudioWRT package-feed branch or tag
+        required: true
+        default: main
+        type: string
       jobs:
         description: Number of parallel build jobs
         required: true
@@ -60,6 +65,7 @@ jobs:
           make build \
             PLATFORM='${{ inputs.platform }}' \
             OPENWRT_REF='${{ inputs.openwrt_ref }}' \
+            AUDIOWRT_PACKAGES_REF='${{ inputs.audiowrt_packages_ref }}' \
             JOBS='${{ inputs.jobs }}'
 
       - name: Upload firmware
