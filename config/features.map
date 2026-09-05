@@ -1,0 +1,3 @@
+# feature|AudioWRT package|description
+mpd|audiowrt-mpd|Local music and HTTP playback through MPD.
+airplay|audiowrt-airplay|AirPlay receiver through Shairport Sync.

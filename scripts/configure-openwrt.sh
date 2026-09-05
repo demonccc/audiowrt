@@ -3,8 +3,8 @@
 
 set -euo pipefail
 
-if [[ $# -ne 4 ]]; then
-    echo "ERROR: usage: configure-openwrt.sh <openwrt-dir> <platform.json> <packages.add> <packages.remove>" >&2
+if [[ $# -ne 5 ]]; then
+    echo "ERROR: usage: configure-openwrt.sh <openwrt-dir> <platform.json> <packages.add> <packages.remove> <features.json>" >&2
     exit 2
 fi
 
@@ -12,6 +12,7 @@ openwrt_dir="$1"
 metadata_file="$2"
 packages_add="$3"
 packages_remove="$4"
+features_file="$5"
 
 json_value() {
     python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))[sys.argv[2]])' "$metadata_file" "$1"
@@ -19,6 +20,15 @@ json_value() {
 
 read_package_list() {
     grep -Ev '^[[:space:]]*(#|$)' "$1" || true
+}
+
+read_feature_packages() {
+    python3 - "$features_file" <<'PY'
+import json
+import sys
+for package in json.load(open(sys.argv[1], encoding="utf-8"))["packages"]:
+    print(package)
+PY
 }
 
 set_config_y() {
@@ -59,6 +69,10 @@ while IFS= read -r package; do
 done < <(read_package_list "$packages_add")
 
 while IFS= read -r package; do
+    set_config_y "PACKAGE_${package}"
+done < <(read_feature_packages)
+
+while IFS= read -r package; do
     set_config_n "PACKAGE_${package}"
 done < <(read_package_list "$packages_remove")
 
@@ -69,10 +83,18 @@ failed=0
 while IFS= read -r package; do
     symbol="CONFIG_PACKAGE_${package}=y"
     if ! grep -Fqx "$symbol" .config; then
-        echo "ERROR: required AudioWRT package was not enabled: $package" >&2
+        echo "ERROR: required AudioWRT core package was not enabled: $package" >&2
         failed=1
     fi
 done < <(read_package_list "$packages_add")
+
+while IFS= read -r package; do
+    symbol="CONFIG_PACKAGE_${package}=y"
+    if ! grep -Fqx "$symbol" .config; then
+        echo "ERROR: requested AudioWRT feature package was not enabled: $package" >&2
+        failed=1
+    fi
+done < <(read_feature_packages)
 
 while IFS= read -r package; do
     if grep -Eq "^CONFIG_PACKAGE_${package}=(y|m)$" .config; then

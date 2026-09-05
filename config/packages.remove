@@ -4,11 +4,18 @@
 # OpenWrt's device profile and must not be removed here.
 
 firewall4
-luci-app-firewall
-luci-proto-ppp
-ppp
-ppp-mod-pppoe
-odhcpd-ipv6only
 nftables
 kmod-nft-nat
 kmod-nft-offload
+ppp
+ppp-mod-pppoe
+odhcpd-ipv6only
+luci
+luci-light
+luci-mod-admin-full
+luci-mod-network
+luci-mod-status
+luci-mod-system
+luci-app-firewall
+luci-app-package-manager
+luci-proto-ppp

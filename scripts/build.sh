@@ -9,6 +9,7 @@ requested_ref="${OPENWRT_REF:-stable}"
 openwrt_repo="${OPENWRT_REPOSITORY:-https://github.com/openwrt/openwrt.git}"
 packages_repo="${AUDIOWRT_PACKAGES_REPOSITORY:-https://github.com/demonccc/audiowrt-packages.git}"
 packages_ref="${AUDIOWRT_PACKAGES_REF:-main}"
+features="${FEATURES:-}"
 jobs="${JOBS:-}"
 
 if [[ -z "$platform" ]]; then
@@ -25,6 +26,7 @@ safe_ref="$(printf '%s' "$resolved_ref" | tr '/:@ ' '____')"
 work_dir="$repo_root/.work/${platform}-${safe_ref}"
 openwrt_dir="$work_dir/openwrt"
 platform_metadata="$work_dir/platform.json"
+selected_features="$work_dir/features.json"
 output_dir="$repo_root/output/$platform/$safe_ref"
 
 printf 'AudioWRT build\n'
@@ -32,6 +34,7 @@ printf '  Platform: %s\n' "$platform"
 printf '  Requested OpenWrt ref: %s\n' "$requested_ref"
 printf '  Resolved OpenWrt ref: %s\n' "$resolved_ref"
 printf '  AudioWRT packages ref: %s\n' "$packages_ref"
+printf '  Optional features: %s\n' "${features:-none}"
 printf '  Jobs: %s\n' "$jobs"
 
 rm -rf "$work_dir" "$output_dir"
@@ -57,22 +60,28 @@ fi
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
-# Build OpenWrt's own metadata before AudioWRT selects or adds packages.
+# Build OpenWrt metadata before AudioWRT selects or adds firmware packages.
 make -s prepare-tmpinfo
 
 python3 "$repo_root/scripts/resolve-platform.py" \
     "$openwrt_dir/tmp/.targetinfo" \
     "$platform" > "$platform_metadata"
 
+# USB validation intentionally uses the unmodified OpenWrt device metadata.
 python3 "$repo_root/scripts/check-usb.py" \
     "$platform_metadata" \
     "$repo_root/config/usb-host-packages"
+
+python3 "$repo_root/scripts/resolve-features.py" \
+    "$repo_root/config/features.map" \
+    "$features" > "$selected_features"
 
 bash "$repo_root/scripts/configure-openwrt.sh" \
     "$openwrt_dir" \
     "$platform_metadata" \
     "$repo_root/config/packages.add" \
-    "$repo_root/config/packages.remove"
+    "$repo_root/config/packages.remove" \
+    "$selected_features"
 
 mkdir -p "$openwrt_dir/files"
 rsync -a "$repo_root/files/" "$openwrt_dir/files/"
@@ -83,6 +92,7 @@ subtarget="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["su
 printf 'Building OpenWrt for %s/%s...\n' "$target" "$subtarget"
 if ! make -j"$jobs"; then
     echo "ERROR: OpenWrt build failed." >&2
+    echo "The selected image may be too large for the device or another build error occurred." >&2
     echo "For detailed diagnostics, rerun inside $openwrt_dir with: make -j1 V=s" >&2
     exit 10
 fi
@@ -95,19 +105,26 @@ fi
 
 rsync -a "$artifact_dir/" "$output_dir/"
 cp "$platform_metadata" "$output_dir/platform.json"
+cp "$selected_features" "$output_dir/selected-features.json"
 cp "$repo_root/config/packages.add" "$output_dir/audiowrt-packages.add"
 cp "$repo_root/config/packages.remove" "$output_dir/audiowrt-packages.remove"
 cp "$openwrt_dir/.config" "$output_dir/openwrt.config"
+
+python3 "$repo_root/scripts/image-size-report.py" \
+    "$output_dir" \
+    "$output_dir/image-size-report.json" \
+    "$output_dir/image-size-report.txt"
 
 openwrt_commit="$(git -C "$openwrt_dir" rev-parse HEAD)"
 audiowrt_commit="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || printf 'unknown')"
 audiowrt_packages_commit="$(git -C "$openwrt_dir/feeds/audiowrt" rev-parse HEAD 2>/dev/null || printf 'unknown')"
 
-python3 - "$platform_metadata" "$output_dir/manifest.json" <<PY
+python3 - "$platform_metadata" "$selected_features" "$output_dir/manifest.json" <<PY
 import json
 import sys
 
 metadata = json.load(open(sys.argv[1], encoding="utf-8"))
+features_data = json.load(open(sys.argv[2], encoding="utf-8"))
 manifest = {
     "audiowrt_commit": "$audiowrt_commit",
     "audiowrt_packages_repository": "$packages_repo",
@@ -117,11 +134,13 @@ manifest = {
     "openwrt_requested_ref": "$requested_ref",
     "openwrt_resolved_ref": "$resolved_ref",
     "openwrt_commit": "$openwrt_commit",
+    "features": features_data["features"],
     "platform": metadata,
 }
-with open(sys.argv[2], "w", encoding="utf-8") as handle:
+with open(sys.argv[3], "w", encoding="utf-8") as handle:
     json.dump(manifest, handle, indent=2, sort_keys=True)
     handle.write("\n")
 PY
 
 printf '\nAudioWRT build complete.\nArtifacts: %s\n' "$output_dir"
+cat "$output_dir/image-size-report.txt"

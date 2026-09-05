@@ -2,168 +2,154 @@
 
 AudioWRT is an audio-focused OpenWrt build system for turning compatible OpenWrt devices into lightweight, reliable network audio players.
 
-AudioWRT does **not** fork or vendor the OpenWrt source tree. Each build starts from a clean OpenWrt checkout, lets OpenWrt resolve the selected device and all hardware-specific packages, then applies the AudioWRT package policy, filesystem overlay and reusable packages from [`demonccc/audiowrt-packages`](https://github.com/demonccc/audiowrt-packages).
+AudioWRT does **not** fork or vendor the OpenWrt source tree. Each build starts from a clean upstream OpenWrt checkout, lets OpenWrt resolve the selected device and its hardware-specific packages, then applies the AudioWRT core package policy, filesystem overlay and reusable packages from [`demonccc/audiowrt-packages`](https://github.com/demonccc/audiowrt-packages).
 
-## MVP
+## Core versus extensions
 
-The current MVP is intended to be flashable and usable as a small network-audio appliance:
+AudioWRT does not assume that every router has enough internal flash to contain every audio engine.
 
-```text
-flash AudioWRT
-      |
-      +--> Ethernet works as a DHCP client
-      |
-      +--> AudioWRT-XXXX temporary setup AP
-              |
-              v
-         http://192.168.77.1/
-              |
-              v
-         configure home Wi-Fi
-              |
-              v
-         AudioWRT switches to STA mode
-              |
-              v
-         connect a USB DAC
-              |
-              v
-       automatic ALSA output
-          + MPD
-          + AirPlay
-          + LuCI status
-```
+The default firmware is the **AudioWRT Core**:
 
-The runtime behavior is implemented in `audiowrt-packages`, not duplicated in this distribution repository.
+- OpenWrt device drivers and firmware;
+- Ethernet as a DHCP client;
+- Wi-Fi STA plus temporary first-boot provisioning AP;
+- USB host support from the OpenWrt device profile;
+- USB Audio Class and automatic ALSA output selection;
+- minimal LuCI (`luci-base` + `luci-app-audiowrt`);
+- AudioWRT extension storage and extension management;
+- no normal NAT, firewall or router administration stack.
 
-### First boot
-
-When Wi-Fi hardware is available, an unprovisioned device creates an isolated open setup AP named from the device MAC address, for example:
+MPD and AirPlay are optional. They can either be preinstalled at build time or installed later from the AudioWRT Extensions UI.
 
 ```text
-AudioWRT-A4F2
+Internal flash
+└── AudioWRT Core
+    ├── networking and provisioning
+    ├── USB audio
+    ├── minimal LuCI
+    ├── storage manager
+    └── extension manager
+
+Optional USB storage
+└── writable package overlay
+    ├── MPD
+    ├── AirPlay
+    ├── future audio engines
+    └── optional local music
 ```
 
-Connect to it and open:
+If external storage is enabled, AudioWRT uses OpenWrt extroot so `apk` installs packages there transparently. Removing the external storage returns the device to the internal AudioWRT core on the next boot. Runtime state is kept in RAM where practical to minimize writes.
+
+## Reference device
+
+The initial reference/test device is the **TP-Link TL-WDR4300 v1**.
+
+```text
+OpenWrt profile: tplink_tl-wdr4300-v1
+Target:           ath79/generic
+USB:              USB 2.0 host support from the OpenWrt profile
+```
+
+A core build is:
+
+```sh
+make build PLATFORM=tplink_tl-wdr4300-v1
+```
+
+The WDR4300 is intentionally a constrained reference target. It proves that the core can stay small while larger audio engines remain optional. The device is not hard-coded anywhere in AudioWRT; any compatible OpenWrt device profile with confirmed USB host support can be selected.
+
+## Optional build-time features
+
+Use `FEATURES` only when you want an audio engine built into the firmware image:
+
+```sh
+make build \
+  PLATFORM=tplink_tl-wdr4300-v1 \
+  FEATURES="mpd airplay"
+```
+
+Available feature IDs are defined in [`config/features.map`](config/features.map). `FEATURES=all` selects every currently defined feature.
+
+OpenWrt performs the authoritative per-device image-size check. If the selected core plus features does not fit the device image limit, the build fails. AudioWRT never silently drops requested features to make an image fit.
+
+For low-flash devices, build the core with an empty `FEATURES` value and install engines later after enabling USB extension storage.
+
+## First boot
+
+When Wi-Fi hardware is available, an unprovisioned device creates an isolated setup AP named from its MAC address, for example `AudioWRT-A4F2`. Connect to it and open:
 
 ```text
 http://192.168.77.1/
 ```
 
-The setup page accepts the home Wi-Fi SSID, security mode and password. AudioWRT disables the temporary AP while attempting the STA connection. If the connection fails, the setup AP is restored automatically.
+AudioWRT switches to Wi-Fi STA mode after successful provisioning. A failed attempt restores the setup AP. After successful provisioning, ordinary Wi-Fi loss does not reopen the setup AP; hold the WPS button for at least five seconds to explicitly re-enter provisioning mode where supported.
 
-After successful provisioning, losing Wi-Fi does **not** automatically reopen the setup AP. On devices with a WPS button, hold it for at least five seconds to explicitly re-enter provisioning mode.
+Ethernet remains a DHCP client and provides an independent management path.
 
-Ethernet remains a DHCP client and can be used independently of Wi-Fi.
+## Audio output
 
-### Audio output
-
-AudioWRT detects the first USB Audio Class playback device and makes it the system ALSA `default` output. USB hotplug events update the selected output automatically.
-
-The MVP includes:
-
-- MPD configured for local files under `/mnt/music` and HTTP streams;
-- AirPlay through the minimal Shairport Sync variant;
-- a LuCI AudioWRT overview showing network and USB-audio state.
-
-## Design principles
-
-- OpenWrt remains the source of truth for device support, kernel configuration and hardware-specific packages.
-- AudioWRT only defines what is common to the audio appliance.
-- Router-oriented packages are removed from the firmware image, not from the OpenWrt source tree.
-- The selected OpenWrt device profile controls board-specific drivers and firmware.
-- USB host support is mandatory for the initial AudioWRT architecture.
-- A build fails when USB host capability cannot be confirmed from the selected OpenWrt device profile.
-- The same build command is used locally and in GitHub Actions.
-- OpenWrt versions are build inputs, not AudioWRT branches.
-- Reusable runtime behavior belongs in `audiowrt-packages`.
-
-## Hardware requirements
-
-AudioWRT currently requires:
-
-- a device supported by OpenWrt;
-- at least one usable USB host interface;
-- enough flash and RAM for the selected AudioWRT package set;
-- Ethernet and/or Wi-Fi connectivity.
-
-USB is intentionally a hard requirement for the first AudioWRT generation because USB Audio Class devices are the primary audio-output path.
-
-The build validates USB support from the OpenWrt source metadata for the selected device profile. It does **not** query the OpenWrt website during the build. If OpenWrt does not expose a recognized USB host package for the selected device profile, the build stops rather than guessing.
+AudioWRT detects the first USB Audio playback device and exposes it as the ALSA `default` output. USB hotplug re-runs output selection. Optional audio engines consume the logical AudioWRT ALSA output rather than hard-coding a card number.
 
 ## Selecting a platform
 
-`PLATFORM` is the OpenWrt **device profile identifier**.
+`PLATFORM` is the native OpenWrt **device profile identifier**. AudioWRT does not maintain a platform database.
 
-The easiest way to find it is:
+To find it:
 
 1. Open the [OpenWrt Firmware Selector](https://firmware-selector.openwrt.org/).
 2. Search for the exact device model and hardware revision.
-3. Open the device entry.
-4. Use the OpenWrt profile/device identifier as `PLATFORM`.
+3. Open the device entry and identify its profile/device identifier.
+4. Pass that value as `PLATFORM`.
 
-You can also use the [OpenWrt Table of Hardware](https://openwrt.org/toh/start) to verify hardware details such as USB availability before building.
+The [OpenWrt Table of Hardware](https://openwrt.org/toh/start) is also useful for checking hardware details before building.
 
-Example:
+AudioWRT then reads the target metadata generated by the exact OpenWrt source ref being built and resolves `PLATFORM` to target/subtarget/profile.
+
+## Mandatory USB gate
+
+USB host support is required by the initial AudioWRT architecture.
+
+The USB gate runs **before** AudioWRT packages are selected. It checks the selected OpenWrt device profile for a recognized USB host-controller package. It does not infer capability from packages that AudioWRT adds and it does not query the OpenWrt website.
 
 ```text
-Device: GL.iNet GL-MT6000
-OpenWrt profile: glinet_gl-mt6000
+USB confirmed -> continue
+USB missing   -> fail
+USB unknown   -> fail
 ```
 
-Build it with:
-
-```sh
-make build PLATFORM=glinet_gl-mt6000
-```
-
-AudioWRT discovers the OpenWrt target and subtarget from OpenWrt's own generated target metadata. There is no AudioWRT platform database to maintain.
+For example, OpenWrt's TL-WDR4300 v1 profile explicitly adds `kmod-usb2`, so it satisfies the gate.
 
 ## OpenWrt version selection
 
-By default, AudioWRT resolves `stable` to the newest final OpenWrt release tag available upstream.
-
-```sh
-make build PLATFORM=glinet_gl-mt6000
-```
-
-You can override the OpenWrt ref with any branch, tag or commit that exists in the upstream repository:
+`OPENWRT_REF=stable` is the default. AudioWRT resolves it to the newest final upstream OpenWrt release tag. A branch, tag or commit can be selected explicitly:
 
 ```sh
 make build \
-  PLATFORM=glinet_gl-mt6000 \
+  PLATFORM=tplink_tl-wdr4300-v1 \
   OPENWRT_REF=openwrt-25.12
 ```
 
-`OPENWRT_REF=stable` is the default.
+OpenWrt versions are build inputs, not AudioWRT branches.
 
-## AudioWRT package-feed selection
+## Package feed selection
 
-By default, builds use the `main` branch of `demonccc/audiowrt-packages`:
-
-```sh
-make build PLATFORM=glinet_gl-mt6000
-```
-
-A package-feed branch or tag can be selected independently, which is useful when developing distribution and package changes together:
+By default the build uses `demonccc/audiowrt-packages:main`. During joint development another package-feed ref can be selected:
 
 ```sh
 make build \
-  PLATFORM=glinet_gl-mt6000 \
+  PLATFORM=tplink_tl-wdr4300-v1 \
   AUDIOWRT_PACKAGES_REF=feat/mvp-runtime
 ```
 
-The exact package-feed commit is recorded in the build manifest.
+The exact package-feed commit is recorded in the output manifest.
 
 ## Build process
-
-A build performs the following steps:
 
 ```text
 Resolve OpenWrt ref
         |
         v
-Clone openwrt/openwrt
+Clone clean openwrt/openwrt
         |
         v
 Add AudioWRT package feed
@@ -172,93 +158,74 @@ Add AudioWRT package feed
 Generate OpenWrt target metadata
         |
         v
-Resolve PLATFORM -> target/subtarget/profile
+Resolve PLATFORM
         |
         v
 Validate USB host support
         |
         v
-Let OpenWrt generate the device configuration
+Resolve optional FEATURES
         |
         v
-Add AudioWRT packages
-        |
-        v
-Remove router-oriented packages
+OpenWrt device defaults
++ AudioWRT core packages
++ selected feature packages
+- router-oriented packages
         |
         v
 Apply AudioWRT filesystem overlay
         |
         v
-Build OpenWrt
+Build
         |
         v
-Copy firmware and build manifest to output/
+Firmware + manifest + image-size report
 ```
 
-## Package policy
+The package policy lives in:
 
-AudioWRT keeps two generic package lists:
+- [`config/packages.add`](config/packages.add): mandatory AudioWRT core packages;
+- [`config/packages.remove`](config/packages.remove): generic router-oriented packages that must be absent;
+- [`config/features.map`](config/features.map): optional build-time audio engines.
 
-- [`config/packages.add`](config/packages.add): packages that AudioWRT requires on top of the selected OpenWrt device profile.
-- [`config/packages.remove`](config/packages.remove): router-oriented packages that must not be present in the final firmware.
-
-OpenWrt device packages are never replaced with a custom AudioWRT platform definition. Board-specific Wi-Fi firmware, Ethernet drivers, USB host controllers and other hardware dependencies remain OpenWrt's responsibility.
-
-After `make defconfig`, AudioWRT validates both lists. The build fails if a required package cannot be enabled or if a forbidden package is pulled back in by a dependency.
-
-## Filesystem overlay
-
-Everything under [`files/`](files/) is copied into OpenWrt's build-root overlay before compilation.
-
-The distribution overlay is intentionally small. Runtime services, network provisioning and audio behavior belong in [`audiowrt-packages`](https://github.com/demonccc/audiowrt-packages).
+Board-specific Wi-Fi firmware, Ethernet drivers, USB host controllers and other device dependencies remain OpenWrt's responsibility.
 
 ## Local build
 
-Requirements are the normal OpenWrt source-build requirements plus Git and Python 3.
+Use a host that satisfies the normal OpenWrt source-build requirements:
 
 ```sh
 git clone https://github.com/demonccc/audiowrt.git
 cd audiowrt
-
-make build PLATFORM=glinet_gl-mt6000
+make build PLATFORM=tplink_tl-wdr4300-v1
 ```
 
 Optional variables:
 
 ```sh
 make build \
-  PLATFORM=glinet_gl-mt6000 \
+  PLATFORM=tplink_tl-wdr4300-v1 \
   OPENWRT_REF=openwrt-25.12 \
   AUDIOWRT_PACKAGES_REF=main \
+  FEATURES="mpd airplay" \
   JOBS=8
 ```
 
-The OpenWrt source checkout is created under `.work/` and firmware artifacts are copied to `output/`.
+The source checkout is created under `.work/`; firmware and reproducibility metadata are copied under `output/`.
 
-Clean the local build workspace with:
+## GitHub Actions policy
 
-```sh
-make clean
-```
+GitHub-hosted runners are **never started automatically** by this repository. Both workflows are manual `workflow_dispatch` workflows.
 
-## GitHub Actions
+- `Validate AudioWRT` runs the fast script and metadata tests.
+- `Build AudioWRT` performs a real firmware build and uploads the result.
 
-The `Build AudioWRT` workflow is manually runnable and accepts:
-
-- `platform`: required OpenWrt device profile identifier;
-- `openwrt_ref`: branch, tag or commit, defaulting to `stable`;
-- `audiowrt_packages_ref`: package-feed branch or tag, defaulting to `main`;
-- `jobs`: parallel build job count.
-
-The workflow calls the same `make build` entry point used locally and uploads the resulting `output/` directory as an artifact.
-
-Pull requests also run a complete MVP firmware build for `glinet_gl-mt6000` against OpenWrt 25.12. This integration build proves that the distribution and package feed resolve together and produce real firmware artifacts.
+The manual build workflow defaults its platform input to `tplink_tl-wdr4300-v1`, but the value is editable. Run these workflows only when runner time is worth spending. Local builds use the exact same `make build` entry point.
 
 ## Repository roles
 
-- [`demonccc/audiowrt`](https://github.com/demonccc/audiowrt): reproducible distribution build, package policy and image overlay.
-- [`demonccc/audiowrt-packages`](https://github.com/demonccc/audiowrt-packages): functional, reusable OpenWrt packages and LuCI applications for AudioWRT runtime behavior.
+- [`demonccc/audiowrt`](https://github.com/demonccc/audiowrt): reproducible distribution build, core/feature policy and image overlay.
+- [`demonccc/audiowrt-packages`](https://github.com/demonccc/audiowrt-packages): reusable runtime packages, provisioning, USB audio, extension storage, extensions and focused LuCI UI.
 
 ## License
 

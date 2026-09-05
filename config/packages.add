@@ -1,17 +1,15 @@
-# Packages required by the AudioWRT distribution.
+# Packages required by the AudioWRT core firmware.
 #
 # Hardware-specific packages are intentionally NOT listed here. OpenWrt's
 # selected device profile remains responsible for board drivers and firmware.
+# Optional audio engines belong in config/features.map instead of this list.
 
 audiowrt-core
 audiowrt-usb-audio
-audiowrt-mpd
-audiowrt-airplay
+audiowrt-storage
+audiowrt-extensions
 luci-base
-luci-mod-network
-luci-mod-system
 luci-theme-bootstrap
-luci-app-package-manager
 luci-app-audiowrt
 uhttpd
 uhttpd-mod-ubus

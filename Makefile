@@ -1,6 +1,7 @@
 PLATFORM ?=
 OPENWRT_REF ?= stable
 AUDIOWRT_PACKAGES_REF ?= main
+FEATURES ?=
 JOBS ?=
 
 .PHONY: help build clean
@@ -9,21 +10,24 @@ help:
 	@printf '%s\n' \
 	  'AudioWRT build targets:' \
 	  '' \
-	  '  make build PLATFORM=<openwrt-profile> [OPENWRT_REF=stable] [AUDIOWRT_PACKAGES_REF=main] [JOBS=N]' \
+	  '  make build PLATFORM=<openwrt-profile> [OPENWRT_REF=stable] [AUDIOWRT_PACKAGES_REF=main] [FEATURES="mpd airplay"] [JOBS=N]' \
 	  '  make clean' \
 	  '' \
-	  'Examples:' \
-	  '  make build PLATFORM=glinet_gl-mt6000' \
-	  '  make build PLATFORM=glinet_gl-mt6000 OPENWRT_REF=openwrt-25.12 JOBS=8' \
-	  '  make build PLATFORM=glinet_gl-mt6000 AUDIOWRT_PACKAGES_REF=feat/mvp-runtime'
+	  'Reference device:' \
+	  '  make build PLATFORM=tplink_tl-wdr4300-v1' \
+	  '' \
+	  'Optional engines preinstalled in the firmware:' \
+	  '  make build PLATFORM=tplink_tl-wdr4300-v1 FEATURES="mpd airplay"' \
+	  '' \
+	  'For constrained devices, leave FEATURES empty and install engines later from the AudioWRT Extensions UI.'
 
 build:
 	@if [ -z "$(PLATFORM)" ]; then \
 		echo 'ERROR: PLATFORM is required.' >&2; \
-		echo 'Example: make build PLATFORM=glinet_gl-mt6000' >&2; \
+		echo 'Example: make build PLATFORM=tplink_tl-wdr4300-v1' >&2; \
 		exit 2; \
 	fi
-	@PLATFORM="$(PLATFORM)" OPENWRT_REF="$(OPENWRT_REF)" AUDIOWRT_PACKAGES_REF="$(AUDIOWRT_PACKAGES_REF)" JOBS="$(JOBS)" bash scripts/build.sh
+	@PLATFORM="$(PLATFORM)" OPENWRT_REF="$(OPENWRT_REF)" AUDIOWRT_PACKAGES_REF="$(AUDIOWRT_PACKAGES_REF)" FEATURES="$(FEATURES)" JOBS="$(JOBS)" bash scripts/build.sh
 
 clean:
 	@rm -rf .work output
