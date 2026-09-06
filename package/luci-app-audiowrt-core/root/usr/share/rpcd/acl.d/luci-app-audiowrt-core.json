@@ -1,0 +1,13 @@
+{
+	"luci-app-audiowrt-core": {
+		"description": "Grant access to AudioWRT distribution management",
+		"read": {
+			"uci": [ "audiowrt", "system" ],
+			"file": { "/usr/sbin/audiowrtctl": [ "exec" ], "/usr/sbin/audiowrt-storage": [ "exec" ] }
+		},
+		"write": {
+			"uci": [ "audiowrt", "system" ],
+			"file": { "/usr/sbin/audiowrtctl": [ "exec" ], "/usr/sbin/audiowrt-storage": [ "exec" ], "/sbin/reboot": [ "exec" ] }
+		}
+	}
+}

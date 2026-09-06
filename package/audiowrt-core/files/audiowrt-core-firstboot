@@ -1,0 +1,31 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+
+set -eu
+
+[ "$(uci -q get audiowrt.main.identity_initialized || echo 0)" = '1' ] && exit 0
+
+mac=''
+for path in /sys/class/net/*/address; do
+	[ -r "$path" ] || continue
+	value="$(cat "$path" 2>/dev/null || true)"
+	[ "$value" = '00:00:00:00:00:00' ] && continue
+	[ "$value" = 'ff:ff:ff:ff:ff:ff' ] && continue
+	mac="$value"
+	break
+done
+
+suffix="$(printf '%s' "$mac" | tr -d ':' | tail -c 4 | tr '[:lower:]' '[:upper:]')"
+[ -n "$suffix" ] || suffix='SETUP'
+name="AudioWRT-$suffix"
+
+uci -q set audiowrt.main.device_name="$name"
+uci -q set audiowrt.main.identity_initialized='1'
+uci -q set system.@system[0].hostname="$name" 2>/dev/null || true
+uci -q set audiowrt-audio.main.device_name="$name" 2>/dev/null || true
+uci -q commit audiowrt
+uci -q commit system 2>/dev/null || true
+uci -q commit audiowrt-audio 2>/dev/null || true
+
+/etc/init.d/umdns restart >/dev/null 2>&1 || true
+exit 0
