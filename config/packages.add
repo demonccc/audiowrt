@@ -1,0 +1,18 @@
+# Mandatory AudioWRT distribution-core packages.
+# Device-specific hardware packages remain OpenWrt's responsibility.
+
+audiowrt-core
+audiowrt-provisioning
+audiowrt-storage
+audiowrt-audio
+audiowrt-usb-audio
+audiowrt-extensions
+luci-base
+luci-theme-bootstrap
+luci-app-audiowrt
+luci-app-audiowrt-core
+uhttpd
+uhttpd-mod-ubus
+umdns
+dnsmasq
+wpad-basic-mbedtls

@@ -1,0 +1,35 @@
+name: Validate AudioWRT
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout AudioWRT
+        uses: actions/checkout@v4
+
+      - name: Validate shell scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for script in scripts/*.sh tests/*.sh; do
+            bash -n "$script"
+          done
+
+      - name: Validate Python scripts
+        run: python3 -m py_compile scripts/*.py
+
+      - name: Validate Makefile entry point
+        run: make help
+
+      - name: Test platform and USB metadata validation
+        run: bash tests/test-build-metadata.sh
+
+      - name: Test feature resolution
+        run: bash tests/test-features.sh

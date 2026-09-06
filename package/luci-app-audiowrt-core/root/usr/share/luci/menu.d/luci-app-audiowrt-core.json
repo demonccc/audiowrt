@@ -1,0 +1,5 @@
+{
+	"admin/audiowrt/network": { "title": "Network", "order": 40, "action": { "type": "view", "path": "audiowrt-core/network" } },
+	"admin/audiowrt/storage": { "title": "Storage", "order": 50, "action": { "type": "view", "path": "audiowrt-core/storage" } },
+	"admin/audiowrt/system": { "title": "System", "order": 60, "action": { "type": "view", "path": "audiowrt-core/system" } }
+}
