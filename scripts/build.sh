@@ -237,7 +237,13 @@ mapfile -t build_targets < <(
     exit 5
 }
 
-make_run "$sdk_dir" package/download -j"$jobs"
+# Avoid the SDK-wide package/download target: it traverses every package in
+# every installed feed. Download only sources for the selected AudioWRT source
+# packages; OpenWrt still resolves normal compile dependencies for each target.
+for target_path in "${build_targets[@]}"; do
+    download_target="${target_path%/compile}/download"
+    make_run "$sdk_dir" "$download_target" -j"$jobs"
+done
 for target_path in "${build_targets[@]}"; do
     make_run "$sdk_dir" "$target_path" -j"$jobs"
 done
