@@ -1,4 +1,5 @@
 .work/
+.cache/
 output/
 *.log
 .DS_Store
