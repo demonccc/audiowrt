@@ -6,12 +6,11 @@ AudioWRT does not maintain a fork of the OpenWrt source tree. Every firmware bui
 
 ## Exact-release policy
 
-AudioWRT intentionally does not build from moving OpenWrt branches or snapshots.
+AudioWRT intentionally does not build from moving OpenWrt branches, snapshots, aliases or release candidates.
 
 Accepted:
 
 ```text
-stable     -> resolves the latest final OpenWrt tag
 25.12.5    -> normalized to v25.12.5
 v25.12.5   -> exact tag
 ```
@@ -19,6 +18,7 @@ v25.12.5   -> exact tag
 Rejected:
 
 ```text
+stable
 openwrt-25.12
 main
 master
@@ -26,11 +26,17 @@ snapshot
 v25.12.5-rc1
 ```
 
-This makes the OpenWrt ABI, SDK, ImageBuilder and binary repositories a single release contract.
+The default is explicitly pinned to:
+
+```text
+OPENWRT_RELEASE=25.12.5
+```
+
+Moving to a newer OpenWrt version is therefore a deliberate AudioWRT change instead of an implicit consequence of an upstream branch or alias moving.
 
 ## Build model
 
-The build follows the same release-binary principle used by `release-patched` in [`demonccc/openwrt-builder`](https://github.com/demonccc/openwrt-builder), but AudioWRT does not patch OpenWrt kernel/target sources.
+The build follows the same release-binary principle used by `release-patched` in [`demonccc/openwrt-builder`](https://github.com/demonccc/openwrt-builder), but AudioWRT does not patch OpenWrt kernel or target sources.
 
 ```text
 Exact OpenWrt release tag (for example v25.12.5)
@@ -63,7 +69,7 @@ Official ImageBuilder for the same exact release/target
 AudioWRT firmware
 ```
 
-Unchanged OpenWrt packages are never rebuilt just because AudioWRT is being built. They come from the official repositories referenced by the exact release ImageBuilder.
+Unchanged OpenWrt packages are not rebuilt just because AudioWRT is being built. They come from the official repositories referenced by the exact release ImageBuilder.
 
 The SDK feed definitions are replaced with the release target's official `feeds.buildinfo`, which pins packages, LuCI, routing and other feeds to the exact commits used for that OpenWrt release.
 
@@ -87,7 +93,7 @@ make build \
 
 `make build` pulls the configured image and executes the AudioWRT build inside it. If the image cannot be pulled, the build fails; AudioWRT never falls back to building a Docker image locally.
 
-A different published/pinned builder image can be selected:
+A different published or pinned builder image can be selected:
 
 ```sh
 make build \
@@ -97,12 +103,6 @@ make build \
 ```
 
 The selected builder image is recorded in `BUILD_INFO` and `manifest.json`.
-
-## Why the SDK + official ImageBuilder split
-
-`release-patched` in `openwrt-builder` may generate a custom ImageBuilder because it can change target/kernel source. AudioWRT does not need that step.
-
-AudioWRT uses the official SDK only to compile its own packages and then injects those APKs into the official ImageBuilder. This also means SDK host tools are not copied into a generated ImageBuilder, avoiding the double-bundled host-tool class fixed in the current `openwrt-builder` release-patched implementation.
 
 ## Core versus optional audio engines
 
@@ -134,7 +134,7 @@ spotify
 bluetooth
 ```
 
-OpenWrt ImageBuilder enforces the selected device's image-size limit. AudioWRT does not silently drop requested features.
+OpenWrt ImageBuilder enforces the selected device's image-size limit. AudioWRT does not silently drop requested features. On constrained devices, larger services can instead be installed later through AudioWRT Extensions and optional USB extension storage.
 
 ## Reference device
 
@@ -201,12 +201,12 @@ Installing the reusable feed on a normal OpenWrt system does not change its LAN,
 
 ```text
 PLATFORM                 required OpenWrt device profile
-OPENWRT_RELEASE          stable or exact X.Y.Z / vX.Y.Z release
+OPENWRT_RELEASE          exact X.Y.Z / vX.Y.Z release (default 25.12.5)
 AUDIOWRT_PACKAGES_REF    reusable package-feed branch/tag/commit (default main)
 FEATURES                 optional music engines
 JOBS                     package build parallelism
 VERBOSITY                normal, verbose or debug
-BUILDER_IMAGE             existing openwrt-builder image
+BUILDER_IMAGE            existing openwrt-builder image
 ```
 
 For example:
@@ -243,11 +243,20 @@ The output also records:
 - locally compiled AudioWRT APKs;
 - image-size report.
 
-## GitHub Actions policy
+## GitHub Actions
 
-GitHub Actions are manual-only (`workflow_dispatch`). Pushes and pull requests do not start hosted runners automatically.
+The repository exposes the manual **Build AudioWRT** workflow under the Actions tab. It uses `workflow_dispatch` only; pushes and pull requests do not consume GitHub-hosted runner time.
 
-The manual workflow uses the same `make build` command as a local build and the same existing `openwrt-builder` Docker image. There is no AudioWRT Docker-image workflow.
+Its main inputs are:
+
+```text
+platform          default: tplink_tl-wdr4300-v1
+openwrt_release   default: 25.12.5
+features          default: empty (core only)
+builder_image     default: demonccc/openwrt-builder:latest
+```
+
+`openwrt_release` is editable, but it must be an exact final release such as `25.12.6`; moving release branches and aliases are rejected.
 
 ## License
 
