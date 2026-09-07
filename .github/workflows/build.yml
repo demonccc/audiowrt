@@ -65,7 +65,7 @@ jobs:
           OPENWRT_RELEASE: ${{ inputs.openwrt_release }}
         run: |
           if ! [[ "$OPENWRT_RELEASE" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "OPENWRT release must be an exact final version such as 25.12.5 or v25.12.5." >&2
+            echo "OpenWrt release must be an exact final version such as 25.12.5 or v25.12.5." >&2
             echo "Branches, aliases, snapshots and release candidates are not accepted." >&2
             exit 1
           fi
@@ -85,6 +85,7 @@ jobs:
             VERBOSITY='${{ inputs.verbosity }}'
 
       - name: Upload firmware
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: audiowrt-${{ inputs.platform }}-${{ inputs.openwrt_release }}
