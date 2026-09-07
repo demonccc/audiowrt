@@ -26,7 +26,7 @@ docker run --rm \
     -e AUDIOWRT_IN_CONTAINER=1 \
     -e BUILDER_IMAGE="$builder_image" \
     -e PLATFORM="${PLATFORM:-}" \
-    -e OPENWRT_RELEASE="${OPENWRT_RELEASE:-stable}" \
+    -e OPENWRT_RELEASE="${OPENWRT_RELEASE:-25.12.5}" \
     -e OPENWRT_REPOSITORY="${OPENWRT_REPOSITORY:-https://github.com/openwrt/openwrt.git}" \
     -e AUDIOWRT_PACKAGES_REPOSITORY="${AUDIOWRT_PACKAGES_REPOSITORY:-https://github.com/demonccc/audiowrt-packages.git}" \
     -e AUDIOWRT_PACKAGES_REF="${AUDIOWRT_PACKAGES_REF:-main}" \
