@@ -1,5 +1,5 @@
 PLATFORM ?=
-OPENWRT_RELEASE ?= stable
+OPENWRT_RELEASE ?= 25.12.5
 AUDIOWRT_PACKAGES_REF ?= main
 FEATURES ?=
 JOBS ?=
@@ -12,7 +12,7 @@ help:
 	@printf '%s\n' \
 	  'AudioWRT build targets:' \
 	  '' \
-	  '  make build PLATFORM=<openwrt-profile> [OPENWRT_RELEASE=stable|25.12.5] [AUDIOWRT_PACKAGES_REF=main] [FEATURES="mpd airplay spotify bluetooth"] [JOBS=N] [VERBOSITY=normal|verbose|debug]' \
+	  '  make build PLATFORM=<openwrt-profile> [OPENWRT_RELEASE=25.12.5] [AUDIOWRT_PACKAGES_REF=main] [FEATURES="mpd airplay spotify bluetooth"] [JOBS=N] [VERBOSITY=normal|verbose|debug]' \
 	  '  make clean' \
 	  '' \
 	  'Reference device:' \
