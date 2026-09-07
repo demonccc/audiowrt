@@ -28,6 +28,9 @@ jobs:
       - name: Validate Makefile entry point
         run: make help
 
+      - name: Test exact release policy
+        run: bash tests/test-release-ref.sh
+
       - name: Test platform and USB metadata validation
         run: bash tests/test-build-metadata.sh
 
