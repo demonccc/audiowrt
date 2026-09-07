@@ -1,69 +1,156 @@
 # AudioWRT Architecture
 
-## Two-layer model
+## Build contract
 
-AudioWRT has two deliberately separate ownership domains.
+AudioWRT firmware is anchored to one exact final OpenWrt release tag. A build from a moving stable branch is intentionally unsupported.
 
 ```text
-audiowrt
-  distribution-only behavior
-  ├── build system
-  ├── audiowrt-core
-  ├── audiowrt-provisioning
-  ├── audiowrt-storage
-  └── luci-app-audiowrt-core
+OPENWRT_RELEASE=stable
+        |
+        v
+latest final vX.Y.Z tag
 
-                consumes
-                   ↓
+or
 
-audiowrt-packages
-  reusable OpenWrt audio functionality
-  ├── audiowrt-audio
-  ├── audiowrt-usb-audio
-  ├── audiowrt-extensions
-  ├── audiowrt-mpd
-  ├── audiowrt-airplay
-  ├── audiowrt-spotify / librespot
-  ├── audiowrt-bluetooth / bluez-alsa
-  └── luci-app-audiowrt
+OPENWRT_RELEASE=25.12.5
+        |
+        v
+v25.12.5
 ```
 
-The rule is simple: **if a feature changes OpenWrt's role as a router/system, it belongs in `audiowrt`; if it only adds audio capability, it belongs in `audiowrt-packages`.**
+`openwrt-X.Y`, `main`, snapshots and release candidates are rejected.
 
-## Distribution core
+The exact release establishes a compatibility contract across:
 
-`audiowrt-core` owns identity and appliance state only. `audiowrt-provisioning` owns client-only networking, first boot and recovery. `audiowrt-storage` owns guided external extroot. This prevents any of those behaviors from being installed accidentally on an existing OpenWrt router through the reusable feed.
+- OpenWrt source metadata;
+- target/subtarget/device profile;
+- official SDK;
+- official ImageBuilder;
+- official binary repositories;
+- feed commit pins from `feeds.buildinfo`.
 
-`luci-app-audiowrt-core` extends the reusable AudioWRT menu with Network, Storage and System pages.
+## Relationship to openwrt-builder
 
-## Reusable audio layer
+The build model copies the release discipline of the `release-patched` method in `demonccc/openwrt-builder`.
 
-The reusable layer does not write `network`, `wireless`, `dhcp` or firewall configuration.
+`release-patched` must sometimes rebuild target/kernel source and generate a custom ImageBuilder. AudioWRT does not patch OpenWrt target or kernel source, so it uses a narrower variant:
 
-Music engines consume the logical ALSA `default` output. `audiowrt-usb-audio` can map it to a USB DAC; `audiowrt-bluetooth` can map it to a BlueALSA A2DP device. MPD, AirPlay and librespot therefore do not need board-specific audio configuration.
+```text
+exact release source metadata
+       +
+official SDK -> AudioWRT APKs
+       +
+official ImageBuilder -> final firmware
+```
 
-The extension manager installs AudioWRT wrapper packages with `apk`. Storage policy is intentionally outside the reusable manager; on standard OpenWrt it simply uses whatever writable overlay the system already has.
+This retains official release binaries for unchanged packages and avoids a complete OpenWrt source build.
 
-## Bluetooth
+The recent `openwrt-builder` release-patched fix keeps SDK host tools out of generated ImageBuilders because those host tools would otherwise be bundled twice. AudioWRT does not generate an ImageBuilder at all: it uses the official ImageBuilder directly, so that class of problem is structurally avoided.
 
-Bluetooth output uses OpenWrt BlueZ plus the lightweight BlueALSA bridge. The AudioWRT feed carries BlueALSA because OpenWrt 25.12 does not provide it in the standard packages feed. The package includes big-endian fixes relevant to MIPS/ath79. `audiowrt-bluetooth` provides discovery, pairing, connection and ALSA-default selection.
+## Docker responsibility
 
-## Spotify
+AudioWRT does not own a Docker build environment.
 
-Spotify Connect uses a packaged librespot 0.8.0 build with OpenWrt's Rust toolchain, the ALSA backend, rustls and pure-Rust mDNS. The AudioWRT wrapper sets the receiver name and ALSA `default` output and disables the audio cache. Spotify Premium is required by librespot.
+```text
+demonccc/openwrt-builder
+        |
+        +--> publishes demonccc/openwrt-builder:<tag>
 
-## Platform and USB ownership
+AudioWRT
+        |
+        +--> docker pull configured image
+        +--> mount current checkout at /workspace
+        +--> run scripts/build.sh inside the image
+```
 
-OpenWrt remains authoritative for board definitions, kernel/device tree, Ethernet/switch drivers, Wi-Fi firmware and USB host controllers. `PLATFORM` is an OpenWrt profile supplied at build time; AudioWRT has no platform database.
+There is no Dockerfile and no local Docker-build fallback in AudioWRT. Build-environment changes belong in `openwrt-builder`.
 
-USB host capability is validated from the unmodified OpenWrt target metadata before AudioWRT packages are selected. Missing or unknown USB support is a hard failure.
+## Build flow
 
-## Low-flash devices
+```text
+1. Resolve exact release tag
+2. Clone exact OpenWrt tag
+3. Generate target metadata
+4. Resolve PLATFORM -> target/subtarget
+5. Validate USB host support
+6. Resolve official SDK + ImageBuilder URLs
+7. Download official feeds.buildinfo
+8. Prepare SDK
+   - keep SDK target configuration
+   - pin official feeds to release commits
+   - copy AudioWRT distribution-only packages
+   - add audiowrt-packages feed
+   - select AudioWRT-owned packages
+9. Compile only selected AudioWRT-owned SDK targets
+10. Collect AudioWRT APKs
+11. Prepare official ImageBuilder
+12. Copy local AudioWRT APKs into ImageBuilder packages/
+13. make image with:
+    - OpenWrt device defaults
+    - AudioWRT core packages
+    - optional FEATURES
+    - generic router package exclusions
+    - AudioWRT FILES overlay
+14. Write firmware + BUILD_INFO + manifest
+```
 
-The default firmware contains core functionality but optional music engines remain separate. `FEATURES` can preinstall engines for devices with enough flash. OpenWrt's own image-size limit is authoritative; oversized requested builds fail.
+## Official feeds
 
-On constrained AudioWRT devices, guided USB extroot can expand the writable package overlay while preserving the internal core as a fallback.
+The SDK's moving feed definitions are not used for exact-release builds. AudioWRT replaces them with the target release's official `feeds.buildinfo`.
 
-## CI
+For example, an official target release records feed URLs together with exact commit hashes. That means a later rebuild of the same OpenWrt release does not accidentally compile AudioWRT against a newer `packages` or `luci` branch.
 
-GitHub-hosted workflows are manual-only. No push or pull-request trigger is configured. Local builds and manually dispatched builds use the same entry point.
+The reusable `audiowrt-packages` feed is separately recorded by its actual Git commit in the build manifest.
+
+## Package compilation scope
+
+`config/package-build-targets` maps AudioWRT-owned binary packages to SDK make targets.
+
+After `make defconfig`, only mapped packages selected as `y` or `m` are compiled. This allows package dependencies to select additional AudioWRT-owned packages such as `librespot` or `bluez-alsa` without compiling unrelated feed content.
+
+Official OpenWrt dependencies may compile inside the SDK when needed to provide build-time headers/libraries, but their APKs are not injected into the final ImageBuilder. Final unchanged packages resolve from the official release repositories.
+
+## Firmware composition
+
+```text
+OpenWrt device defaults
++ config/packages.add
++ selected feature packages
+- config/packages.remove
++ local AudioWRT APK repository
++ files/ overlay
+```
+
+The official ImageBuilder remains responsible for dependency solving, device image layout and maximum image-size enforcement.
+
+## Hardware ownership
+
+AudioWRT does not maintain target/platform YAML or board metadata. OpenWrt remains authoritative for:
+
+- target and subtarget;
+- device definitions;
+- kernel configuration;
+- Wi-Fi firmware;
+- Ethernet/switch drivers;
+- USB host-controller packages;
+- device image layout.
+
+The TP-Link TL-WDR4300 v1 (`tplink_tl-wdr4300-v1`) is only the initial reference target.
+
+## Reproducibility metadata
+
+Every build records:
+
+- builder Docker image;
+- AudioWRT commit;
+- AudioWRT packages repository/ref/commit;
+- exact OpenWrt release tag and commit;
+- target/subtarget/profile;
+- official SDK URL;
+- official ImageBuilder URL;
+- exact official `feeds.buildinfo`;
+- selected features;
+- locally built APK count;
+- firmware image-size report.
+
+For the strongest reproducibility, use an immutable `BUILDER_IMAGE=...:sha-<commit>` and an immutable `AUDIOWRT_PACKAGES_REF=<commit>` together with the exact OpenWrt release.

@@ -1,0 +1,21 @@
+# AudioWRT-owned binary package|OpenWrt SDK make target
+#
+# Only packages selected by the SDK .config are compiled. This file maps
+# package names to their source-tree make target so official OpenWrt packages
+# remain binary dependencies from the exact release repositories.
+
+audiowrt-core|package/audiowrt/audiowrt-core/compile
+audiowrt-provisioning|package/audiowrt/audiowrt-provisioning/compile
+audiowrt-storage|package/audiowrt/audiowrt-storage/compile
+luci-app-audiowrt-core|package/audiowrt/luci-app-audiowrt-core/compile
+
+audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
+audiowrt-usb-audio|package/feeds/audiowrt/audiowrt-usb-audio/compile
+audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
+audiowrt-mpd|package/feeds/audiowrt/audiowrt-mpd/compile
+audiowrt-airplay|package/feeds/audiowrt/audiowrt-airplay/compile
+audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
+audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-bluetooth/compile
+luci-app-audiowrt|package/feeds/audiowrt/luci-app-audiowrt/compile
+librespot|package/feeds/audiowrt/librespot/compile
+bluez-alsa|package/feeds/audiowrt/bluez-alsa/compile
