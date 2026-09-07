@@ -129,9 +129,32 @@ make build \
 
 `LOG_FILE` is local-only. It captures the Docker pull and the complete container output while still showing the same stream in the terminal. The path must stay outside `.work/` and `output/` because those directories are recreated during builds.
 
-GitHub Actions does not expose a log-file input because the hosted job already retains its complete console log. Firmware artifacts are uploaded only after a successful build.
+The builder's newer persistent-download-cache pattern also applies to AudioWRT. Local builds can opt in with:
 
-The recent `openwrt-builder` fix for `release-patched` SDK host tools does not need equivalent AudioWRT logic. AudioWRT never generates a custom ImageBuilder: it uses the official SDK to compile AudioWRT packages and the official ImageBuilder to assemble the firmware, so SDK host tools are not re-bundled into another ImageBuilder.
+```sh
+make build \
+  PLATFORM=tplink_tl-wdr4300-v1 \
+  OPENWRT_RELEASE=25.12.5 \
+  CACHE_DIR=.cache/audiowrt
+```
+
+When enabled, AudioWRT reuses the exact-release SDK archive, the exact-release ImageBuilder archive, and OpenWrt package/source downloads. Compilation state is still recreated on every build. `.cache/` is ignored by Git and `make clean` does not remove it.
+
+For repeated troubleshooting, combine both features:
+
+```sh
+make build \
+  PLATFORM=tplink_tl-wdr4300-v1 \
+  OPENWRT_RELEASE=25.12.5 \
+  CACHE_DIR=.cache/audiowrt \
+  JOBS=1 \
+  VERBOSITY=debug \
+  LOG_FILE=logs/wdr4300.log
+```
+
+GitHub Actions does not expose either a log-file or cache input. Hosted jobs remain clean and ephemeral, and the Actions job already retains its complete console log. Firmware artifacts are uploaded only after a successful build.
+
+The latest `openwrt-builder` stabilization changes how `release-patched` handles SDK host tools and the generated custom ImageBuilder. AudioWRT does not need equivalent host-tool replacement logic because it never generates a custom ImageBuilder: it uses the official SDK to compile AudioWRT packages and the official ImageBuilder to assemble the firmware directly.
 
 ## Core versus optional audio engines
 
@@ -236,6 +259,7 @@ FEATURES                 optional music engines
 JOBS                     package build parallelism
 VERBOSITY                normal, verbose or debug
 LOG_FILE                 optional local-only diagnostic log path
+CACHE_DIR                optional local-only persistent download cache
 BUILDER_IMAGE            existing openwrt-builder image
 ```
 
@@ -247,6 +271,7 @@ make build \
   OPENWRT_RELEASE=25.12.5 \
   AUDIOWRT_PACKAGES_REF=main \
   FEATURES="mpd airplay" \
+  CACHE_DIR=.cache/audiowrt \
   JOBS=8 \
   VERBOSITY=verbose
 ```
