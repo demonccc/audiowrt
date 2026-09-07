@@ -9,9 +9,9 @@ on:
         default: tplink_tl-wdr4300-v1
         type: string
       openwrt_release:
-        description: Exact final OpenWrt release (for example 25.12.5) or stable for the latest final release
+        description: Exact final OpenWrt release (for example 25.12.5)
         required: true
-        default: stable
+        default: 25.12.5
         type: string
       audiowrt_packages_ref:
         description: AudioWRT reusable package-feed branch, tag or commit
