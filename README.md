@@ -93,6 +93,8 @@ make build \
 
 `make build` pulls the configured image and executes the AudioWRT build inside it. If the image cannot be pulled, the build fails; AudioWRT never falls back to building a Docker image locally.
 
+The Docker image is the build environment only. AudioWRT scripts come from the mounted AudioWRT checkout, so script-only changes do not require rebuilding the `openwrt-builder` image.
+
 A different published or pinned builder image can be selected:
 
 ```sh
@@ -103,6 +105,33 @@ make build \
 ```
 
 The selected builder image is recorded in `BUILD_INFO` and `manifest.json`.
+
+## Build diagnostics
+
+AudioWRT mirrors the current `openwrt-builder` verbosity model:
+
+```text
+VERBOSITY=normal   -> default OpenWrt output
+VERBOSITY=verbose  -> V=s
+VERBOSITY=debug    -> V=sc
+```
+
+For difficult local failures, use one job and save the complete host-side output:
+
+```sh
+make build \
+  PLATFORM=tplink_tl-wdr4300-v1 \
+  OPENWRT_RELEASE=25.12.5 \
+  JOBS=1 \
+  VERBOSITY=debug \
+  LOG_FILE=logs/wdr4300.log
+```
+
+`LOG_FILE` is local-only. It captures the Docker pull and the complete container output while still showing the same stream in the terminal. The path must stay outside `.work/` and `output/` because those directories are recreated during builds.
+
+GitHub Actions does not expose a log-file input because the hosted job already retains its complete console log. Firmware artifacts are uploaded only after a successful build.
+
+The recent `openwrt-builder` fix for `release-patched` SDK host tools does not need equivalent AudioWRT logic. AudioWRT never generates a custom ImageBuilder: it uses the official SDK to compile AudioWRT packages and the official ImageBuilder to assemble the firmware, so SDK host tools are not re-bundled into another ImageBuilder.
 
 ## Core versus optional audio engines
 
@@ -206,6 +235,7 @@ AUDIOWRT_PACKAGES_REF    reusable package-feed branch/tag/commit (default main)
 FEATURES                 optional music engines
 JOBS                     package build parallelism
 VERBOSITY                normal, verbose or debug
+LOG_FILE                 optional local-only diagnostic log path
 BUILDER_IMAGE            existing openwrt-builder image
 ```
 
