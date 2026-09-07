@@ -3,19 +3,22 @@
 
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 builder_image="${BUILDER_IMAGE:-demonccc/openwrt-builder:latest}"
 log_file="${LOG_FILE:-}"
 
 if [[ -n "$log_file" ]]; then
     if [[ "$log_file" = /* ]]; then
-        log_path="$(realpath -m "$log_file")"
+        requested_log_path="$log_file"
     else
-        log_path="$(realpath -m "$repo_root/$log_file")"
+        requested_log_path="$repo_root/$log_file"
     fi
 
-    work_root="$(realpath -m "$repo_root/.work")"
-    output_root="$(realpath -m "$repo_root/output")"
+    mkdir -p "$(dirname "$requested_log_path")"
+    log_dir="$(cd "$(dirname "$requested_log_path")" && pwd -P)"
+    log_path="$log_dir/$(basename "$requested_log_path")"
+    work_root="$repo_root/.work"
+    output_root="$repo_root/output"
 
     case "$log_path" in
         "$work_root"|"$work_root"/*|"$output_root"|"$output_root"/*)
@@ -24,7 +27,6 @@ if [[ -n "$log_file" ]]; then
             ;;
     esac
 
-    mkdir -p "$(dirname "$log_path")"
     echo "Logging build output to: $log_path"
     exec > >(tee "$log_path") 2>&1
 fi
