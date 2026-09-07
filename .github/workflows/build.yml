@@ -5,37 +5,37 @@ on:
   workflow_dispatch:
     inputs:
       platform:
-        description: OpenWrt device profile identifier
+        description: "OpenWrt device profile identifier"
         required: true
         default: tplink_tl-wdr4300-v1
         type: string
       openwrt_release:
-        description: Exact final OpenWrt release tag/version (X.Y.Z or vX.Y.Z)
+        description: "Exact final OpenWrt release tag/version (X.Y.Z or vX.Y.Z)"
         required: true
         default: 25.12.5
         type: string
       audiowrt_packages_ref:
-        description: AudioWRT reusable package-feed branch, tag or commit
+        description: "AudioWRT reusable package-feed branch, tag or commit"
         required: true
         default: main
         type: string
       features:
-        description: Optional preinstalled engines: mpd airplay spotify bluetooth. Leave empty for core only.
+        description: "Optional preinstalled engines: mpd airplay spotify bluetooth. Leave empty for core only."
         required: false
         default: ''
         type: string
       builder_image:
-        description: Existing Docker image from demonccc/openwrt-builder
+        description: "Existing Docker image from demonccc/openwrt-builder"
         required: true
         default: demonccc/openwrt-builder:latest
         type: string
       jobs:
-        description: Number of parallel package build jobs
+        description: "Number of parallel package build jobs"
         required: true
         default: '4'
         type: string
       verbosity:
-        description: OpenWrt/SDK build log detail
+        description: "OpenWrt/SDK build log detail"
         required: true
         default: normal
         type: choice
