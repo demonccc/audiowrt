@@ -2,23 +2,16 @@
 
 ## Build contract
 
-AudioWRT firmware is anchored to one exact final OpenWrt release tag. A build from a moving stable branch is intentionally unsupported.
+AudioWRT firmware is anchored to one exact final OpenWrt release tag. Builds from moving branches, aliases or snapshots are intentionally unsupported.
 
 ```text
-OPENWRT_RELEASE=stable
-        |
-        v
-latest final vX.Y.Z tag
-
-or
-
 OPENWRT_RELEASE=25.12.5
         |
         v
 v25.12.5
 ```
 
-`openwrt-X.Y`, `main`, snapshots and release candidates are rejected.
+`stable`, `openwrt-X.Y`, `main`, snapshots and release candidates are rejected. The default release is explicitly pinned by AudioWRT and must be updated deliberately when a newer OpenWrt release is adopted.
 
 The exact release establishes a compatibility contract across:
 
@@ -68,7 +61,7 @@ There is no Dockerfile and no local Docker-build fallback in AudioWRT. Build-env
 ## Build flow
 
 ```text
-1. Resolve exact release tag
+1. Validate exact release tag
 2. Clone exact OpenWrt tag
 3. Generate target metadata
 4. Resolve PLATFORM -> target/subtarget

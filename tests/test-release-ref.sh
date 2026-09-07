@@ -8,8 +8,9 @@ resolver="$repo_root/scripts/resolve-openwrt-ref.sh"
 
 [[ "$(bash "$resolver" 25.12.5)" == "v25.12.5" ]]
 [[ "$(bash "$resolver" v25.12.5)" == "v25.12.5" ]]
+[[ "$(bash "$resolver")" == "v25.12.5" ]]
 
-for invalid in openwrt-25.12 main master snapshot v25.12.5-rc1 25.12; do
+for invalid in stable openwrt-25.12 main master snapshot v25.12.5-rc1 25.12; do
     if bash "$resolver" "$invalid" >/dev/null 2>&1; then
         echo "ERROR: invalid release unexpectedly accepted: $invalid" >&2
         exit 1

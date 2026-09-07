@@ -1,4 +1,5 @@
 name: Build AudioWRT
+run-name: AudioWRT ${{ inputs.openwrt_release }} / ${{ inputs.platform }}
 
 on:
   workflow_dispatch:
@@ -9,7 +10,7 @@ on:
         default: tplink_tl-wdr4300-v1
         type: string
       openwrt_release:
-        description: Exact final OpenWrt release (for example 25.12.5)
+        description: Exact final OpenWrt release tag/version (X.Y.Z or vX.Y.Z)
         required: true
         default: 25.12.5
         type: string
@@ -47,7 +48,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.platform }}
+  group: ${{ github.workflow }}-${{ inputs.platform }}-${{ inputs.openwrt_release }}
   cancel-in-progress: false
 
 jobs:
@@ -58,6 +59,16 @@ jobs:
     steps:
       - name: Checkout AudioWRT
         uses: actions/checkout@v4
+
+      - name: Validate exact OpenWrt release
+        env:
+          OPENWRT_RELEASE: ${{ inputs.openwrt_release }}
+        run: |
+          if ! [[ "$OPENWRT_RELEASE" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "OpenWrt release must be an exact final version such as 25.12.5 or v25.12.5." >&2
+            echo "Branches, aliases, snapshots and release candidates are not accepted." >&2
+            exit 1
+          fi
 
       - name: Free disk space
         run: sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc || true
@@ -74,6 +85,7 @@ jobs:
             VERBOSITY='${{ inputs.verbosity }}'
 
       - name: Upload firmware
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: audiowrt-${{ inputs.platform }}-${{ inputs.openwrt_release }}
