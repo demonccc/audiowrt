@@ -13,6 +13,7 @@ features="${FEATURES:-}"
 jobs="${JOBS:-}"
 verbosity="${VERBOSITY:-normal}"
 builder_image="${BUILDER_IMAGE:-unknown}"
+cache_dir="${CACHE_DIR:-}"
 
 [[ "${AUDIOWRT_IN_CONTAINER:-0}" == "1" ]] || {
     echo "ERROR: scripts/build.sh is an internal container entry point." >&2
@@ -30,6 +31,18 @@ case "$verbosity" in
     debug) make_verbosity=(V=sc) ;;
     *) echo "ERROR: VERBOSITY must be normal, verbose or debug." >&2; exit 2 ;;
 esac
+
+if [[ -n "$cache_dir" ]]; then
+    mkdir -p "$cache_dir"
+    cache_dir="$(cd "$cache_dir" && pwd -P)"
+    case "$cache_dir" in
+        "$repo_root/.work"|"$repo_root/.work"/*|"$repo_root/output"|"$repo_root/output"/*)
+            echo "ERROR: CACHE_DIR must be outside .work/ and output/." >&2
+            exit 2
+            ;;
+    esac
+    mkdir -p "$cache_dir/archives" "$cache_dir/dl"
+fi
 
 make_run() {
     local cwd="$1"; shift
@@ -59,12 +72,47 @@ with urllib.request.urlopen(url) as response, open(destination, "wb") as handle:
 PY
 }
 
+cache_archive_path() {
+    local url="$1"
+    [[ -n "$cache_dir" ]] || return 1
+    local filename digest
+    filename="$(basename "${url%%\?*}")"
+    [[ -n "$filename" ]] || filename='download.tar.zst'
+    digest="$(printf '%s' "$url" | sha256sum | awk '{print substr($1,1,20)}')"
+    printf '%s\n' "$cache_dir/archives/$digest/$filename"
+}
+
+prepare_archive() {
+    local url="$1" destination="$2" label="$3"
+    local archive temporary
+
+    if [[ -n "$cache_dir" ]]; then
+        archive="$(cache_archive_path "$url")"
+        if [[ -s "$archive" ]]; then
+            echo "Cache hit for $label: $archive" >&2
+            printf '%s\n' "$archive"
+            return 0
+        fi
+        mkdir -p "$(dirname "$archive")"
+        temporary="${archive}.part"
+    else
+        archive="$destination/archive.tar.zst"
+        temporary="${archive}.part"
+    fi
+
+    rm -f "$temporary"
+    download_file "$url" "$temporary" >&2
+    mv -f "$temporary" "$archive"
+    [[ -n "$cache_dir" ]] && echo "Cached $label: $archive" >&2
+    printf '%s\n' "$archive"
+}
+
 extract_archive() {
     local url="$1" destination="$2" label="$3"
     rm -rf "$destination"
     mkdir -p "$destination"
-    local archive="$destination/archive.tar.zst"
-    download_file "$url" "$archive" >&2
+    local archive
+    archive="$(prepare_archive "$url" "$destination" "$label")"
     mkdir -p "$destination/extract"
     tar --zstd -xf "$archive" -C "$destination/extract"
     mapfile -t roots < <(find "$destination/extract" -mindepth 1 -maxdepth 1 -type d -print)
@@ -94,6 +142,7 @@ printf '  Features: %s\n' "${features:-none}"
 printf '  Builder image: %s\n' "$builder_image"
 printf '  Jobs: %s\n' "$jobs"
 printf '  Verbosity: %s\n' "$verbosity"
+printf '  Download cache: %s\n' "${cache_dir:-disabled}"
 
 rm -rf "$work_dir" "$output_dir"
 mkdir -p "$work_dir" "$output_dir"
@@ -127,6 +176,13 @@ printf '  ImageBuilder: %s\n' "$imagebuilder_url"
 # release. Unchanged OpenWrt packages remain binary dependencies from the
 # official release repositories.
 sdk_dir="$(extract_archive "$sdk_url" "$work_dir/sdk" "SDK")"
+
+if [[ -n "$cache_dir" ]]; then
+    rm -rf "$sdk_dir/dl"
+    ln -s "$cache_dir/dl" "$sdk_dir/dl"
+    echo "OpenWrt source download cache: $cache_dir/dl"
+fi
+
 mkdir -p "$sdk_dir/package/audiowrt"
 rsync -a "$repo_root/package/" "$sdk_dir/package/audiowrt/"
 
@@ -252,6 +308,8 @@ python3 "$repo_root/scripts/image-size-report.py" \
     "$output_dir/image-size-report.txt"
 
 audiowrt_commit="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || printf unknown)"
+cache_enabled='no'
+[[ -n "$cache_dir" ]] && cache_enabled='yes'
 
 cat > "$output_dir/BUILD_INFO" <<EOF
 BUILD_MODE=exact-release-sdk-imagebuilder
@@ -271,6 +329,7 @@ AUDIOWRT_PACKAGES_COMMIT=$audiowrt_packages_commit
 FEATURES=${features:-none}
 LOCAL_APKS=$local_apk_count
 VERBOSITY=$verbosity
+CACHE_ENABLED=$cache_enabled
 EOF
 
 python3 - "$platform_metadata" "$selected_features" "$artifacts_metadata" "$output_dir/manifest.json" <<PY
@@ -292,6 +351,7 @@ manifest = {
     "features": features_data["features"],
     "platform": platform_data,
     "local_apk_count": int("$local_apk_count"),
+    "cache_enabled": "$cache_enabled" == "yes",
 }
 with open(sys.argv[4], "w", encoding="utf-8") as handle:
     json.dump(manifest, handle, indent=2, sort_keys=True)
