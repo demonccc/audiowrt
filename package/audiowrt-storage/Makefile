@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=audiowrt-storage
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKG_LICENSE:=GPL-2.0-only
 PKGARCH:=all
 
@@ -16,6 +16,15 @@ endef
 
 define Package/audiowrt-storage/description
  AudioWRT-only guided USB extroot manager for constrained devices. Existing OpenWrt installations should use their normal storage configuration instead.
+endef
+
+define Build/Prepare
+endef
+
+define Build/Configure
+endef
+
+define Build/Compile
 endef
 
 define Package/audiowrt-storage/install

@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-audiowrt-core
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKG_LICENSE:=Apache-2.0
 PKGARCH:=all
 
@@ -17,6 +17,12 @@ endef
 
 define Package/luci-app-audiowrt-core/description
  AudioWRT-only LuCI pages for network provisioning, guided extension storage and appliance system state.
+endef
+
+define Build/Prepare
+endef
+
+define Build/Configure
 endef
 
 define Build/Compile
