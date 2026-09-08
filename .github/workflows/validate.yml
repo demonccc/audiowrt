@@ -42,3 +42,6 @@ jobs:
 
       - name: Test AudioWRT package build selection
         run: bash tests/test-package-build-selection.sh
+
+      - name: Test distribution file-only package phases
+        run: bash tests/test-file-only-packages.sh
