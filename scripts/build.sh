@@ -133,6 +133,7 @@ selected_features="$work_dir/features.json"
 artifacts_metadata="$work_dir/artifacts.json"
 local_apks_dir="$work_dir/local-apks"
 build_plan="$work_dir/package-build-plan.txt"
+official_feeds_buildinfo="$work_dir/official-feeds.buildinfo"
 output_dir="$repo_root/output/$platform/$resolved_release"
 
 printf 'AudioWRT build\n'
@@ -187,7 +188,21 @@ fi
 mkdir -p "$sdk_dir/package/audiowrt"
 rsync -a "$repo_root/package/" "$sdk_dir/package/audiowrt/"
 
-download_file "$feeds_buildinfo_url" "$sdk_dir/feeds.conf"
+# The official SDK contains a generated feeds.conf.default that includes the
+# OpenWrt base source feed plus the exact release feed revisions. Keep that
+# configuration intact and append only the AudioWRT feed. feeds.buildinfo is
+# retained separately as provenance; it is not a complete SDK feed config.
+[[ -s "$sdk_dir/feeds.conf.default" ]] || {
+    echo "ERROR: official OpenWrt SDK is missing feeds.conf.default." >&2
+    exit 5
+}
+cp "$sdk_dir/feeds.conf.default" "$sdk_dir/feeds.conf"
+if ! grep -Eq '^[[:space:]]*src-git([[:space:]]+--root=package)?[[:space:]]+base[[:space:]]' "$sdk_dir/feeds.conf"; then
+    echo "ERROR: official OpenWrt SDK feed config does not expose the base source feed." >&2
+    exit 5
+fi
+download_file "$feeds_buildinfo_url" "$official_feeds_buildinfo"
+
 if [[ "$packages_ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
     feed_source="${packages_repo}^${packages_ref}"
 else
@@ -322,7 +337,8 @@ make_run "$imagebuilder_dir" image \
 cp "$platform_metadata" "$output_dir/platform.json"
 cp "$selected_features" "$output_dir/selected-features.json"
 cp "$artifacts_metadata" "$output_dir/openwrt-artifacts.json"
-cp "$sdk_dir/feeds.conf" "$output_dir/feeds.buildinfo"
+cp "$sdk_dir/feeds.conf" "$output_dir/sdk-feeds.conf"
+cp "$official_feeds_buildinfo" "$output_dir/official-feeds.buildinfo"
 cp "$repo_root/config/packages.add" "$output_dir/audiowrt-packages.add"
 cp "$repo_root/config/packages.remove" "$output_dir/audiowrt-packages.remove"
 cp "$repo_root/config/package-build-targets" "$output_dir/package-build-targets"
@@ -352,6 +368,7 @@ OPENWRT_COMMIT=$openwrt_commit
 SDK_URL=$sdk_url
 IMAGEBUILDER_URL=$imagebuilder_url
 OFFICIAL_FEEDS_BUILDINFO=$feeds_buildinfo_url
+SDK_FEEDS_CONFIG=official-sdk-default+audiowrt
 AUDIOWRT_COMMIT=$audiowrt_commit
 AUDIOWRT_PACKAGES_REPOSITORY=$packages_repo
 AUDIOWRT_PACKAGES_REF=$packages_ref
@@ -379,6 +396,7 @@ manifest = {
     "openwrt_release": "$resolved_release",
     "openwrt_commit": "$openwrt_commit",
     "openwrt_artifacts": artifacts,
+    "sdk_feeds_config": "official-sdk-default+audiowrt",
     "features": features_data["features"],
     "platform": platform_data,
     "audiowrt_build_packages": "${build_packages[*]}".split(),
