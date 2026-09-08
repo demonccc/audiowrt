@@ -40,6 +40,9 @@ jobs:
       - name: Test SDK download scope
         run: bash tests/test-sdk-download-scope.sh
 
+      - name: Test SDK feed configuration
+        run: bash tests/test-sdk-feed-config.sh
+
       - name: Test AudioWRT package build selection
         run: bash tests/test-package-build-selection.sh
 
