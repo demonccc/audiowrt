@@ -132,6 +132,7 @@ platform_metadata="$work_dir/platform.json"
 selected_features="$work_dir/features.json"
 artifacts_metadata="$work_dir/artifacts.json"
 local_apks_dir="$work_dir/local-apks"
+build_plan="$work_dir/package-build-plan.txt"
 output_dir="$repo_root/output/$platform/$resolved_release"
 
 printf 'AudioWRT build\n'
@@ -211,9 +212,9 @@ for package in json.load(open(sys.argv[1], encoding="utf-8"))["packages"]:
 PY
 )
 
-# Select only AudioWRT-owned roots in the SDK. make defconfig resolves their
-# official and AudioWRT-owned dependencies. The SDK's existing target config is
-# preserved.
+# Select only the AudioWRT-owned firmware roots requested by packages.add plus
+# FEATURES. make defconfig resolves their complete dependency graph. The SDK's
+# pre-existing package selections are deliberately not used as build intent.
 for package in "${firmware_packages[@]}"; do
     if awk -F '|' -v package="$package" '$0 !~ /^[[:space:]]*#/ && $1 == package { found=1 } END { exit found ? 0 : 1 }' "$repo_root/config/package-build-targets"; then
         sed -i -E "/^(# )?CONFIG_PACKAGE_${package}(=| is not set)/d" "$sdk_dir/.config" 2>/dev/null || true
@@ -223,19 +224,41 @@ done
 
 make_run "$sdk_dir" defconfig
 
-mapfile -t build_targets < <(
-    while IFS='|' read -r package target_path; do
-        [[ -n "$package" && "$package" != \#* ]] || continue
-        if grep -Eq "^CONFIG_PACKAGE_${package}=(y|m)$" "$sdk_dir/.config"; then
-            printf '%s\n' "$target_path"
-        fi
-    done < "$repo_root/config/package-build-targets"
-)
+packageinfo="$sdk_dir/tmp/.packageinfo"
+[[ -s "$packageinfo" ]] || {
+    echo "ERROR: OpenWrt SDK package metadata was not generated: $packageinfo" >&2
+    exit 5
+}
 
-[[ "${#build_targets[@]}" -gt 0 ]] || {
+# Resolve only the AudioWRT-owned dependency closure of the explicitly
+# requested firmware roots. This prevents unrelated packages that happen to be
+# set to m in the SDK's shipped .config from becoming build targets.
+python3 "$repo_root/scripts/resolve-package-build-targets.py" \
+    "$repo_root/config/package-build-targets" \
+    "$packageinfo" \
+    "${firmware_packages[@]}" > "$build_plan"
+
+mapfile -t build_specs < "$build_plan"
+[[ "${#build_specs[@]}" -gt 0 ]] || {
     echo "ERROR: no AudioWRT SDK build targets were selected." >&2
     exit 5
 }
+
+build_packages=()
+build_targets=()
+for spec in "${build_specs[@]}"; do
+    package="${spec%%|*}"
+    target_path="${spec#*|}"
+    [[ -n "$package" && -n "$target_path" && "$target_path" != "$spec" ]] || {
+        echo "ERROR: invalid AudioWRT package build plan entry: $spec" >&2
+        exit 5
+    }
+    build_packages+=("$package")
+    build_targets+=("$target_path")
+done
+
+printf '  AudioWRT SDK build packages:\n'
+printf '    %s\n' "${build_packages[@]}"
 
 # Avoid the SDK-wide package/download target: it traverses every package in
 # every installed feed. Download only sources for the selected AudioWRT source
@@ -303,6 +326,7 @@ cp "$sdk_dir/feeds.conf" "$output_dir/feeds.buildinfo"
 cp "$repo_root/config/packages.add" "$output_dir/audiowrt-packages.add"
 cp "$repo_root/config/packages.remove" "$output_dir/audiowrt-packages.remove"
 cp "$repo_root/config/package-build-targets" "$output_dir/package-build-targets"
+cp "$build_plan" "$output_dir/package-build-plan.txt"
 mkdir -p "$output_dir/local-apks"
 cp -f "$local_apks_dir"/*.apk "$output_dir/local-apks/"
 [[ -f "$sdk_dir/.config" ]] && cp "$sdk_dir/.config" "$output_dir/sdk.config"
@@ -333,6 +357,7 @@ AUDIOWRT_PACKAGES_REPOSITORY=$packages_repo
 AUDIOWRT_PACKAGES_REF=$packages_ref
 AUDIOWRT_PACKAGES_COMMIT=$audiowrt_packages_commit
 FEATURES=${features:-none}
+AUDIOWRT_BUILD_PACKAGES=${build_packages[*]}
 LOCAL_APKS=$local_apk_count
 VERBOSITY=$verbosity
 CACHE_ENABLED=$cache_enabled
@@ -356,6 +381,7 @@ manifest = {
     "openwrt_artifacts": artifacts,
     "features": features_data["features"],
     "platform": platform_data,
+    "audiowrt_build_packages": "${build_packages[*]}".split(),
     "local_apk_count": int("$local_apk_count"),
     "cache_enabled": "$cache_enabled" == "yes",
 }
