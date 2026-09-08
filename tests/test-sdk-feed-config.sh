@@ -26,18 +26,28 @@ grep -Fq 'download_file "$feeds_buildinfo_url" "$official_feeds_buildinfo"' "$bu
     exit 1
 }
 
+if grep -Fq './scripts/feeds update -a' "$build_script"; then
+    echo "ERROR: core SDK setup must not update every OpenWrt feed." >&2
+    exit 1
+fi
+
 if grep -Fq './scripts/feeds install -a' "$build_script"; then
     echo "ERROR: SDK setup must not install every package from every feed." >&2
     exit 1
 fi
 
-grep -Fq './scripts/feeds install "${feed_install_packages[@]}"' "$build_script" || {
-    echo "ERROR: build.sh must install only the requested feed packages." >&2
+grep -Fq './scripts/feeds update packages audiowrt' "$build_script" || {
+    echo "ERROR: core SDK setup must update only packages helpers and the AudioWRT feed." >&2
     exit 1
 }
 
-grep -Fq '[[ "$local_target" == package/audiowrt/* ]] && continue' "$build_script" || {
-    echo "ERROR: distribution-only packages must be excluded from feeds install." >&2
+grep -Fq 'ln -s "$source_path" "$destination"' "$build_script" || {
+    echo "ERROR: AudioWRT feed sources must be registered without recursive feeds install." >&2
+    exit 1
+}
+
+grep -Fq 'cp "$registered_sources" "$output_dir/sdk-audiowrt-sources.txt"' "$build_script" || {
+    echo "ERROR: registered AudioWRT SDK sources must be recorded in build artifacts." >&2
     exit 1
 }
 
@@ -48,11 +58,6 @@ grep -Fq 'cp "$sdk_dir/feeds.conf" "$output_dir/sdk-feeds.conf"' "$build_script"
 
 grep -Fq 'cp "$official_feeds_buildinfo" "$output_dir/official-feeds.buildinfo"' "$build_script" || {
     echo "ERROR: official feeds.buildinfo provenance must be included in build artifacts." >&2
-    exit 1
-}
-
-grep -Fq 'sdk-feed-install-packages.txt' "$build_script" || {
-    echo "ERROR: selected SDK feed packages must be recorded in build artifacts." >&2
     exit 1
 }
 

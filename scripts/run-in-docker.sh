@@ -4,7 +4,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-builder_image="${BUILDER_IMAGE:-demonccc/openwrt-builder:latest}"
+builder_image="demonccc/openwrt-builder:latest"
 log_file="${LOG_FILE:-}"
 cache_dir="${CACHE_DIR:-}"
 container_cache_dir=""
@@ -66,8 +66,8 @@ command -v docker >/dev/null 2>&1 || {
 }
 
 if ! docker pull "$builder_image"; then
-    echo "ERROR: unable to pull the configured OpenWrt builder image: $builder_image" >&2
-    echo "AudioWRT does not build its own Docker image. Publish/fix the image in demonccc/openwrt-builder or select another compatible BUILDER_IMAGE." >&2
+    echo "ERROR: unable to pull the canonical OpenWrt builder image: $builder_image" >&2
+    echo "AudioWRT does not build or substitute its own Docker image. Publish/fix demonccc/openwrt-builder:latest first." >&2
     exit 3
 fi
 
@@ -78,7 +78,6 @@ docker run --rm \
     --user "$uid:$gid" \
     -e HOME=/tmp \
     -e AUDIOWRT_IN_CONTAINER=1 \
-    -e BUILDER_IMAGE="$builder_image" \
     -e PLATFORM="${PLATFORM:-}" \
     -e OPENWRT_RELEASE="${OPENWRT_RELEASE:-25.12.5}" \
     -e OPENWRT_REPOSITORY="${OPENWRT_REPOSITORY:-https://github.com/openwrt/openwrt.git}" \

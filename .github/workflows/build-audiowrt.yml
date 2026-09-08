@@ -24,11 +24,6 @@ on:
         required: false
         default: ''
         type: string
-      builder_image:
-        description: "Existing Docker image from demonccc/openwrt-builder"
-        required: true
-        default: demonccc/openwrt-builder:latest
-        type: string
       jobs:
         description: "Number of parallel package build jobs"
         required: true
@@ -80,7 +75,6 @@ jobs:
             OPENWRT_RELEASE='${{ inputs.openwrt_release }}' \
             AUDIOWRT_PACKAGES_REF='${{ inputs.audiowrt_packages_ref }}' \
             FEATURES='${{ inputs.features }}' \
-            BUILDER_IMAGE='${{ inputs.builder_image }}' \
             JOBS='${{ inputs.jobs }}' \
             VERBOSITY='${{ inputs.verbosity }}'
 
