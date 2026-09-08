@@ -162,6 +162,15 @@ python3 "$repo_root/scripts/resolve-platform.py" "$source_dir/tmp/.targetinfo" "
 python3 "$repo_root/scripts/check-usb.py" "$platform_metadata" "$repo_root/config/usb-host-packages"
 python3 "$repo_root/scripts/resolve-features.py" "$repo_root/config/features.map" "$features" > "$selected_features"
 
+mapfile -t firmware_packages < <(
+    read_package_file "$repo_root/config/packages.add"
+    python3 - "$selected_features" <<'PY'
+import json, sys
+for package in json.load(open(sys.argv[1], encoding="utf-8"))["packages"]:
+    print(package)
+PY
+)
+
 target="$(json_field "$platform_metadata" target)"
 subtarget="$(json_field "$platform_metadata" subtarget)"
 
@@ -210,22 +219,32 @@ else
 fi
 printf '\n# AudioWRT reusable packages\nsrc-git audiowrt %s\n' "$feed_source" >> "$sdk_dir/feeds.conf"
 
+# Match openwrt-builder's selective feed behavior: update all feed metadata,
+# then install only the packages requested for this firmware. OpenWrt installs
+# their feed dependencies recursively. Distribution-only AudioWRT packages are
+# already copied under package/audiowrt and must not be requested from feeds.
+feed_install_packages=()
+declare -A feed_install_seen=()
+for package in "${firmware_packages[@]}"; do
+    local_target="$(awk -F '|' -v package="$package" '$0 !~ /^[[:space:]]*#/ && $1 == package { print $2; exit }' "$repo_root/config/package-build-targets")"
+    [[ "$local_target" == package/audiowrt/* ]] && continue
+    if [[ -z "${feed_install_seen[$package]+x}" ]]; then
+        feed_install_packages+=("$package")
+        feed_install_seen["$package"]=1
+    fi
+done
+
 (
     cd "$sdk_dir"
     ./scripts/feeds update -a
-    ./scripts/feeds install -a
+    if [[ "${#feed_install_packages[@]}" -gt 0 ]]; then
+        printf 'Installing selected SDK feed packages:\n'
+        printf '  %s\n' "${feed_install_packages[@]}"
+        ./scripts/feeds install "${feed_install_packages[@]}"
+    fi
 )
 
 audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
-
-mapfile -t firmware_packages < <(
-    read_package_file "$repo_root/config/packages.add"
-    python3 - "$selected_features" <<'PY'
-import json, sys
-for package in json.load(open(sys.argv[1], encoding="utf-8"))["packages"]:
-    print(package)
-PY
-)
 
 # Select only the AudioWRT-owned firmware roots requested by packages.add plus
 # FEATURES. make defconfig resolves their complete dependency graph. The SDK's
@@ -275,16 +294,15 @@ done
 printf '  AudioWRT SDK build packages:\n'
 printf '    %s\n' "${build_packages[@]}"
 
-# Avoid the SDK-wide package/download target: it traverses every package in
-# every installed feed. Download only sources for the selected AudioWRT source
-# packages; OpenWrt still resolves normal compile dependencies for each target.
+# Avoid SDK-wide targets and mirror the builder's explicit target model. Build
+# one download target list and one compile target list so Kconfig/make setup is
+# not repeated once per AudioWRT package.
+download_targets=()
 for target_path in "${build_targets[@]}"; do
-    download_target="${target_path%/compile}/download"
-    make_run "$sdk_dir" "$download_target" -j"$jobs"
+    download_targets+=("${target_path%/compile}/download")
 done
-for target_path in "${build_targets[@]}"; do
-    make_run "$sdk_dir" "$target_path" -j"$jobs"
-done
+make_run "$sdk_dir" "${download_targets[@]}" -j"$jobs"
+make_run "$sdk_dir" "${build_targets[@]}" -j"$jobs"
 
 rm -rf "$local_apks_dir"
 mkdir -p "$local_apks_dir"
@@ -339,6 +357,7 @@ cp "$selected_features" "$output_dir/selected-features.json"
 cp "$artifacts_metadata" "$output_dir/openwrt-artifacts.json"
 cp "$sdk_dir/feeds.conf" "$output_dir/sdk-feeds.conf"
 cp "$official_feeds_buildinfo" "$output_dir/official-feeds.buildinfo"
+printf '%s\n' "${feed_install_packages[@]}" > "$output_dir/sdk-feed-install-packages.txt"
 cp "$repo_root/config/packages.add" "$output_dir/audiowrt-packages.add"
 cp "$repo_root/config/packages.remove" "$output_dir/audiowrt-packages.remove"
 cp "$repo_root/config/package-build-targets" "$output_dir/package-build-targets"
@@ -369,6 +388,8 @@ SDK_URL=$sdk_url
 IMAGEBUILDER_URL=$imagebuilder_url
 OFFICIAL_FEEDS_BUILDINFO=$feeds_buildinfo_url
 SDK_FEEDS_CONFIG=official-sdk-default+audiowrt
+SDK_FEED_INSTALL_MODE=selective
+SDK_FEED_INSTALL_PACKAGES=${feed_install_packages[*]}
 AUDIOWRT_COMMIT=$audiowrt_commit
 AUDIOWRT_PACKAGES_REPOSITORY=$packages_repo
 AUDIOWRT_PACKAGES_REF=$packages_ref
@@ -397,6 +418,8 @@ manifest = {
     "openwrt_commit": "$openwrt_commit",
     "openwrt_artifacts": artifacts,
     "sdk_feeds_config": "official-sdk-default+audiowrt",
+    "sdk_feed_install_mode": "selective",
+    "sdk_feed_install_packages": "${feed_install_packages[*]}".split(),
     "features": features_data["features"],
     "platform": platform_data,
     "audiowrt_build_packages": "${build_packages[*]}".split(),
