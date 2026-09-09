@@ -12,7 +12,7 @@ packages_ref="${AUDIOWRT_PACKAGES_REF:-main}"
 features="${FEATURES:-}"
 jobs="${JOBS:-}"
 verbosity="${VERBOSITY:-normal}"
-builder_image="${BUILDER_IMAGE:-unknown}"
+builder_image="demonccc/openwrt-builder:latest"
 cache_dir="${CACHE_DIR:-}"
 
 [[ "${AUDIOWRT_IN_CONTAINER:-0}" == "1" ]] || {
@@ -133,6 +133,8 @@ selected_features="$work_dir/features.json"
 artifacts_metadata="$work_dir/artifacts.json"
 local_apks_dir="$work_dir/local-apks"
 build_plan="$work_dir/package-build-plan.txt"
+registered_sources="$work_dir/sdk-audiowrt-sources.txt"
+source_dependencies_file="$work_dir/source-build-dependencies.txt"
 official_feeds_buildinfo="$work_dir/official-feeds.buildinfo"
 output_dir="$repo_root/output/$platform/$resolved_release"
 
@@ -141,7 +143,7 @@ printf '  Platform: %s\n' "$platform"
 printf '  OpenWrt release: %s -> %s\n' "$requested_release" "$resolved_release"
 printf '  AudioWRT packages: %s\n' "$packages_ref"
 printf '  Features: %s\n' "${features:-none}"
-printf '  Builder image: %s\n' "$builder_image"
+printf '  Builder image: %s (fixed)\n' "$builder_image"
 printf '  Jobs: %s\n' "$jobs"
 printf '  Verbosity: %s\n' "$verbosity"
 printf '  Download cache: %s\n' "${cache_dir:-disabled}"
@@ -183,9 +185,10 @@ printf '  Target: %s/%s\n' "$target" "$subtarget"
 printf '  SDK: %s\n' "$sdk_url"
 printf '  ImageBuilder: %s\n' "$imagebuilder_url"
 
-# Compile only AudioWRT-owned packages with the official SDK for the exact
-# release. Unchanged OpenWrt packages remain binary dependencies from the
-# official release repositories.
+# Compile AudioWRT-owned packages with the official SDK for the exact release.
+# Package-only AudioWRT packages are built with NO_DEPS=1 so unchanged OpenWrt
+# packages remain official release binaries instead of being rebuilt from feed
+# sources merely because they are runtime dependencies.
 sdk_dir="$(extract_archive "$sdk_url" "$work_dir/sdk" "SDK")"
 
 if [[ -n "$cache_dir" ]]; then
@@ -197,10 +200,12 @@ fi
 mkdir -p "$sdk_dir/package/audiowrt"
 rsync -a "$repo_root/package/" "$sdk_dir/package/audiowrt/"
 
-# The official SDK contains a generated feeds.conf.default that includes the
-# OpenWrt base source feed plus the exact release feed revisions. Keep that
-# configuration intact and append only the AudioWRT feed. feeds.buildinfo is
-# retained separately as provenance; it is not a complete SDK feed config.
+# Keep the SDK's official exact-release feed configuration intact. We only
+# update the feeds whose source trees are needed by AudioWRT package Makefiles:
+# packages (for shared build helpers such as rust-package.mk) and audiowrt.
+# The base feed remains available in feeds.conf for provenance/lazy source
+# dependency resolution, but it is not installed into the SDK package tree for
+# package-only builds.
 [[ -s "$sdk_dir/feeds.conf.default" ]] || {
     echo "ERROR: official OpenWrt SDK is missing feeds.conf.default." >&2
     exit 5
@@ -219,36 +224,46 @@ else
 fi
 printf '\n# AudioWRT reusable packages\nsrc-git audiowrt %s\n' "$feed_source" >> "$sdk_dir/feeds.conf"
 
-# Match openwrt-builder's selective feed behavior: update all feed metadata,
-# then install only the packages requested for this firmware. OpenWrt installs
-# their feed dependencies recursively. Distribution-only AudioWRT packages are
-# already copied under package/audiowrt and must not be requested from feeds.
-feed_install_packages=()
-declare -A feed_install_seen=()
-for package in "${firmware_packages[@]}"; do
-    local_target="$(awk -F '|' -v package="$package" '$0 !~ /^[[:space:]]*#/ && $1 == package { print $2; exit }' "$repo_root/config/package-build-targets")"
-    [[ "$local_target" == package/audiowrt/* ]] && continue
-    if [[ -z "${feed_install_seen[$package]+x}" ]]; then
-        feed_install_packages+=("$package")
-        feed_install_seen["$package"]=1
-    fi
-done
-
 (
     cd "$sdk_dir"
-    ./scripts/feeds update -a
-    if [[ "${#feed_install_packages[@]}" -gt 0 ]]; then
-        printf 'Installing selected SDK feed packages:\n'
-        printf '  %s\n' "${feed_install_packages[@]}"
-        ./scripts/feeds install "${feed_install_packages[@]}"
-    fi
+    ./scripts/feeds update packages audiowrt
 )
-
 audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
 
+# Register only AudioWRT feed source directories. Do not call scripts/feeds
+# install for package-only AudioWRT packages because that recursively installs
+# runtime dependencies (hostapd, dnsmasq, uhttpd, kernel libraries, etc.) as
+# source packages and causes the SDK to rebuild them.
+mkdir -p "$sdk_dir/package/feeds/audiowrt"
+: > "$registered_sources"
+while IFS='|' read -r package target_path extra; do
+    [[ -n "$package" && "$package" != \#* ]] || continue
+    [[ -z "${extra:-}" ]] || {
+        echo "ERROR: invalid package-build-targets entry for $package." >&2
+        exit 5
+    }
+    [[ "$target_path" == package/feeds/audiowrt/*/compile ]] || continue
+
+    source_rel="${target_path#package/feeds/audiowrt/}"
+    source_rel="${source_rel%/compile}"
+    source_path="$sdk_dir/feeds/audiowrt/$source_rel"
+    destination="$sdk_dir/package/feeds/audiowrt/$source_rel"
+
+    [[ -d "$source_path" ]] || {
+        echo "ERROR: AudioWRT feed source directory does not exist: $source_path" >&2
+        exit 5
+    }
+
+    mkdir -p "$(dirname "$destination")"
+    if [[ ! -e "$destination" && ! -L "$destination" ]]; then
+        ln -s "$source_path" "$destination"
+    fi
+    printf '%s|%s\n' "$package" "$source_rel" >> "$registered_sources"
+done < "$repo_root/config/package-build-targets"
+
 # Select only the AudioWRT-owned firmware roots requested by packages.add plus
-# FEATURES. make defconfig resolves their complete dependency graph. The SDK's
-# pre-existing package selections are deliberately not used as build intent.
+# FEATURES. The SDK's shipped package selections are deliberately not used as
+# AudioWRT build intent.
 for package in "${firmware_packages[@]}"; do
     if awk -F '|' -v package="$package" '$0 !~ /^[[:space:]]*#/ && $1 == package { found=1 } END { exit found ? 0 : 1 }' "$repo_root/config/package-build-targets"; then
         sed -i -E "/^(# )?CONFIG_PACKAGE_${package}(=| is not set)/d" "$sdk_dir/.config" 2>/dev/null || true
@@ -265,8 +280,8 @@ packageinfo="$sdk_dir/tmp/.packageinfo"
 }
 
 # Resolve only the AudioWRT-owned dependency closure of the explicitly
-# requested firmware roots. This prevents unrelated packages that happen to be
-# set to m in the SDK's shipped .config from becoming build targets.
+# requested firmware roots. Optional AudioWRT source packages such as librespot
+# and bluez-alsa are included only when their feature wrapper requires them.
 python3 "$repo_root/scripts/resolve-package-build-targets.py" \
     "$repo_root/config/package-build-targets" \
     "$packageinfo" \
@@ -278,8 +293,18 @@ mapfile -t build_specs < "$build_plan"
     exit 5
 }
 
+declare -A source_build_package=()
+while IFS= read -r package; do
+    [[ -n "$package" ]] || continue
+    source_build_package["$package"]=1
+done < <(read_package_file "$repo_root/config/source-build-packages")
+
 build_packages=()
-build_targets=()
+package_only_packages=()
+package_only_targets=()
+source_packages=()
+source_targets=()
+
 for spec in "${build_specs[@]}"; do
     package="${spec%%|*}"
     target_path="${spec#*|}"
@@ -287,22 +312,76 @@ for spec in "${build_specs[@]}"; do
         echo "ERROR: invalid AudioWRT package build plan entry: $spec" >&2
         exit 5
     }
+
     build_packages+=("$package")
-    build_targets+=("$target_path")
+    if [[ -n "${source_build_package[$package]+x}" ]]; then
+        source_packages+=("$package")
+        source_targets+=("$target_path")
+    else
+        package_only_packages+=("$package")
+        package_only_targets+=("$target_path")
+    fi
 done
 
 printf '  AudioWRT SDK build packages:\n'
 printf '    %s\n' "${build_packages[@]}"
+printf '  Package-only AudioWRT packages (NO_DEPS=1):\n'
+printf '    %s\n' "${package_only_packages[@]}"
+if [[ "${#source_packages[@]}" -gt 0 ]]; then
+    printf '  AudioWRT source packages:\n'
+    printf '    %s\n' "${source_packages[@]}"
+fi
 
-# Avoid SDK-wide targets and mirror the builder's explicit target model. Build
-# one download target list and one compile target list so Kconfig/make setup is
-# not repeated once per AudioWRT package.
-download_targets=()
-for target_path in "${build_targets[@]}"; do
-    download_targets+=("${target_path%/compile}/download")
+# Package-only AudioWRT packages need no OpenWrt source dependency compilation.
+# For the small set of AudioWRT-owned packages that compile upstream code, the
+# SDK must stage their actual build/link dependencies. Resolve those explicitly
+# and install source definitions only for that source-build path.
+: > "$source_dependencies_file"
+source_dependencies=()
+if [[ "${#source_packages[@]}" -gt 0 ]]; then
+    python3 "$repo_root/scripts/resolve-source-build-dependencies.py" \
+        "$repo_root/config/package-build-targets" \
+        "$packageinfo" \
+        "${source_packages[@]}" > "$source_dependencies_file"
+    mapfile -t source_dependencies < "$source_dependencies_file"
+
+    if [[ "${#source_dependencies[@]}" -gt 0 ]]; then
+        (
+            cd "$sdk_dir"
+            ./scripts/feeds update base
+            printf 'Installing source-build dependencies for AudioWRT source packages:\n'
+            printf '  %s\n' "${source_dependencies[@]}"
+            ./scripts/feeds install "${source_dependencies[@]}"
+        )
+        make_run "$sdk_dir" defconfig
+    fi
+fi
+
+# Download and compile package-only roots without traversing runtime dependency
+# prerequisites. This is the critical boundary that keeps hostapd, dnsmasq,
+# uhttpd, kernel packages, libraries, etc. as official release binaries.
+package_only_download_targets=()
+for target_path in "${package_only_targets[@]}"; do
+    package_only_download_targets+=("${target_path%/compile}/download")
 done
-make_run "$sdk_dir" "${download_targets[@]}" -j"$jobs"
-make_run "$sdk_dir" "${build_targets[@]}" -j"$jobs"
+if [[ "${#package_only_download_targets[@]}" -gt 0 ]]; then
+    make_run "$sdk_dir" "${package_only_download_targets[@]}" NO_DEPS=1 -j"$jobs"
+fi
+
+# AudioWRT source packages are the only targets allowed to traverse build
+# dependencies, because they genuinely compile/link upstream code.
+source_download_targets=()
+for target_path in "${source_targets[@]}"; do
+    source_download_targets+=("${target_path%/compile}/download")
+done
+if [[ "${#source_download_targets[@]}" -gt 0 ]]; then
+    make_run "$sdk_dir" "${source_download_targets[@]}" -j"$jobs"
+    make_run "$sdk_dir" "${source_targets[@]}" -j"$jobs"
+fi
+
+if [[ "${#package_only_targets[@]}" -gt 0 ]]; then
+    make_run "$sdk_dir" "${package_only_targets[@]}" NO_DEPS=1 -j"$jobs"
+fi
 
 rm -rf "$local_apks_dir"
 mkdir -p "$local_apks_dir"
@@ -329,8 +408,8 @@ local_apk_count="$(find "$local_apks_dir" -maxdepth 1 -type f -name '*.apk' | wc
 }
 
 # Assemble the final firmware from the official ImageBuilder for the same exact
-# release. This deliberately avoids generating a custom ImageBuilder, so SDK
-# host tools are never bundled into another ImageBuilder layer.
+# release. OpenWrt runtime dependencies are resolved from the official release
+# repositories; only locally built AudioWRT APKs are injected.
 imagebuilder_dir="$(extract_archive "$imagebuilder_url" "$work_dir/imagebuilder" "ImageBuilder")"
 mkdir -p "$imagebuilder_dir/packages"
 cp -f "$local_apks_dir"/*.apk "$imagebuilder_dir/packages/"
@@ -357,10 +436,12 @@ cp "$selected_features" "$output_dir/selected-features.json"
 cp "$artifacts_metadata" "$output_dir/openwrt-artifacts.json"
 cp "$sdk_dir/feeds.conf" "$output_dir/sdk-feeds.conf"
 cp "$official_feeds_buildinfo" "$output_dir/official-feeds.buildinfo"
-printf '%s\n' "${feed_install_packages[@]}" > "$output_dir/sdk-feed-install-packages.txt"
+cp "$registered_sources" "$output_dir/sdk-audiowrt-sources.txt"
+cp "$source_dependencies_file" "$output_dir/source-build-dependencies.txt"
 cp "$repo_root/config/packages.add" "$output_dir/audiowrt-packages.add"
 cp "$repo_root/config/packages.remove" "$output_dir/audiowrt-packages.remove"
 cp "$repo_root/config/package-build-targets" "$output_dir/package-build-targets"
+cp "$repo_root/config/source-build-packages" "$output_dir/source-build-packages"
 cp "$build_plan" "$output_dir/package-build-plan.txt"
 mkdir -p "$output_dir/local-apks"
 cp -f "$local_apks_dir"/*.apk "$output_dir/local-apks/"
@@ -388,14 +469,16 @@ SDK_URL=$sdk_url
 IMAGEBUILDER_URL=$imagebuilder_url
 OFFICIAL_FEEDS_BUILDINFO=$feeds_buildinfo_url
 SDK_FEEDS_CONFIG=official-sdk-default+audiowrt
-SDK_FEED_INSTALL_MODE=selective
-SDK_FEED_INSTALL_PACKAGES=${feed_install_packages[*]}
+SDK_PACKAGE_ONLY_MODE=NO_DEPS
 AUDIOWRT_COMMIT=$audiowrt_commit
 AUDIOWRT_PACKAGES_REPOSITORY=$packages_repo
 AUDIOWRT_PACKAGES_REF=$packages_ref
 AUDIOWRT_PACKAGES_COMMIT=$audiowrt_packages_commit
 FEATURES=${features:-none}
 AUDIOWRT_BUILD_PACKAGES=${build_packages[*]}
+AUDIOWRT_PACKAGE_ONLY_PACKAGES=${package_only_packages[*]}
+AUDIOWRT_SOURCE_PACKAGES=${source_packages[*]}
+SOURCE_BUILD_DEPENDENCIES=${source_dependencies[*]}
 LOCAL_APKS=$local_apk_count
 VERBOSITY=$verbosity
 CACHE_ENABLED=$cache_enabled
@@ -418,11 +501,13 @@ manifest = {
     "openwrt_commit": "$openwrt_commit",
     "openwrt_artifacts": artifacts,
     "sdk_feeds_config": "official-sdk-default+audiowrt",
-    "sdk_feed_install_mode": "selective",
-    "sdk_feed_install_packages": "${feed_install_packages[*]}".split(),
+    "sdk_package_only_mode": "NO_DEPS",
     "features": features_data["features"],
     "platform": platform_data,
     "audiowrt_build_packages": "${build_packages[*]}".split(),
+    "audiowrt_package_only_packages": "${package_only_packages[*]}".split(),
+    "audiowrt_source_packages": "${source_packages[*]}".split(),
+    "source_build_dependencies": "${source_dependencies[*]}".split(),
     "local_apk_count": int("$local_apk_count"),
     "cache_enabled": "$cache_enabled" == "yes",
 }

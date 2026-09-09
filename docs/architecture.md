@@ -20,7 +20,7 @@ The exact release establishes a compatibility contract across:
 - official SDK;
 - official ImageBuilder;
 - official binary repositories;
-- feed commit pins from `feeds.buildinfo`.
+- feed commit provenance from `feeds.buildinfo`.
 
 ## Relationship to openwrt-builder
 
@@ -31,14 +31,14 @@ The build model copies the release discipline of the `release-patched` method in
 ```text
 exact release source metadata
        +
-official SDK -> AudioWRT APKs
+official SDK -> AudioWRT APK layer
        +
 official ImageBuilder -> final firmware
 ```
 
 This retains official release binaries for unchanged packages and avoids a complete OpenWrt source build.
 
-The recent `openwrt-builder` release-patched fix keeps SDK host tools out of generated ImageBuilders because those host tools would otherwise be bundled twice. AudioWRT does not generate an ImageBuilder at all: it uses the official ImageBuilder directly, so that class of problem is structurally avoided.
+The recent `openwrt-builder` release-patched fixes keep SDK/kernel/host-tool state coherent when a custom kernel or ImageBuilder is generated. AudioWRT does not generate an ImageBuilder at all: it uses the official ImageBuilder directly, so that class of problem is structurally avoided.
 
 ## Docker responsibility
 
@@ -47,61 +47,80 @@ AudioWRT does not own a Docker build environment.
 ```text
 demonccc/openwrt-builder
         |
-        +--> publishes demonccc/openwrt-builder:<tag>
+        +--> publishes demonccc/openwrt-builder:latest
 
 AudioWRT
         |
-        +--> docker pull configured image
+        +--> docker pull demonccc/openwrt-builder:latest
         +--> mount current checkout at /workspace
         +--> run scripts/build.sh inside the image
 ```
 
 There is no Dockerfile and no local Docker-build fallback in AudioWRT. Build-environment changes belong in `openwrt-builder`.
 
+The builder image is part of the AudioWRT build contract and is deliberately fixed to `demonccc/openwrt-builder:latest`. It is not a Makefile parameter, environment override or GitHub Actions input.
+
 ## Build flow
 
 ```text
 1. Validate exact release tag
-2. Clone exact OpenWrt tag
-3. Generate target metadata
-4. Resolve PLATFORM -> target/subtarget
-5. Validate USB host support
-6. Resolve official SDK + ImageBuilder URLs
-7. Download official feeds.buildinfo
-8. Prepare SDK
-   - keep SDK target configuration
-   - pin official feeds to release commits
+2. Clone exact OpenWrt tag for authoritative device metadata
+3. Resolve PLATFORM -> target/subtarget
+4. Validate USB host support
+5. Resolve official SDK + ImageBuilder URLs
+6. Download official feeds.buildinfo as provenance
+7. Prepare official SDK
+   - preserve SDK feeds.conf.default
    - copy AudioWRT distribution-only packages
-   - add audiowrt-packages feed
-   - select AudioWRT-owned packages
-9. Compile only selected AudioWRT-owned SDK targets
-10. Collect AudioWRT APKs
-11. Prepare official ImageBuilder
-12. Copy local AudioWRT APKs into ImageBuilder packages/
-13. make image with:
+   - append audiowrt-packages feed
+   - update only packages helper feed + audiowrt feed for core builds
+   - register AudioWRT feed sources directly, without recursive runtime-dependency install
+8. Resolve selected AudioWRT package closure
+9. Split AudioWRT targets into:
+   - package-only targets -> NO_DEPS=1
+   - genuine source targets -> explicit build dependency path
+10. Compile/package AudioWRT APKs
+11. Collect local AudioWRT APKs
+12. Prepare official ImageBuilder
+13. Copy local AudioWRT APKs into ImageBuilder packages/
+14. make image with:
     - OpenWrt device defaults
     - AudioWRT core packages
     - optional FEATURES
     - generic router package exclusions
     - AudioWRT FILES overlay
-14. Write firmware + BUILD_INFO + manifest
+15. Write firmware + BUILD_INFO + manifest
 ```
 
 ## Official feeds
 
-The SDK's moving feed definitions are not used for exact-release builds. AudioWRT replaces them with the target release's official `feeds.buildinfo`.
+AudioWRT keeps the `feeds.conf.default` generated into the official SDK for the exact release. It does not replace that file with `feeds.buildinfo`.
 
-For example, an official target release records feed URLs together with exact commit hashes. That means a later rebuild of the same OpenWrt release does not accidentally compile AudioWRT against a newer `packages` or `luci` branch.
+The target release's `feeds.buildinfo` is downloaded and preserved separately as provenance. The reusable `audiowrt-packages` feed is separately recorded by its actual Git commit in the build manifest.
 
-The reusable `audiowrt-packages` feed is separately recorded by its actual Git commit in the build manifest.
+For core/package-only builds, AudioWRT updates only the `packages` feed (needed for shared package build helpers such as Rust definitions) and the `audiowrt` feed. It does not install OpenWrt runtime dependencies into the SDK source package tree.
 
 ## Package compilation scope
 
-`config/package-build-targets` maps AudioWRT-owned binary packages to SDK make targets.
+`config/package-build-targets` maps AudioWRT-owned binary packages to SDK make targets. `config/source-build-packages` identifies the small subset that genuinely compiles or links upstream source code.
 
-After `make defconfig`, only mapped packages selected as `y` or `m` are compiled. This allows package dependencies to select additional AudioWRT-owned packages such as `librespot` or `bluez-alsa` without compiling unrelated feed content.
+The default behavior is package-only:
 
-Official OpenWrt dependencies may compile inside the SDK when needed to provide build-time headers/libraries, but their APKs are not injected into the final ImageBuilder. Final unchanged packages resolve from the official release repositories.
+```text
+AudioWRT wrapper/config/LuCI package
+        |
+        +--> explicit SDK target
+        +--> NO_DEPS=1
+        |
+        v
+AudioWRT APK
+```
+
+Runtime dependencies such as `hostapd`, `dnsmasq`, `uhttpd`, `uci`, `ubus`, kernel packages and OpenWrt libraries are not rebuilt for those targets. They remain dependency metadata in the APK and are resolved by the official ImageBuilder from the exact release repositories.
+
+Only genuine AudioWRT source packages, currently `librespot` and `bluez-alsa`, are allowed to traverse SDK build dependencies. Those packages need development headers/libraries/tooling to produce their AudioWRT-owned binary, so the build resolves their external source dependency roots only when the corresponding feature is selected.
+
+A core-only build must therefore compile/package only the AudioWRT core layer and must not enter hostapd, dnsmasq, kernel or other unrelated OpenWrt source builds.
 
 ## Firmware composition
 
@@ -134,16 +153,18 @@ The TP-Link TL-WDR4300 v1 (`tplink_tl-wdr4300-v1`) is only the initial reference
 
 Every build records:
 
-- builder Docker image;
+- canonical builder Docker image;
 - AudioWRT commit;
 - AudioWRT packages repository/ref/commit;
 - exact OpenWrt release tag and commit;
 - target/subtarget/profile;
 - official SDK URL;
 - official ImageBuilder URL;
-- exact official `feeds.buildinfo`;
+- official `feeds.buildinfo` provenance;
 - selected features;
+- AudioWRT package-only/source-build split;
+- external source-build dependency roots when applicable;
 - locally built APK count;
 - firmware image-size report.
 
-For the strongest reproducibility, use an immutable `BUILDER_IMAGE=...:sha-<commit>` and an immutable `AUDIOWRT_PACKAGES_REF=<commit>` together with the exact OpenWrt release.
+For reproducible package content, pin `AUDIOWRT_PACKAGES_REF=<commit>` together with the exact OpenWrt release. The Docker environment is not caller-selectable; AudioWRT always uses its canonical `demonccc/openwrt-builder:latest` image.

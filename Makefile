@@ -6,7 +6,6 @@ JOBS ?=
 VERBOSITY ?= normal
 LOG_FILE ?=
 CACHE_DIR ?=
-BUILDER_IMAGE ?= demonccc/openwrt-builder:latest
 
 .PHONY: help build clean
 
@@ -26,7 +25,7 @@ help:
 	  '  CACHE_DIR is optional, local-only, and reuses SDK, ImageBuilder and OpenWrt source downloads.' \
 	  '' \
 	  'Build environment:' \
-	  '  BUILDER_IMAGE=demonccc/openwrt-builder:latest' \
+	  '  demonccc/openwrt-builder:latest (fixed by AudioWRT; not configurable)' \
 	  '' \
 	  'AudioWRT accepts exact final OpenWrt releases only. openwrt-25.12, main and snapshots are intentionally rejected.'
 
@@ -40,7 +39,6 @@ build:
 	 VERBOSITY="$(VERBOSITY)" \
 	 LOG_FILE="$(LOG_FILE)" \
 	 CACHE_DIR="$(CACHE_DIR)" \
-	 BUILDER_IMAGE="$(BUILDER_IMAGE)" \
 	 bash scripts/run-in-docker.sh
 
 clean:

@@ -1,0 +1,9 @@
+# AudioWRT-owned packages that compile/link upstream source code.
+#
+# These are allowed to traverse the OpenWrt SDK build dependency graph because
+# they need headers/libraries/tooling to produce their AudioWRT APK. Every other
+# package in config/package-build-targets is package-only and must be built with
+# NO_DEPS=1 so OpenWrt runtime dependencies remain official release binaries.
+
+librespot
+bluez-alsa

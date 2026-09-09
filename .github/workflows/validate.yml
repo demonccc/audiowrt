@@ -37,7 +37,7 @@ jobs:
       - name: Test feature resolution
         run: bash tests/test-features.sh
 
-      - name: Test SDK download scope
+      - name: Test SDK package-only build boundary
         run: bash tests/test-sdk-download-scope.sh
 
       - name: Test SDK feed configuration
@@ -46,5 +46,11 @@ jobs:
       - name: Test AudioWRT package build selection
         run: bash tests/test-package-build-selection.sh
 
+      - name: Test AudioWRT source dependency resolution
+        run: bash tests/test-source-build-dependencies.sh
+
       - name: Test distribution file-only package phases
         run: bash tests/test-file-only-packages.sh
+
+      - name: Test canonical builder image pin
+        run: bash tests/test-builder-image-pin.sh

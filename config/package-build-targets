@@ -1,8 +1,10 @@
 # AudioWRT-owned binary package|OpenWrt SDK make target
 #
-# Only packages selected by the SDK .config are compiled. This file maps
-# package names to their source-tree make target so official OpenWrt packages
-# remain binary dependencies from the exact release repositories.
+# This file maps AudioWRT package names to their SDK source-tree make targets.
+# Packages are package-only by default and are compiled with NO_DEPS=1 so their
+# OpenWrt runtime dependencies remain official release binaries. Packages listed
+# separately in config/source-build-packages genuinely compile/link upstream
+# source and may traverse the SDK build dependency graph when selected.
 
 audiowrt-core|package/audiowrt/audiowrt-core/compile
 audiowrt-provisioning|package/audiowrt/audiowrt-provisioning/compile

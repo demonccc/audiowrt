@@ -2,7 +2,7 @@
 
 AudioWRT is an audio-focused OpenWrt distribution that turns compatible OpenWrt devices into lightweight network audio appliances.
 
-AudioWRT does not maintain a fork of the OpenWrt source tree. Every firmware build is anchored to an **exact final OpenWrt release**, uses the official SDK and ImageBuilder for that same release/target, compiles only AudioWRT-owned packages, and assembles the final image from official release binaries plus the AudioWRT layer.
+AudioWRT does not maintain a fork of the OpenWrt source tree. Every firmware build is anchored to an **exact final OpenWrt release**, uses the official SDK and ImageBuilder for that same release/target, builds the AudioWRT layer, and assembles the final image from official release binaries plus locally produced AudioWRT APKs.
 
 ## Exact-release policy
 
@@ -36,7 +36,7 @@ Moving to a newer OpenWrt version is therefore a deliberate AudioWRT change inst
 
 ## Build model
 
-The build follows the same release-binary principle used by `release-patched` in [`demonccc/openwrt-builder`](https://github.com/demonccc/openwrt-builder), but AudioWRT does not patch OpenWrt kernel or target sources.
+AudioWRT follows the release-binary principle used by `release-patched` in [`demonccc/openwrt-builder`](https://github.com/demonccc/openwrt-builder), but AudioWRT does not patch OpenWrt kernel or target sources and does not generate a custom ImageBuilder.
 
 ```text
 Exact OpenWrt release tag (for example v25.12.5)
@@ -50,12 +50,19 @@ Clean source checkout for device metadata only
                 v
 Official SDK for the exact release/target
                 |
-                +--> official feeds pinned from feeds.buildinfo
-                +--> AudioWRT distribution packages
-                +--> audiowrt-packages feed
+                +--> preserve official feeds.conf.default
+                +--> update only package helpers + audiowrt feed for core builds
+                +--> register AudioWRT package sources without recursively installing runtime deps
                 |
                 v
-Compile only AudioWRT-owned APKs
+Package-only AudioWRT APKs
+                |
+                +--> explicit AudioWRT targets
+                +--> NO_DEPS=1
+                +--> no hostapd/dnsmasq/uhttpd/kernel rebuilds
+                |
+                +--> optional genuine AudioWRT source packages
+                     may stage only the build dependencies they actually need
                 |
                 v
 Official ImageBuilder for the same exact release/target
@@ -69,19 +76,25 @@ Official ImageBuilder for the same exact release/target
 AudioWRT firmware
 ```
 
-Unchanged OpenWrt packages are not rebuilt just because AudioWRT is being built. They come from the official repositories referenced by the exact release ImageBuilder.
+For the core image and wrapper-style AudioWRT packages, unchanged OpenWrt packages are **not rebuilt** just because they appear in `DEPENDS`. They remain runtime dependencies and are resolved by the official ImageBuilder from the exact release repositories.
 
-The SDK feed definitions are replaced with the release target's official `feeds.buildinfo`, which pins packages, LuCI, routing and other feeds to the exact commits used for that OpenWrt release.
+Most AudioWRT packages only install scripts, configuration, LuCI files or service wrappers. Those packages are built with OpenWrt's `NO_DEPS=1` boundary. This prevents runtime dependencies such as `hostapd`, `dnsmasq`, `uhttpd`, `uci`, `ubus`, kernel packages and OpenWrt libraries from becoming SDK compile targets.
+
+A very small set of AudioWRT-owned packages genuinely compiles upstream source (`librespot` and `bluez-alsa`). They are classified separately in `config/source-build-packages`. Only when such a feature is selected may the SDK stage and build the external development dependencies required to compile/link that AudioWRT-owned binary.
+
+The SDK's generated `feeds.conf.default` remains authoritative. The release `feeds.buildinfo` is retained separately as provenance; it is not used as a replacement feed configuration.
 
 ## Docker build environment
 
 AudioWRT has **no Dockerfile** and does not publish a separate builder image.
 
-Both local and GitHub-hosted builds use the existing image from `demonccc/openwrt-builder`:
+Both local and GitHub-hosted builds always use the canonical image from `demonccc/openwrt-builder`:
 
 ```text
 demonccc/openwrt-builder:latest
 ```
+
+This image is part of the AudioWRT build contract and is intentionally **not configurable** from the Makefile, environment or GitHub Actions inputs. Changes to the build environment belong in `demonccc/openwrt-builder`, where its Dockerfile and image publication are maintained.
 
 Run:
 
@@ -91,20 +104,11 @@ make build \
   OPENWRT_RELEASE=25.12.5
 ```
 
-`make build` pulls the configured image and executes the AudioWRT build inside it. If the image cannot be pulled, the build fails; AudioWRT never falls back to building a Docker image locally.
+`make build` pulls the canonical image and executes the AudioWRT build inside it. If the image cannot be pulled, the build fails; AudioWRT never falls back to building or substituting a Docker image locally.
 
 The Docker image is the build environment only. AudioWRT scripts come from the mounted AudioWRT checkout, so script-only changes do not require rebuilding the `openwrt-builder` image.
 
-A different published or pinned builder image can be selected:
-
-```sh
-make build \
-  PLATFORM=tplink_tl-wdr4300-v1 \
-  OPENWRT_RELEASE=25.12.5 \
-  BUILDER_IMAGE=demonccc/openwrt-builder:sha-<commit>
-```
-
-The selected builder image is recorded in `BUILD_INFO` and `manifest.json`.
+The canonical builder image is recorded in `BUILD_INFO` and `manifest.json`.
 
 ## Build diagnostics
 
@@ -129,7 +133,7 @@ make build \
 
 `LOG_FILE` is local-only. It captures the Docker pull and the complete container output while still showing the same stream in the terminal. The path must stay outside `.work/` and `output/` because those directories are recreated during builds.
 
-The builder's newer persistent-download-cache pattern also applies to AudioWRT. Local builds can opt in with:
+The builder's persistent-download-cache pattern also applies to AudioWRT. Local builds can opt in with:
 
 ```sh
 make build \
@@ -154,7 +158,7 @@ make build \
 
 GitHub Actions does not expose either a log-file or cache input. Hosted jobs remain clean and ephemeral, and the Actions job already retains its complete console log. Firmware artifacts are uploaded only after a successful build.
 
-The latest `openwrt-builder` stabilization changes how `release-patched` handles SDK host tools and the generated custom ImageBuilder. AudioWRT does not need equivalent host-tool replacement logic because it never generates a custom ImageBuilder: it uses the official SDK to compile AudioWRT packages and the official ImageBuilder to assemble the firmware directly.
+The latest `openwrt-builder` stabilization changes how `release-patched` handles SDK host tools and generated custom ImageBuilders. AudioWRT does not need equivalent host-tool replacement logic because it uses the official SDK to build its package layer and the official ImageBuilder to assemble the firmware directly.
 
 ## Core versus optional audio engines
 
@@ -260,8 +264,9 @@ JOBS                     package build parallelism
 VERBOSITY                normal, verbose or debug
 LOG_FILE                 optional local-only diagnostic log path
 CACHE_DIR                optional local-only persistent download cache
-BUILDER_IMAGE            existing openwrt-builder image
 ```
+
+The Docker builder image is intentionally not an input.
 
 For example:
 
@@ -290,10 +295,13 @@ The output also records:
 - `manifest.json`;
 - exact OpenWrt commit;
 - exact SDK and ImageBuilder URLs;
-- exact official feed commits used by the release;
+- official release feed provenance;
 - actual `audiowrt-packages` commit;
 - selected features;
 - resolved platform metadata;
+- registered AudioWRT SDK sources;
+- package-only versus source-build package classification;
+- source-build dependency roots when applicable;
 - SDK/ImageBuilder configuration;
 - locally compiled AudioWRT APKs;
 - image-size report.
@@ -308,8 +316,9 @@ Its main inputs are:
 platform          default: tplink_tl-wdr4300-v1
 openwrt_release   default: 25.12.5
 features          default: empty (core only)
-builder_image     default: demonccc/openwrt-builder:latest
 ```
+
+The builder image is fixed to `demonccc/openwrt-builder:latest` and is not shown as an editable workflow parameter.
 
 `openwrt_release` is editable, but it must be an exact final release such as `25.12.6`; moving release branches and aliases are rejected.
 
