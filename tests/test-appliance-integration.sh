@@ -7,6 +7,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 core_config="$repo_root/package/audiowrt-core/files/audiowrt.config"
 provisioning="$repo_root/package/audiowrt-provisioning"
 storage="$repo_root/package/audiowrt-storage/files/audiowrt-storage"
+menu_filter="$repo_root/package/luci-app-audiowrt-core/root/usr/share/luci/menu.d/zz-audiowrt-network-filter.json"
 
 # Canonical OpenWrt state must not be duplicated in /etc/config/audiowrt.
 if grep -Eq 'device_name|wifi_ssid|^config storage' "$core_config"; then
@@ -27,11 +28,11 @@ grep -q 'audiowrt-radios.cgi' "$provisioning/Makefile"
 for label in 'Welcome' 'Select Wi-Fi' 'Wi-Fi password' 'Administrator password' 'Connect' 'Done'; do
     grep -q "$label" "$provisioning/files/audiowrt.html"
 done
-grep -q 'data-toggle="wifi-key"' "$provisioning/files/audiowrt.html"
-grep -q 'data-toggle="admin-password"' "$provisioning/files/audiowrt.html"
+grep -q 'data-target="key"' "$provisioning/files/audiowrt.html"
+grep -q 'data-target="admin_password"' "$provisioning/files/audiowrt.html"
 
 # Storage owns its own UCI namespace.
-grep -q 'audiowrt-storage.storage' "$storage"
+grep -q 'audiowrt-storage.main' "$storage"
 if grep -q 'audiowrt\.storage' "$storage"; then
     echo 'ERROR: storage runtime still writes the legacy audiowrt.storage section.' >&2
     exit 1
@@ -45,11 +46,11 @@ for package in luci-mod-status luci-mod-system luci-mod-network luci-app-package
         exit 1
     fi
 done
-if grep -q 'admin/network/diagnostics' "$repo_root/package/luci-app-audiowrt-core/root/usr/share/luci/menu.d/zz-audiowrt-openwrt-menu.json"; then
+if grep -q 'admin/network/diagnostics' "$menu_filter"; then
     echo 'ERROR: Diagnostics must remain visible; it should not be overridden by the hidden-menu file.' >&2
     exit 1
 fi
-grep -q 'admin/network/wireless' "$repo_root/package/luci-app-audiowrt-core/root/usr/share/luci/menu.d/zz-audiowrt-openwrt-menu.json"
+grep -q 'admin/network/wireless' "$menu_filter"
 
 # Reusable Wi-Fi packages must be part of the SDK-owned build map.
 grep -q '^audiowrt-wifi-client|' "$repo_root/config/package-build-targets"
