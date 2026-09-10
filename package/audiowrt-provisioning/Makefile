@@ -11,12 +11,11 @@ define Package/audiowrt-provisioning
   SECTION:=sound
   CATEGORY:=Sound
   TITLE:=AudioWRT first-boot provisioning
-  DEPENDS:=+audiowrt-core +audiowrt-audio +audiowrt-wifi-client +ubus +uci +uhttpd +umdns +dnsmasq
+  DEPENDS:=+audiowrt-core +audiowrt-audio +audiowrt-wifi-client +ubus +uci +uhttpd +luci-base
 endef
 
 define Package/audiowrt-provisioning/description
- AudioWRT-only first-boot provisioning for device identity, Wi-Fi client setup,
- administrator password and explicit recovery mode.
+ AudioWRT-only first-boot provisioning for device name, Wi-Fi client setup and administrator password. Reusable Wi-Fi behavior is delegated to audiowrt-wifi-client.
 endef
 
 define Build/Prepare
@@ -50,6 +49,7 @@ define Package/audiowrt-provisioning/install
 	$(INSTALL_DIR) $(1)/www/cgi-bin
 	$(INSTALL_BIN) ./files/audiowrt-status.cgi $(1)/www/cgi-bin/audiowrt-status
 	$(INSTALL_BIN) ./files/audiowrt-scan.cgi $(1)/www/cgi-bin/audiowrt-scan
+	$(INSTALL_BIN) ./files/audiowrt-radios.cgi $(1)/www/cgi-bin/audiowrt-radios
 	$(INSTALL_BIN) ./files/audiowrt-provision.cgi $(1)/www/cgi-bin/audiowrt-provision
 endef
 
