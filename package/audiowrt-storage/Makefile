@@ -18,6 +18,10 @@ define Package/audiowrt-storage/description
  AudioWRT-only guided USB extroot manager for constrained devices. Existing OpenWrt installations should use their normal storage configuration instead.
 endef
 
+define Package/audiowrt-storage/conffiles
+/etc/config/audiowrt-storage
+endef
+
 define Build/Prepare
 endef
 
