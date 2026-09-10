@@ -55,5 +55,8 @@ jobs:
       - name: Test provisioning ownership boundaries
         run: bash tests/test-provisioning-ownership.sh
 
+      - name: Test appliance integration
+        run: bash tests/test-appliance-integration.sh
+
       - name: Test canonical builder image pin
         run: bash tests/test-builder-image-pin.sh
