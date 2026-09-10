@@ -1,11 +1,13 @@
 # Mandatory AudioWRT distribution-core packages.
 # Device-specific hardware packages remain OpenWrt's responsibility.
+# The 8 MB reference baseline prioritizes network connectivity and real audio
+# outputs; local USB storage/extroot is optional.
 
 audiowrt-core
 audiowrt-provisioning
-audiowrt-storage
 audiowrt-audio
 audiowrt-usb-audio
+audiowrt-bluetooth
 audiowrt-extensions
 audiowrt-wifi-client
 luci-base
