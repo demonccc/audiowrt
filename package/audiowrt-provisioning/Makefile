@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=audiowrt-provisioning
-PKG_RELEASE:=2
+PKG_RELEASE:=4
 PKG_LICENSE:=GPL-2.0-only
 PKGARCH:=all
 
@@ -10,12 +10,12 @@ include $(INCLUDE_DIR)/package.mk
 define Package/audiowrt-provisioning
   SECTION:=sound
   CATEGORY:=Sound
-  TITLE:=AudioWRT first-boot network provisioning
-  DEPENDS:=+audiowrt-core +audiowrt-audio +ubus +uci +uhttpd +umdns +dnsmasq +wpad-basic-mbedtls +iwinfo +netifd +wifi-scripts
+  TITLE:=AudioWRT first-boot provisioning
+  DEPENDS:=+audiowrt-core +audiowrt-audio +audiowrt-wifi-client +ubus +uci +uhttpd +luci-base +jsonfilter
 endef
 
 define Package/audiowrt-provisioning/description
- AudioWRT-only client network defaults, temporary setup AP, Wi-Fi STA provisioning and explicit recovery flow.
+ AudioWRT-only first-boot provisioning for device name, Wi-Fi client setup and administrator password. Reusable Wi-Fi behavior is delegated to audiowrt-wifi-client.
 endef
 
 define Build/Prepare
@@ -48,6 +48,8 @@ define Package/audiowrt-provisioning/install
 
 	$(INSTALL_DIR) $(1)/www/cgi-bin
 	$(INSTALL_BIN) ./files/audiowrt-status.cgi $(1)/www/cgi-bin/audiowrt-status
+	$(INSTALL_BIN) ./files/audiowrt-scan.cgi $(1)/www/cgi-bin/audiowrt-scan
+	$(INSTALL_BIN) ./files/audiowrt-radios.cgi $(1)/www/cgi-bin/audiowrt-radios
 	$(INSTALL_BIN) ./files/audiowrt-provision.cgi $(1)/www/cgi-bin/audiowrt-provision
 endef
 

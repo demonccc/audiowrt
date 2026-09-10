@@ -15,17 +15,18 @@ for path in /sys/class/net/*/address; do
 	break
 done
 
-suffix="$(printf '%s' "$mac" | tr -d ':' | tail -c 4 | tr '[:lower:]' '[:upper:]')"
-[ -n "$suffix" ] || suffix='SETUP'
+suffix="$(printf '%s' "$mac" | tr -d ':' | tail -c 4 | tr '[:upper:]' '[:lower:]')"
+[ -n "$suffix" ] || suffix='setup'
 name="AudioWRT-$suffix"
 
-uci -q set audiowrt.main.device_name="$name"
-uci -q set audiowrt.main.identity_initialized='1'
 uci -q set system.@system[0].hostname="$name" 2>/dev/null || true
-uci -q set audiowrt-audio.main.device_name="$name" 2>/dev/null || true
-uci -q commit audiowrt
+uci -q set audiowrt.main.identity_initialized='1'
 uci -q commit system 2>/dev/null || true
-uci -q commit audiowrt-audio 2>/dev/null || true
+uci -q commit audiowrt
 
-/etc/init.d/umdns restart >/dev/null 2>&1 || true
+if [ -x /usr/sbin/audiowrt-wifi-client ]; then
+	/usr/sbin/audiowrt-wifi-client mdns-sync >/dev/null 2>&1 || true
+else
+	/etc/init.d/umdns restart >/dev/null 2>&1 || true
+fi
 exit 0

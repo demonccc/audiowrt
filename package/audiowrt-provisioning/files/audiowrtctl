@@ -4,57 +4,32 @@
 set -eu
 
 setup_ip() { uci -q get audiowrt.main.setup_ip || echo '192.168.77.1'; }
-first_radio() { uci -q show wireless 2>/dev/null | sed -n "s/^wireless\.\([^.=]*\)=wifi-device.*/\1/p" | head -n 1; }
-
-setup_dns_enable() {
-	ip="$(setup_ip)"
-	uci -q del_list dhcp.@dnsmasq[0].address="/#/$ip" 2>/dev/null || true
-	uci -q add_list dhcp.@dnsmasq[0].address="/#/$ip"
-	uci -q commit dhcp
-	/etc/init.d/dnsmasq restart >/dev/null 2>&1 || true
-}
-
-setup_dns_disable() {
-	ip="$(setup_ip)"
-	uci -q del_list dhcp.@dnsmasq[0].address="/#/$ip" 2>/dev/null || true
-	uci -q commit dhcp
-	/etc/init.d/dnsmasq restart >/dev/null 2>&1 || true
-}
-
-sync_internal() {
-	[ -x /usr/sbin/audiowrt-storage ] && /usr/sbin/audiowrt-storage sync-core >/dev/null 2>&1 || true
-}
+first_radio() { /usr/sbin/audiowrt-wifi-client radios 2>/dev/null | sed -n '1s/|.*//p'; }
+sync_internal() { [ -x /usr/sbin/audiowrt-storage ] && /usr/sbin/audiowrt-storage sync-core >/dev/null 2>&1 || true; }
 
 provisioning_start() {
 	radio="$(first_radio)"
 	[ -n "$radio" ] || { echo 'ERROR: no Wi-Fi radio is available.' >&2; exit 3; }
-	uci -q get wireless.audiowrt_setup >/dev/null 2>&1 || { echo 'ERROR: AudioWRT setup AP is not initialized.' >&2; exit 4; }
-	uci -q set wireless.audiowrt_client.disabled='1' 2>/dev/null || true
-	uci -q set wireless.audiowrt_setup.disabled='0'
-	uci -q set wireless."$radio".disabled='0'
+	name="$(uci -q get system.@system[0].hostname || echo AudioWRT)"
+	/usr/sbin/audiowrt-wifi-client disconnect >/dev/null 2>&1 || true
+	/usr/sbin/audiowrt-wifi-client setup-start "$radio" "$name" "$(setup_ip)"
 	uci -q set audiowrt.main.provisioning='1'
 	uci -q set audiowrt.main.last_error=''
-	uci -q commit wireless
 	uci -q commit audiowrt
-	setup_dns_enable
-	wifi reload >/dev/null 2>&1 || wifi >/dev/null 2>&1 || true
 	logger -t audiowrt "Provisioning mode enabled"
 }
 
 provisioning_stop() {
-	uci -q set wireless.audiowrt_setup.disabled='1' 2>/dev/null || true
+	/usr/sbin/audiowrt-wifi-client setup-stop >/dev/null 2>&1 || true
 	uci -q set audiowrt.main.provisioning='0'
-	uci -q commit wireless
 	uci -q commit audiowrt
-	setup_dns_disable
-	wifi reload >/dev/null 2>&1 || wifi >/dev/null 2>&1 || true
 	sync_internal
 }
 
 status() {
-	printf 'device_name=%s\n' "$(uci -q get audiowrt.main.device_name || echo AudioWRT)"
+	printf 'device_name=%s\n' "$(uci -q get system.@system[0].hostname || echo AudioWRT)"
 	printf 'provisioning=%s\n' "$(uci -q get audiowrt.main.provisioning || echo 1)"
-	printf 'wifi_ssid=%s\n' "$(uci -q get audiowrt.main.wifi_ssid || true)"
+	printf 'wifi_ssid=%s\n' "$(uci -q get wireless.audiowrt_client.ssid || true)"
 	printf 'last_error=%s\n' "$(uci -q get audiowrt.main.last_error || true)"
 }
 
