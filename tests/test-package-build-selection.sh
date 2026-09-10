@@ -9,8 +9,11 @@ trap 'rm -rf "$tmp"' EXIT
 
 cat > "$tmp/targets" <<'EOF'
 audiowrt-core|package/audiowrt/audiowrt-core/compile
+audiowrt-provisioning|package/audiowrt/audiowrt-provisioning/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
+audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
+luci-app-audiowrt-wifi-client|package/feeds/audiowrt/luci-app-audiowrt-wifi-client/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
 librespot|package/feeds/audiowrt/librespot/compile
 audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-bluetooth/compile
@@ -20,10 +23,16 @@ EOF
 cat > "$tmp/packageinfo" <<'EOF'
 Package: audiowrt-core
 Depends: +libc +audiowrt-audio
+Package: audiowrt-provisioning
+Depends: +audiowrt-core +audiowrt-wifi-client
 Package: audiowrt-audio
 Depends: +uci
 Package: audiowrt-extensions
 Depends: +audiowrt-audio +apk-mbedtls
+Package: audiowrt-wifi-client
+Depends: +uci +ubus +rpcd-mod-iwinfo
+Package: luci-app-audiowrt-wifi-client
+Depends: +luci-base +audiowrt-wifi-client
 Package: audiowrt-spotify
 Depends: +audiowrt-extensions +librespot
 Package: librespot
@@ -37,10 +46,13 @@ EOF
 resolver="$repo_root/scripts/resolve-package-build-targets.py"
 
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-core audiowrt-extensions > "$tmp/core"
+    audiowrt-core audiowrt-provisioning audiowrt-extensions luci-app-audiowrt-wifi-client > "$tmp/core"
 
 grep -q '^audiowrt-audio|' "$tmp/core"
 grep -q '^audiowrt-core|' "$tmp/core"
+grep -q '^audiowrt-provisioning|' "$tmp/core"
+grep -q '^audiowrt-wifi-client|' "$tmp/core"
+grep -q '^luci-app-audiowrt-wifi-client|' "$tmp/core"
 grep -q '^audiowrt-extensions|' "$tmp/core"
 if grep -Eq '^(audiowrt-spotify|librespot|audiowrt-bluetooth|bluez-alsa)\|' "$tmp/core"; then
     echo "ERROR: core-only build selected optional AudioWRT engines." >&2
