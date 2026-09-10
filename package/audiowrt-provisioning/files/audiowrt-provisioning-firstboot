@@ -8,8 +8,8 @@ set -eu
 name="$(uci -q get system.@system[0].hostname || echo AudioWRT)"
 setup_ip="$(uci -q get audiowrt.main.setup_ip || echo 192.168.77.1)"
 
-# Keep the board-specific Ethernet topology, but make the normal LAN an
-# upstream DHCP client instead of a router-side static network.
+# Keep the board-specific Ethernet topology, but make normal Ethernet a DHCP
+# client rather than a router-side static LAN.
 if uci -q get network.lan >/dev/null 2>&1; then
 	uci -q set network.lan.proto='dhcp'
 	uci -q delete network.lan.ipaddr 2>/dev/null || true
@@ -18,12 +18,19 @@ if uci -q get network.lan >/dev/null 2>&1; then
 	uci -q delete network.lan.gateway 2>/dev/null || true
 	uci -q delete network.lan.dns 2>/dev/null || true
 fi
-[ "$(uci -q get dhcp.lan.ignore || echo 0)" = '1' ] || uci -q set dhcp.lan.ignore='1'
+if uci -q get dhcp.lan >/dev/null 2>&1; then
+	uci -q set dhcp.lan.ignore='1'
+fi
 
-# Preserve wifi-device hardware sections. Disable existing wifi-iface sections
-# so AudioWRT starts from an unambiguous client-only configuration.
+# Preserve OpenWrt's wifi-device hardware definitions, but disable every
+# pre-existing wifi-iface. AudioWRT creates only its setup AP and client STA.
 for section in $(uci -q show wireless 2>/dev/null | sed -n "s/^wireless\.\([^.=]*\)=wifi-iface.*/\1/p"); do
 	uci -q set wireless."$section".disabled='1'
+done
+# Keep all discovered radio devices enabled so the provisioning scan can query
+# every band without rewriting any board-specific radio options.
+for radio_device in $(uci -q show wireless 2>/dev/null | sed -n "s/^wireless\.\([^.=]*\)=wifi-device.*/\1/p"); do
+	uci -q set wireless."$radio_device".disabled='0'
 done
 uci -q commit network
 uci -q commit dhcp
@@ -33,7 +40,7 @@ radio="$(/usr/sbin/audiowrt-wifi-client radios 2>/dev/null | sed -n '1s/|.*//p')
 if [ -n "$radio" ]; then
 	/usr/sbin/audiowrt-wifi-client setup-start "$radio" "$name" "$setup_ip"
 else
-	logger -t audiowrt "No Wi-Fi radio found; management remains available over Ethernet"
+	logger -t audiowrt 'No Wi-Fi radio found; management remains available over Ethernet'
 fi
 
 if uci -q get uhttpd.main >/dev/null 2>&1; then
