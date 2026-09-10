@@ -20,7 +20,7 @@ on:
         default: main
         type: string
       features:
-        description: "Optional preinstalled engines (mpd, airplay, spotify, bluetooth); leave empty for core only"
+        description: "Optional preinstalled audio services (mpd, airplay, spotify); leave empty for core only"
         required: false
         default: ''
         type: string
