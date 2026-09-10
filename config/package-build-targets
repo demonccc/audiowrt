@@ -14,10 +14,12 @@ luci-app-audiowrt-core|package/audiowrt/luci-app-audiowrt-core/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 audiowrt-usb-audio|package/feeds/audiowrt/audiowrt-usb-audio/compile
 audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
+audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 audiowrt-mpd|package/feeds/audiowrt/audiowrt-mpd/compile
 audiowrt-airplay|package/feeds/audiowrt/audiowrt-airplay/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
 audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-bluetooth/compile
 luci-app-audiowrt|package/feeds/audiowrt/luci-app-audiowrt/compile
+luci-app-audiowrt-wifi-client|package/feeds/audiowrt/luci-app-audiowrt-wifi-client/compile
 librespot|package/feeds/audiowrt/librespot/compile
 bluez-alsa|package/feeds/audiowrt/bluez-alsa/compile
