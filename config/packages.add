@@ -7,9 +7,15 @@ audiowrt-storage
 audiowrt-audio
 audiowrt-usb-audio
 audiowrt-extensions
+audiowrt-wifi-client
 luci-base
 luci-theme-bootstrap
+luci-mod-status
+luci-mod-system
+luci-mod-network
+luci-app-package-manager
 luci-app-audiowrt
+luci-app-audiowrt-wifi-client
 luci-app-audiowrt-core
 uhttpd
 uhttpd-mod-ubus
