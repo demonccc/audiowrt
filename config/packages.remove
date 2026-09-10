@@ -13,9 +13,5 @@ odhcpd-ipv6only
 luci
 luci-light
 luci-mod-admin-full
-luci-mod-network
-luci-mod-status
-luci-mod-system
 luci-app-firewall
-luci-app-package-manager
 luci-proto-ppp
