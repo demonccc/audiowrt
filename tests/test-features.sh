@@ -7,15 +7,16 @@ python3 - "$tmp/none.json" <<'PY'
 import json,sys
 x=json.load(open(sys.argv[1])); assert x['features']==[] and x['packages']==[]
 PY
-python3 "$repo_root/scripts/resolve-features.py" "$repo_root/config/features.map" 'mpd,airplay,spotify,bluetooth' > "$tmp/selected.json"
+python3 "$repo_root/scripts/resolve-features.py" "$repo_root/config/features.map" 'mpd,airplay,spotify' > "$tmp/selected.json"
 python3 - "$tmp/selected.json" <<'PY'
 import json,sys
-x=json.load(open(sys.argv[1])); assert [f['id'] for f in x['features']]==['mpd','airplay','spotify','bluetooth']; assert x['packages']==['audiowrt-mpd','audiowrt-airplay','audiowrt-spotify','audiowrt-bluetooth']
+x=json.load(open(sys.argv[1])); assert [f['id'] for f in x['features']]==['mpd','airplay','spotify']; assert x['packages']==['audiowrt-mpd','audiowrt-airplay','audiowrt-spotify']
 PY
 python3 "$repo_root/scripts/resolve-features.py" "$repo_root/config/features.map" all > "$tmp/all.json"
 python3 - "$tmp/selected.json" "$tmp/all.json" <<'PY'
 import json,sys
 l=json.load(open(sys.argv[1])); r=json.load(open(sys.argv[2])); assert l['features']==r['features'] and l['packages']==r['packages']
 PY
+if python3 "$repo_root/scripts/resolve-features.py" "$repo_root/config/features.map" bluetooth >/dev/null 2>&1; then echo 'ERROR: Bluetooth must not be selectable as an optional feature' >&2; exit 1; fi
 if python3 "$repo_root/scripts/resolve-features.py" "$repo_root/config/features.map" does-not-exist >/dev/null 2>&1; then echo 'ERROR: unknown feature unexpectedly succeeded' >&2; exit 1; fi
 echo 'Feature resolution tests passed.'
