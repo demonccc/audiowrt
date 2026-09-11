@@ -6,4 +6,8 @@
 # NO_DEPS=1 so OpenWrt runtime dependencies remain official release binaries.
 
 librespot
+audiowrt-sbc
+audiowrt-bluez-libs
+audiowrt-bluez
+audiowrt-btctl
 bluez-alsa

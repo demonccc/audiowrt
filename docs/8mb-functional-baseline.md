@@ -16,16 +16,33 @@ Bluetooth    USB Audio
 A2DP Source  USB DAC
 ```
 
+Bluetooth MIDI is part of the current constrained-baseline experiment, not a deferred feature. It does not carry audio samples; BlueZ exposes Bluetooth MIDI events through ALSA Sequencer so controllers/instruments can participate in AudioWRT music-routing use cases without requiring the general-purpose BlueZ tool stack.
+
 Local USB storage and extroot are not part of the mandatory 8 MB core. They remain useful for larger installations and optional services. A build that wants the guided external-storage stack must request it explicitly with `FEATURES=storage`; the storage CLI, filesystem/USB dependencies and LuCI page are otherwise absent from the baseline.
 
-## Mandatory output baseline
+## Mandatory output/music baseline
 
-The reference build must attempt to include both:
+The reference build must attempt to include:
 
 - Bluetooth A2DP Source output for speakers and headphones.
+- Bluetooth MIDI via ALSA Sequencer.
 - USB Audio Class output for USB DACs and sound cards.
 
-Bluetooth is an output capability, not an AudioWRT Extension. The current BlueZ/BlueALSA implementation is intentionally included in the reference build so the firmware-size report exposes its real cost. If it exceeds the image budget, the next optimization target is a reduced BlueZ/BlueALSA build limited to the functionality AudioWRT uses.
+Bluetooth is an output/music capability, not an AudioWRT Extension.
+
+The first WDR4300 build with the generic OpenWrt BlueZ/SBC dependency chain reached `9,939,466` bytes against the device image limit of `7,861,804` bytes: an overage of `2,077,662` bytes (about 1.98 MiB). Storage was already absent from that measurement, so the result isolated Bluetooth as the next size problem.
+
+The 8 MB baseline therefore uses an AudioWRT-specific minimal Bluetooth stack instead of dropping Bluetooth:
+
+- a minimal BlueZ `bluetoothd` with classic A2DP/AVRCP and Bluetooth MIDI retained while unrelated profiles, tools, monitor, OBEX and the generic CLI are disabled;
+- an AudioWRT-owned `libbluetooth` built from the same minimal BlueZ source;
+- a library-only SBC package without `libsndfile` or SBC command-line tools;
+- BlueALSA restricted to the A2DP Source/SBC path;
+- a compact AudioWRT D-Bus controller for discovery, pairing and connection instead of `bluetoothctl`/`hciconfig`.
+
+Bluetooth MIDI is intentionally enabled before the next size measurement. The next WDR4300 ImageBuilder result therefore measures the cost of the minimized A2DP/AVRCP + Bluetooth MIDI + USB Audio baseline together. If it fits, MIDI remains in the baseline; if it does not, the measured delta becomes part of the next size decision rather than an assumption made in advance.
+
+This removes the generic dependency chains through `bluez-utils`, readline/ncurses, libical, libsndfile, LAME and mpg123. The firmware build remains authoritative: these changes are not considered sufficient for the 8 MB target until ImageBuilder produces valid WDR4300 images and the resulting size is measured.
 
 ## Network input baseline
 
@@ -66,6 +83,7 @@ fresh flash
   -> controller starts playback
   -> AudioWRT routes audio to Bluetooth A2DP Source
   -> optionally switch to a USB Audio Class DAC
+  -> Bluetooth MIDI remains available through ALSA Sequencer
 ```
 
-The current PR establishes the provisioning/output/extension model and deliberately measures the existing Bluetooth stack in the reference build. The DLNA renderer and Bluetooth stack minimization should be implemented and measured as focused follow-up changes so their firmware-size deltas remain attributable.
+The Bluetooth minimization is a size-driven implementation step toward this acceptance path. DLNA remains the next network-input milestone after the output baseline produces a valid WDR4300 firmware.
