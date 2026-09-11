@@ -1,5 +1,5 @@
 {
-	"luci-app-audiowrt-core": {
+	"luci-app-audiowrt-storage": {
 		"description": "Grant access to AudioWRT distribution storage management",
 		"read": {
 			"uci": [ "audiowrt-storage", "fstab" ],

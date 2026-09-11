@@ -9,7 +9,8 @@ for package in \
     audiowrt-core \
     audiowrt-provisioning \
     audiowrt-storage \
-    luci-app-audiowrt-core; do
+    luci-app-audiowrt-core \
+    luci-app-audiowrt-storage; do
     makefile="$repo_root/package/$package/Makefile"
     for phase in Prepare Configure Compile; do
         grep -q "^define Build/$phase$" "$makefile" || {

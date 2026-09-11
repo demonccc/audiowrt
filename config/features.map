@@ -2,3 +2,4 @@
 mpd|audiowrt-mpd|Local music and HTTP playback through MPD.
 airplay|audiowrt-airplay|AirPlay receiver through Shairport Sync.
 spotify|audiowrt-spotify|Spotify Connect receiver through librespot.
+storage|audiowrt-storage-luci|External USB extension storage with AudioWRT LuCI management.

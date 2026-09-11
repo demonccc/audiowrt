@@ -10,6 +10,8 @@ trap 'rm -rf "$tmp"' EXIT
 cat > "$tmp/targets" <<'EOF'
 audiowrt-core|package/audiowrt/audiowrt-core/compile
 audiowrt-provisioning|package/audiowrt/audiowrt-provisioning/compile
+audiowrt-storage|package/audiowrt/audiowrt-storage/compile
+audiowrt-storage-luci|package/audiowrt/luci-app-audiowrt-storage/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
 audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
@@ -25,6 +27,10 @@ Package: audiowrt-core
 Depends: +libc +audiowrt-audio
 Package: audiowrt-provisioning
 Depends: +audiowrt-core +audiowrt-wifi-client
+Package: audiowrt-storage
+Depends: +audiowrt-core +block-mount +kmod-usb-storage +kmod-fs-ext4 +e2fsprogs
+Package: audiowrt-storage-luci
+Depends: +luci-base +rpcd-mod-file +luci-app-audiowrt +audiowrt-storage
 Package: audiowrt-audio
 Depends: +uci
 Package: audiowrt-extensions
@@ -54,11 +60,16 @@ grep -q '^audiowrt-provisioning|' "$tmp/core"
 grep -q '^audiowrt-wifi-client|' "$tmp/core"
 grep -q '^luci-app-audiowrt-wifi-client|' "$tmp/core"
 grep -q '^audiowrt-extensions|' "$tmp/core"
-if grep -Eq '^(audiowrt-spotify|librespot|audiowrt-bluetooth|bluez-alsa)\|' "$tmp/core"; then
-    echo "ERROR: core-only build selected optional AudioWRT engines." >&2
+if grep -Eq '^(audiowrt-storage|audiowrt-storage-luci|audiowrt-spotify|librespot|audiowrt-bluetooth|bluez-alsa)\|' "$tmp/core"; then
+    echo "ERROR: core-only build selected optional AudioWRT packages." >&2
     cat "$tmp/core" >&2
     exit 1
 fi
+
+python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
+    audiowrt-core audiowrt-storage-luci > "$tmp/storage"
+grep -q '^audiowrt-storage|' "$tmp/storage"
+grep -q '^audiowrt-storage-luci|' "$tmp/storage"
 
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
     audiowrt-core audiowrt-extensions audiowrt-spotify > "$tmp/spotify"
