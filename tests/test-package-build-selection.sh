@@ -18,8 +18,12 @@ audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 luci-app-audiowrt-wifi-client|package/feeds/audiowrt/luci-app-audiowrt-wifi-client/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
 librespot|package/feeds/audiowrt/librespot/compile
-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-bluetooth/compile
+audiowrt-sbc|package/feeds/audiowrt/audiowrt-sbc/compile
+audiowrt-bluez-libs|package/feeds/audiowrt/audiowrt-bluez/compile
+audiowrt-bluez|package/feeds/audiowrt/audiowrt-bluez/compile
+audiowrt-btctl|package/feeds/audiowrt/audiowrt-btctl/compile
 bluez-alsa|package/feeds/audiowrt/bluez-alsa/compile
+audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-bluetooth/compile
 EOF
 
 cat > "$tmp/packageinfo" <<'EOF'
@@ -43,10 +47,18 @@ Package: audiowrt-spotify
 Depends: +audiowrt-extensions +librespot
 Package: librespot
 Depends: +alsa-lib
-Package: audiowrt-bluetooth
-Depends: +audiowrt-extensions +bluez-alsa +kmod-btusb
+Package: audiowrt-sbc
+Depends: +libc
+Package: audiowrt-bluez-libs
+Depends: +libpthread
+Package: audiowrt-bluez
+Depends: +audiowrt-bluez-libs +glib2 +dbus +alsa-lib
+Package: audiowrt-btctl
+Depends: +glib2
 Package: bluez-alsa
-Depends: +alsa-lib
+Depends: +alsa-lib +audiowrt-bluez +audiowrt-bluez-libs +glib2 +audiowrt-sbc +dbus
+Package: audiowrt-bluetooth
+Depends: +audiowrt-audio +audiowrt-bluez +audiowrt-btctl +bluez-alsa +kmod-btusb
 EOF
 
 resolver="$repo_root/scripts/resolve-package-build-targets.py"
@@ -60,8 +72,8 @@ grep -q '^audiowrt-provisioning|' "$tmp/core"
 grep -q '^audiowrt-wifi-client|' "$tmp/core"
 grep -q '^luci-app-audiowrt-wifi-client|' "$tmp/core"
 grep -q '^audiowrt-extensions|' "$tmp/core"
-if grep -Eq '^(audiowrt-storage|audiowrt-storage-luci|audiowrt-spotify|librespot|audiowrt-bluetooth|bluez-alsa)\|' "$tmp/core"; then
-    echo "ERROR: core-only build selected optional AudioWRT packages." >&2
+if grep -Eq '^(audiowrt-storage|audiowrt-storage-luci|audiowrt-spotify|librespot|audiowrt-bluetooth|bluez-alsa|audiowrt-bluez|audiowrt-bluez-libs|audiowrt-sbc|audiowrt-btctl)\|' "$tmp/core"; then
+    echo "ERROR: non-Bluetooth core roots selected unrelated AudioWRT packages." >&2
     cat "$tmp/core" >&2
     exit 1
 fi
@@ -75,17 +87,21 @@ python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
     audiowrt-core audiowrt-extensions audiowrt-spotify > "$tmp/spotify"
 grep -q '^librespot|' "$tmp/spotify"
 grep -q '^audiowrt-spotify|' "$tmp/spotify"
-if grep -Eq '^(audiowrt-bluetooth|bluez-alsa)\|' "$tmp/spotify"; then
+if grep -Eq '^(audiowrt-bluetooth|bluez-alsa|audiowrt-bluez|audiowrt-bluez-libs|audiowrt-sbc|audiowrt-btctl)\|' "$tmp/spotify"; then
     echo "ERROR: Spotify build selected Bluetooth packages." >&2
     exit 1
 fi
 
+# The Bluetooth root includes the same BlueZ package that carries A2DP/AVRCP
+# and the measured Bluetooth MIDI plugin; ALSA is a runtime/source dependency,
+# not a separate AudioWRT package target.
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
     audiowrt-core audiowrt-extensions audiowrt-bluetooth > "$tmp/bluetooth"
-grep -q '^bluez-alsa|' "$tmp/bluetooth"
-grep -q '^audiowrt-bluetooth|' "$tmp/bluetooth"
+for package in audiowrt-sbc audiowrt-bluez-libs audiowrt-bluez audiowrt-btctl bluez-alsa audiowrt-bluetooth; do
+    grep -q "^${package}|" "$tmp/bluetooth"
+done
 if grep -Eq '^(audiowrt-spotify|librespot)\|' "$tmp/bluetooth"; then
-    echo "ERROR: Bluetooth build selected Spotify packages." >&2
+    echo "ERROR: Bluetooth baseline selected Spotify packages." >&2
     exit 1
 fi
 

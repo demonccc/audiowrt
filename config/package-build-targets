@@ -19,8 +19,12 @@ audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 audiowrt-mpd|package/feeds/audiowrt/audiowrt-mpd/compile
 audiowrt-airplay|package/feeds/audiowrt/audiowrt-airplay/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
+audiowrt-sbc|package/feeds/audiowrt/audiowrt-sbc/compile
+audiowrt-bluez-libs|package/feeds/audiowrt/audiowrt-bluez/compile
+audiowrt-bluez|package/feeds/audiowrt/audiowrt-bluez/compile
+audiowrt-btctl|package/feeds/audiowrt/audiowrt-btctl/compile
+bluez-alsa|package/feeds/audiowrt/bluez-alsa/compile
 audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-bluetooth/compile
 luci-app-audiowrt|package/feeds/audiowrt/luci-app-audiowrt/compile
 luci-app-audiowrt-wifi-client|package/feeds/audiowrt/luci-app-audiowrt-wifi-client/compile
 librespot|package/feeds/audiowrt/librespot/compile
-bluez-alsa|package/feeds/audiowrt/bluez-alsa/compile
