@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-audiowrt-core
-PKG_RELEASE:=3
+PKG_RELEASE:=4
 PKG_LICENSE:=Apache-2.0
 PKGARCH:=all
 
@@ -12,12 +12,12 @@ define Package/luci-app-audiowrt-core
   CATEGORY:=LuCI
   SUBMENU:=3. Applications
   TITLE:=AudioWRT distribution management interface
-  DEPENDS:=+luci-base +rpcd-mod-file +luci-app-audiowrt +audiowrt-storage
+  DEPENDS:=+luci-base
 endef
 
 define Package/luci-app-audiowrt-core/description
- AudioWRT-only LuCI integration for distribution-specific storage management.
- Generic system, status, software and maintenance pages come from OpenWrt LuCI.
+ Lightweight AudioWRT LuCI integration for distribution-specific navigation.
+ Optional storage management is provided by audiowrt-storage-luci.
 endef
 
 define Build/Prepare
@@ -30,8 +30,6 @@ define Build/Compile
 endef
 
 define Package/luci-app-audiowrt-core/install
-	$(INSTALL_DIR) $(1)/www
-	$(CP) ./htdocs/* $(1)/www/
 	$(INSTALL_DIR) $(1)/
 	$(CP) ./root/* $(1)/
 endef

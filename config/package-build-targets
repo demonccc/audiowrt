@@ -10,6 +10,7 @@ audiowrt-core|package/audiowrt/audiowrt-core/compile
 audiowrt-provisioning|package/audiowrt/audiowrt-provisioning/compile
 audiowrt-storage|package/audiowrt/audiowrt-storage/compile
 luci-app-audiowrt-core|package/audiowrt/luci-app-audiowrt-core/compile
+audiowrt-storage-luci|package/audiowrt/luci-app-audiowrt-storage/compile
 
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 audiowrt-usb-audio|package/feeds/audiowrt/audiowrt-usb-audio/compile

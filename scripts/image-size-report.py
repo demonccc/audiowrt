@@ -47,6 +47,13 @@ def main() -> None:
     )
     text_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
+    if not images:
+        print(
+            "ERROR: ImageBuilder completed without producing any firmware image files.",
+            file=sys.stderr,
+        )
+        raise SystemExit(3)
+
 
 if __name__ == "__main__":
     main()

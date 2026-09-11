@@ -156,29 +156,29 @@ make build \
   LOG_FILE=logs/wdr4300.log
 ```
 
-GitHub Actions does not expose either a log-file or cache input. Hosted jobs remain clean and ephemeral, and the Actions job already retains its complete console log. Firmware artifacts are uploaded only after a successful build.
+GitHub Actions does not expose either a log-file or cache input. Hosted jobs remain clean and ephemeral, and the Actions job already retains its complete console log. The workflow also uploads whatever build diagnostics were produced when a build fails, while a successful build must contain at least one real firmware image.
 
 The latest `openwrt-builder` stabilization changes how `release-patched` handles SDK host tools and generated custom ImageBuilders. AudioWRT does not need equivalent host-tool replacement logic because it uses the official SDK to build its package layer and the official ImageBuilder to assemble the firmware directly.
 
-## Core versus optional audio engines
+## Core versus optional features
 
-The default firmware is the AudioWRT core:
+The default firmware is the AudioWRT 8 MB functional core:
 
 - AudioWRT appliance identity;
 - Ethernet DHCP-client behavior;
 - temporary Wi-Fi provisioning AP and STA onboarding;
-- guided external storage support;
 - USB Audio Class and ALSA output management;
+- Bluetooth A2DP Source output;
 - minimal LuCI (`luci-base` + AudioWRT applications);
 - AudioWRT extension management.
 
-MPD, AirPlay, Spotify Connect and Bluetooth audio remain optional build-time features:
+Local USB storage/extroot is deliberately **not** part of the mandatory baseline. MPD, AirPlay, Spotify Connect and guided external storage are optional build-time features:
 
 ```sh
 make build \
   PLATFORM=tplink_tl-wdr4300-v1 \
   OPENWRT_RELEASE=25.12.5 \
-  FEATURES="mpd spotify"
+  FEATURES="mpd storage"
 ```
 
 Available feature IDs:
@@ -187,10 +187,14 @@ Available feature IDs:
 mpd
 airplay
 spotify
-bluetooth
+storage
 ```
 
-OpenWrt ImageBuilder enforces the selected device's image-size limit. AudioWRT does not silently drop requested features. On constrained devices, larger services can instead be installed later through AudioWRT Extensions and optional USB extension storage.
+`FEATURES=storage` installs the AudioWRT storage CLI plus the filesystem/USB dependencies and its LuCI management page. Without that explicit feature, none of those storage packages are pulled into the 8 MB baseline.
+
+Bluetooth is a mandatory output capability for the current reference baseline rather than an optional feature. Its current BlueZ/BlueALSA implementation remains included so firmware-size reports expose its actual cost on constrained devices.
+
+OpenWrt ImageBuilder enforces the selected device's image-size limit. AudioWRT does not silently drop requested features. AudioWRT additionally treats a successful ImageBuilder command that produces no firmware image as a failed build. On constrained devices, larger services can instead be installed later through AudioWRT Extensions and optional USB extension storage.
 
 ## Reference device
 
@@ -233,8 +237,11 @@ package/
 ├── audiowrt-core
 ├── audiowrt-provisioning
 ├── audiowrt-storage
-└── luci-app-audiowrt-core
+├── luci-app-audiowrt-core
+└── luci-app-audiowrt-storage
 ```
+
+`luci-app-audiowrt-storage` is the source package directory for the optional `audiowrt-storage-luci` binary package. Keeping the binary under the `audiowrt-storage-*` namespace also lets the distribution collect its locally built APKs together with the storage package family.
 
 Reusable audio functionality comes from [`demonccc/audiowrt-packages`](https://github.com/demonccc/audiowrt-packages):
 
@@ -259,7 +266,7 @@ Installing the reusable feed on a normal OpenWrt system does not change its LAN,
 PLATFORM                 required OpenWrt device profile
 OPENWRT_RELEASE          exact X.Y.Z / vX.Y.Z release (default 25.12.5)
 AUDIOWRT_PACKAGES_REF    reusable package-feed branch/tag/commit (default main)
-FEATURES                 optional music engines
+FEATURES                 optional services/storage
 JOBS                     package build parallelism
 VERBOSITY                normal, verbose or debug
 LOG_FILE                 optional local-only diagnostic log path
@@ -305,6 +312,8 @@ The output also records:
 - SDK/ImageBuilder configuration;
 - locally compiled AudioWRT APKs;
 - image-size report.
+
+If ImageBuilder produces no `.bin`, `.img`, `.img.gz`, `.ubi` or `.itb` firmware files, AudioWRT writes the diagnostic size report and fails the build instead of presenting an empty firmware artifact as success.
 
 ## GitHub Actions
 

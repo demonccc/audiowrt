@@ -37,6 +37,12 @@ jobs:
       - name: Test feature resolution
         run: bash tests/test-features.sh
 
+      - name: Test storage baseline isolation
+        run: bash tests/test-storage-baseline.sh
+
+      - name: Test firmware image output validation
+        run: bash tests/test-image-size-report.sh
+
       - name: Test SDK package-only build boundary
         run: bash tests/test-sdk-download-scope.sh
 

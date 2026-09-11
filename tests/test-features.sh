@@ -7,10 +7,10 @@ python3 - "$tmp/none.json" <<'PY'
 import json,sys
 x=json.load(open(sys.argv[1])); assert x['features']==[] and x['packages']==[]
 PY
-python3 "$repo_root/scripts/resolve-features.py" "$repo_root/config/features.map" 'mpd,airplay,spotify' > "$tmp/selected.json"
+python3 "$repo_root/scripts/resolve-features.py" "$repo_root/config/features.map" 'mpd,airplay,spotify,storage' > "$tmp/selected.json"
 python3 - "$tmp/selected.json" <<'PY'
 import json,sys
-x=json.load(open(sys.argv[1])); assert [f['id'] for f in x['features']]==['mpd','airplay','spotify']; assert x['packages']==['audiowrt-mpd','audiowrt-airplay','audiowrt-spotify']
+x=json.load(open(sys.argv[1])); assert [f['id'] for f in x['features']]==['mpd','airplay','spotify','storage']; assert x['packages']==['audiowrt-mpd','audiowrt-airplay','audiowrt-spotify','audiowrt-storage-luci']
 PY
 python3 "$repo_root/scripts/resolve-features.py" "$repo_root/config/features.map" all > "$tmp/all.json"
 python3 - "$tmp/selected.json" "$tmp/all.json" <<'PY'

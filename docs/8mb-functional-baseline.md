@@ -16,7 +16,7 @@ Bluetooth    USB Audio
 A2DP Source  USB DAC
 ```
 
-Local USB storage and extroot are not part of the mandatory 8 MB core. They remain useful for larger installations and optional services.
+Local USB storage and extroot are not part of the mandatory 8 MB core. They remain useful for larger installations and optional services. A build that wants the guided external-storage stack must request it explicitly with `FEATURES=storage`; the storage CLI, filesystem/USB dependencies and LuCI page are otherwise absent from the baseline.
 
 ## Mandatory output baseline
 
