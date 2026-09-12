@@ -40,6 +40,9 @@ jobs:
       - name: Test storage baseline isolation
         run: bash tests/test-storage-baseline.sh
 
+      - name: Test minimal 8 MB LuCI baseline
+        run: bash tests/test-8mb-luci-baseline.sh
+
       - name: Test firmware image output validation
         run: bash tests/test-image-size-report.sh
 

@@ -40,7 +40,9 @@ The 8 MB baseline therefore uses an AudioWRT-specific minimal Bluetooth stack in
 - BlueALSA restricted to the A2DP Source/SBC path;
 - a compact AudioWRT D-Bus controller for discovery, pairing and connection instead of `bluetoothctl`/`hciconfig`.
 
-Bluetooth MIDI is intentionally enabled before the next size measurement. The next WDR4300 ImageBuilder result therefore measures the cost of the minimized A2DP/AVRCP + Bluetooth MIDI + USB Audio baseline together. If it fits, MIDI remains in the baseline; if it does not, the measured delta becomes part of the next size decision rather than an assumption made in advance.
+The minimized stack now compiles end-to-end on the WDR4300 SDK, including Bluetooth MIDI, SBC, BlueALSA and the compact D-Bus controller. The first complete ImageBuilder measurement with that stack produced a `5,763.81 KiB` SquashFS root filesystem but still exceeded the TP-Link firmware limit by `780,394` bytes (about 762 KiB). This is a reduction of `1,297,268` bytes compared with the original generic Bluetooth build, but it still does not fit.
+
+The next size pass keeps the explicitly requested generic LuCI pages for Status, System and Package Manager, but does not preinstall `luci-mod-network`. Network configuration is an AudioWRT-owned product flow: the dedicated Wi-Fi Client UI handles SSID/AP selection and IPv4 configuration directly. This avoids carrying the generic network UI while preserving the appliance administration pages that are intentionally part of the product.
 
 This removes the generic dependency chains through `bluez-utils`, readline/ncurses, libical, libsndfile, LAME and mpg123. The firmware build remains authoritative: these changes are not considered sufficient for the 8 MB target until ImageBuilder produces valid WDR4300 images and the resulting size is measured.
 
@@ -59,8 +61,10 @@ Provisioning must work on both single-radio and multi-radio devices and must nev
 - If only one radio exists, stop the setup AP, switch to STA, and restore the setup AP after timeout if association/DHCP fails.
 - Selecting an SSID does not pin a BSSID by default, allowing normal roaming on the selected radio.
 - Selecting a specific access point explicitly stores its BSSID.
+- IPv4 configuration is part of the AudioWRT Wi-Fi flow: users can select automatic DHCP or manual IPv4 configuration.
+- Manual IPv4 requires address, netmask and default gateway; DNS servers are configurable explicitly.
 
-The provisioning wizard and the normal Wi-Fi Client UI must expose the same user model: grouped SSIDs, available bands, channel/signal information, access-point count, and an expandable BSSID list.
+The provisioning wizard and the normal Wi-Fi Client UI must expose the same user model: grouped SSIDs, available bands, channel/signal information, access-point count, an expandable BSSID list, and the same DHCP/manual IPv4 controls.
 
 ## Extension semantics
 
