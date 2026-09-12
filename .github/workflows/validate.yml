@@ -3,11 +3,24 @@ name: Validate AudioWRT
 on:
   workflow_dispatch:
   pull_request:
+  merge_group:
 
 permissions:
   contents: read
 
 jobs:
+  profiles:
+    name: Validate profile catalog
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/validate-profile-catalog.py
+      - run: python3 tests/test-profile-catalog.py
+      - name: Verify dropdown generation
+        run: |
+          python3 scripts/sync-profile-workflow.py
+          python3 scripts/sync-profile-workflow.py --check
+
   validate:
     runs-on: ubuntu-24.04
 
@@ -37,9 +50,6 @@ jobs:
 
       - name: Test AudioWRT flavors and device profiles
         run: bash tests/test-flavors-and-profiles.sh
-
-      - name: Check generated profile dropdown
-        run: python3 scripts/sync-profile-workflow.py --check
 
       - name: Test storage baseline isolation
         run: bash tests/test-storage-baseline.sh

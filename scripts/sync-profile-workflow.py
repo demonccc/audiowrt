@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
+import re
 import sys
 from pathlib import Path
 
@@ -19,7 +21,10 @@ def main() -> int:
 
     root = Path(__file__).resolve().parents[1]
     workflow = root / ".github/workflows/build-audiowrt.yml"
-    profiles = sorted(path.stem for path in (root / "profiles").glob("*.yaml"))
+    spec = importlib.util.spec_from_file_location("profile_catalog", root / "scripts/validate-profile-catalog.py")
+    catalog = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(catalog)
+    profiles = catalog.validate_catalog(root)
     if not profiles:
         raise SystemExit("ERROR: no AudioWRT YAML profiles found")
 
@@ -30,6 +35,12 @@ def main() -> int:
     _, after = remainder.split(END, 1)
     generated = BEGIN + "\n" + "\n".join(f"          - {profile}" for profile in profiles) + "\n" + END
     expected = before + generated + after
+    default_pattern = r"(      audiowrt_profile:\n(?:(?!^      [a-z_]+:).)*?        default: )([^\n]+)"
+    match = re.search(default_pattern, expected, re.DOTALL | re.MULTILINE)
+    if not match:
+        raise SystemExit("ERROR: profile dropdown default is missing")
+    if match.group(2) not in profiles:
+        expected = expected[:match.start(2)] + profiles[0] + expected[match.end(2):]
 
     if args.check:
         if text != expected:

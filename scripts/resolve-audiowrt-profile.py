@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 IDENTIFIER = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
-PROFILE_ID = re.compile(r"^[a-z0-9][a-z0-9.-]*$")
+PROFILE_ID = re.compile(r"^[a-z0-9]+(?:[.-][a-z0-9]+)*$")
 VALID_STATUSES = {"reference", "tested", "candidate", "community"}
 GITHUB_USER = re.compile(r"^(?!-)(?!.*--)[A-Za-z0-9-]{1,39}(?<!-)$")
 PROFILE_KEYS = {
@@ -152,7 +152,7 @@ def main() -> int:
     openwrt_source = "snapshot" if openwrt_version == "snapshot" else "release"
 
     status = data.get("status")
-    if status not in VALID_STATUSES:
+    if not isinstance(status, str) or status not in VALID_STATUSES:
         fail(f"status must be one of: {', '.join(sorted(VALID_STATUSES))}")
     maintainer_github = data.get("maintainer_github")
     if not isinstance(maintainer_github, str) or not GITHUB_USER.fullmatch(maintainer_github):

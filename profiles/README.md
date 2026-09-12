@@ -41,11 +41,47 @@ issues are reported.
 3. Add one YAML file per device/flavor/OpenWrt-version combination. The ID and
    filename must end in the exact release (`-25.12.5`) or `-snapshot`. Retain
    OpenWrt's exact underscore-containing device profile ID.
-4. Run `python3 scripts/sync-profile-workflow.py` to regenerate the GitHub
-   Actions dropdown, then run `bash tests/test-flavors-and-profiles.sh`.
+4. Run `python3 scripts/validate-profile-catalog.py` and
+   `python3 tests/test-profile-catalog.py`. Contributors do not need to edit
+   the build workflow: its dropdown is regenerated after merge.
 5. Build the new profile and include the device revision, image result and basic
    USB Audio/network validation in the pull request.
 
 Profiles are data only. Per-device shell scripts or duplicated package catalogs
 are not accepted; a reusable package belongs in `audiowrt-packages`, and shared
 package policy belongs in a flavor.
+
+## Validation and repository setup
+
+The `Validate profile catalog` check runs on every pull request and merge group.
+It validates every entry in `profiles/`, permitting only regular `.yaml` profile
+files and `README.md`. Wrong extensions, subdirectories and symlinks fail.
+The resolver checks the filename, all eight mandatory fields, schema version,
+status, GitHub username format, identifiers, duplicate/unknown keys and package
+list conflicts. This is schema validation; it does not certify real hardware,
+GitHub account existence or upstream device availability.
+
+Configure the main branch ruleset to require pull requests and the
+`Validate profile catalog` status check, with the branch up to date before merge.
+Without this repository-side setting, failed CI does not prevent a merge.
+Protect the validator and workflows with maintainer review so a profile PR cannot
+silently weaken its own checks. These settings are not activated by merging YAML.
+
+`Sync build profile options` runs after profile-related changes land on `main`,
+validates the catalog again and commits only the generated build workflow.
+It handles additions, removals, renames and removal of the current default.
+It can also be rerun manually on main; no diff produces no commit. Concurrent
+updates are rejected by a normal fast-forward push; rerun after such a conflict.
+
+Before enabling automatic publication, configure repository secret
+`PROFILE_SYNC_TOKEN`: a dedicated credential scoped to this repository with
+Contents and Workflows write permissions. Its actor must be permitted by the
+repository rules to publish the generated workflow on main. Do not disable
+protection for contributors. The ordinary GITHUB_TOKEN cannot supply the required
+workflow-editing permission. The sync job fails explicitly if a change needs
+publication and this credential is missing. Secrets are used only on main,
+never in pull-request validation.
+
+GitHub references:
+- [Required status checks](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
+- [Workflow file write permissions](https://docs.github.com/en/rest/repos/contents#create-or-update-file-contents)
