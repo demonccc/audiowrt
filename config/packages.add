@@ -2,6 +2,10 @@
 # Device-specific hardware packages remain OpenWrt's responsibility.
 # The 8 MB reference baseline prioritizes network connectivity and real audio
 # outputs; local USB storage/extroot is optional.
+#
+# Keep the requested general LuCI status/system/package-management pages, but
+# do not preinstall luci-mod-network. AudioWRT owns Wi-Fi client and IPv4
+# configuration through its dedicated UI.
 
 audiowrt-core
 audiowrt-provisioning
@@ -14,7 +18,6 @@ luci-base
 luci-theme-bootstrap
 luci-mod-status
 luci-mod-system
-luci-mod-network
 luci-app-package-manager
 luci-app-audiowrt
 luci-app-audiowrt-wifi-client
