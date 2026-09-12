@@ -32,11 +32,11 @@ on:
       verbosity:
         description: "OpenWrt/SDK build log detail"
         required: true
-        default: verbose
+        default: normal
         type: choice
         options:
-          - verbose
           - normal
+          - verbose
           - debug
 
 permissions:
