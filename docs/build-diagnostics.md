@@ -16,8 +16,7 @@ Example:
 
 ```sh
 make build \
-  PLATFORM=tplink_tl-wdr4300-v1 \
-  OPENWRT_RELEASE=25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
   JOBS=1 \
   VERBOSITY=debug
 ```
@@ -30,8 +29,7 @@ Local builds can tee the complete build output to a host file while keeping the 
 
 ```sh
 make build \
-  PLATFORM=tplink_tl-wdr4300-v1 \
-  OPENWRT_RELEASE=25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
   JOBS=1 \
   VERBOSITY=debug \
   LOG_FILE=logs/wdr4300.log
@@ -49,8 +47,7 @@ The current `openwrt-builder` supports an optional persistent cache for download
 
 ```sh
 make build \
-  PLATFORM=tplink_tl-wdr4300-v1 \
-  OPENWRT_RELEASE=25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
   CACHE_DIR=.cache/audiowrt
 ```
 
@@ -76,8 +73,7 @@ For repeated troubleshooting runs, combine the cache with a local log and ordere
 
 ```sh
 make build \
-  PLATFORM=tplink_tl-wdr4300-v1 \
-  OPENWRT_RELEASE=25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
   CACHE_DIR=.cache/audiowrt \
   JOBS=1 \
   VERBOSITY=debug \

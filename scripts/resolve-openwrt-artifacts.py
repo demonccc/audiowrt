@@ -10,7 +10,7 @@ import urllib.request
 from html import unescape
 from urllib.parse import urljoin
 
-OPENWRT_DOWNLOADS = "https://downloads.openwrt.org/releases"
+OPENWRT_DOWNLOADS = "https://downloads.openwrt.org"
 
 
 def fail(message: str) -> None:
@@ -25,11 +25,16 @@ def resolve_artifact(base_url: str, release: str, target: str, subtarget: str, a
     except OSError as exc:
         fail(f"could not read OpenWrt downloads directory: {base_url}: {exc}")
 
-    release_re, target_re, subtarget_re = map(re.escape, (release, target, subtarget))
+    target_re, subtarget_re = map(re.escape, (target, subtarget))
     if artifact == "sdk":
-        pattern = rf'href="([^"]*openwrt-sdk-{release_re}-{target_re}-{subtarget_re}_[^"]+\.Linux-x86_64\.tar\.zst)"'
+        if release == "snapshot":
+            pattern = rf'href="([^"]*openwrt-sdk-{target_re}-{subtarget_re}_[^"]+\.Linux-x86_64\.tar\.zst)"'
+        else:
+            release_re = re.escape(release)
+            pattern = rf'href="([^"]*openwrt-sdk-{release_re}-{target_re}-{subtarget_re}_[^"]+\.Linux-x86_64\.tar\.zst)"'
     elif artifact == "imagebuilder":
-        pattern = rf'href="([^"]*openwrt-imagebuilder-{release_re}-{target_re}-{subtarget_re}\.Linux-x86_64\.tar\.zst)"'
+        prefix = "" if release == "snapshot" else f"{re.escape(release)}-"
+        pattern = rf'href="([^"]*openwrt-imagebuilder-{prefix}{target_re}-{subtarget_re}\.Linux-x86_64\.tar\.zst)"'
     else:
         fail(f"unsupported artifact type: {artifact}")
 
@@ -39,6 +44,37 @@ def resolve_artifact(base_url: str, release: str, target: str, subtarget: str, a
     return urljoin(base_url, matches[0])
 
 
+def read_listing(url: str) -> str:
+    try:
+        with urllib.request.urlopen(url) as response:
+            return response.read().decode("utf-8")
+    except OSError as exc:
+        fail(f"could not read OpenWrt downloads directory: {url}: {exc}")
+
+
+def resolve_kmod_repository(base_url: str) -> str:
+    kmods_url = urljoin(base_url, "kmods/")
+    listing = read_listing(kmods_url)
+    matches = list(
+        dict.fromkeys(
+            unescape(value)
+            for value in re.findall(r'href="([0-9][^"/]+/)"', listing)
+        )
+    )
+    if len(matches) != 1:
+        fail(f"expected one exact kernel-module repository, found {len(matches)}")
+    return urljoin(kmods_url, matches[0])
+
+
+def resolve_kmod_package(kmods_url: str, package: str) -> str:
+    listing = read_listing(kmods_url)
+    pattern = rf'href="({re.escape(package)}-\d+\.\d+\.\d+-[^"]+\.apk)"'
+    matches = list(dict.fromkeys(unescape(value) for value in re.findall(pattern, listing)))
+    if len(matches) != 1:
+        fail(f"expected one {package} package in {kmods_url}, found {len(matches)}")
+    return urljoin(kmods_url, matches[0])
+
+
 def main() -> None:
     if len(sys.argv) != 4:
         fail("usage: resolve-openwrt-artifacts.py <release> <target> <subtarget>")
@@ -46,11 +82,15 @@ def main() -> None:
     release = sys.argv[1]
     if release.startswith("v"):
         release = release[1:]
-    if not re.fullmatch(r"\d+\.\d+\.\d+", release):
-        fail("release must be an exact final release such as 25.12.5")
+    if release != "snapshot" and not re.fullmatch(r"\d+\.\d+\.\d+", release):
+        fail("version must be an exact final release such as 25.12.5 or snapshot")
 
     target, subtarget = sys.argv[2], sys.argv[3]
-    base_url = f"{OPENWRT_DOWNLOADS}/{release}/targets/{target}/{subtarget}/"
+    if release == "snapshot":
+        base_url = f"{OPENWRT_DOWNLOADS}/snapshots/targets/{target}/{subtarget}/"
+    else:
+        base_url = f"{OPENWRT_DOWNLOADS}/releases/{release}/targets/{target}/{subtarget}/"
+    kmods_url = resolve_kmod_repository(base_url)
     result = {
         "release": release,
         "target": target,
@@ -59,6 +99,12 @@ def main() -> None:
         "sdk_url": resolve_artifact(base_url, release, target, subtarget, "sdk"),
         "imagebuilder_url": resolve_artifact(base_url, release, target, subtarget, "imagebuilder"),
         "feeds_buildinfo_url": urljoin(base_url, "feeds.buildinfo"),
+        "version_buildinfo_url": urljoin(base_url, "version.buildinfo"),
+        "kmods_url": kmods_url,
+        "kmods_sha256sums_url": urljoin(kmods_url, "sha256sums"),
+        "kmod_bluetooth_url": resolve_kmod_package(kmods_url, "kmod-bluetooth"),
+        "kmod_btmtk_url": resolve_kmod_package(kmods_url, "kmod-btmtk"),
+        "kmod_btusb_url": resolve_kmod_package(kmods_url, "kmod-btusb"),
     }
     json.dump(result, sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write("\n")

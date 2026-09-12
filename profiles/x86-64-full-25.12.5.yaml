@@ -1,0 +1,8 @@
+schema_version: 1
+status: candidate
+maintainer_github: demonccc
+openwrt_profile: generic
+target: x86
+subtarget: 64
+packages_add: []
+packages_remove: []

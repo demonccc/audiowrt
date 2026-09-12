@@ -1,0 +1,8 @@
+schema_version: 1
+status: candidate
+maintainer_github: demonccc
+openwrt_profile: linksys_ea8300
+target: ipq40xx
+subtarget: generic
+packages_add: []
+packages_remove: []

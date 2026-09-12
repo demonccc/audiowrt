@@ -1,0 +1,8 @@
+schema_version: 1
+status: candidate
+maintainer_github: demonccc
+openwrt_profile: tplink_archer-a9-v6
+target: ath79
+subtarget: generic
+packages_add: []
+packages_remove: []

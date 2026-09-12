@@ -2,11 +2,25 @@ name: Validate AudioWRT
 
 on:
   workflow_dispatch:
+  pull_request:
+  merge_group:
 
 permissions:
   contents: read
 
 jobs:
+  profiles:
+    name: Validate profile catalog
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/validate-profile-catalog.py
+      - run: python3 tests/test-profile-catalog.py
+      - name: Verify dropdown generation
+        run: |
+          python3 scripts/sync-profile-workflow.py
+          python3 scripts/sync-profile-workflow.py --check
+
   validate:
     runs-on: ubuntu-24.04
 
@@ -34,8 +48,8 @@ jobs:
       - name: Test platform and USB metadata validation
         run: bash tests/test-build-metadata.sh
 
-      - name: Test feature resolution
-        run: bash tests/test-features.sh
+      - name: Test AudioWRT flavors and device profiles
+        run: bash tests/test-flavors-and-profiles.sh
 
       - name: Test storage baseline isolation
         run: bash tests/test-storage-baseline.sh
@@ -58,14 +72,8 @@ jobs:
       - name: Test AudioWRT source dependency resolution
         run: bash tests/test-source-build-dependencies.sh
 
-      - name: Test distribution file-only package phases
-        run: bash tests/test-file-only-packages.sh
-
-      - name: Test provisioning ownership boundaries
-        run: bash tests/test-provisioning-ownership.sh
-
-      - name: Test appliance integration
-        run: bash tests/test-appliance-integration.sh
+      - name: Test minimal runtime stack
+        run: bash tests/test-minimal-runtime-stack.sh
 
       - name: Test canonical builder image pin
         run: bash tests/test-builder-image-pin.sh

@@ -1,0 +1,22 @@
+# Router services and capabilities outside the minimal audio appliance.
+firewall4
+nftables
+kmod-nft-nat
+kmod-nft-offload
+ppp
+ppp-mod-pppoe
+odhcp6c
+odhcpd-ipv6only
+kmod-sound-midi2
+kmod-sound-midi2-usb
+luci
+luci-light
+luci-mod-admin-full
+luci-mod-network
+luci-app-firewall
+luci-proto-ppp
+alsa-lib
+libmbedtls21
+kmod-bluetooth
+kmod-btusb
+kmod-btmtk

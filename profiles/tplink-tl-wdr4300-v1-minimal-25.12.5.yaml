@@ -1,0 +1,8 @@
+schema_version: 1
+status: reference
+maintainer_github: demonccc
+openwrt_profile: tplink_tl-wdr4300-v1
+target: ath79
+subtarget: generic
+packages_add: []
+packages_remove: []

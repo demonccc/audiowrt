@@ -16,16 +16,17 @@ Bluetooth    USB Audio
 A2DP Source  USB DAC
 ```
 
-Bluetooth MIDI is part of the current constrained-baseline experiment, not a deferred feature. It does not carry audio samples; BlueZ exposes Bluetooth MIDI events through ALSA Sequencer so controllers/instruments can participate in AudioWRT music-routing use cases without requiring the general-purpose BlueZ tool stack.
+MIDI is intentionally outside the constrained baseline. A usable MIDI feature would require a synthesizer, sound bank or a complete USB/BLE routing workflow; transport support alone does not provide an end-user capability and does not justify its flash cost.
 
-Local USB storage and extroot are not part of the mandatory 8 MB core. They remain useful for larger installations and optional services. A build that wants the guided external-storage stack must request it explicitly with `FEATURES=storage`; the storage CLI, filesystem/USB dependencies and LuCI page are otherwise absent from the baseline.
+Local USB storage and extroot are not part of the mandatory 8 MB core. They
+remain available in the `standard` and `full` flavors; the storage CLI,
+filesystem/USB dependencies and LuCI page are absent from `minimal`.
 
 ## Mandatory output/music baseline
 
 The reference build must attempt to include:
 
 - Bluetooth A2DP Source output for speakers and headphones.
-- Bluetooth MIDI via ALSA Sequencer.
 - USB Audio Class output for USB DACs and sound cards.
 
 Bluetooth is an output/music capability, not an AudioWRT Extension.
@@ -34,13 +35,13 @@ The first WDR4300 build with the generic OpenWrt BlueZ/SBC dependency chain reac
 
 The 8 MB baseline therefore uses an AudioWRT-specific minimal Bluetooth stack instead of dropping Bluetooth:
 
-- a minimal BlueZ `bluetoothd` with classic A2DP/AVRCP and Bluetooth MIDI retained while unrelated profiles, tools, monitor, OBEX and the generic CLI are disabled;
+- a minimal BlueZ `bluetoothd` with classic A2DP/AVRCP retained while MIDI, unrelated profiles, tools, monitor, OBEX and the generic CLI are disabled;
 - an AudioWRT-owned `libbluetooth` built from the same minimal BlueZ source;
 - a library-only SBC package without `libsndfile` or SBC command-line tools;
 - BlueALSA restricted to the A2DP Source/SBC path;
 - a compact AudioWRT D-Bus controller for discovery, pairing and connection instead of `bluetoothctl`/`hciconfig`.
 
-The minimized stack now compiles end-to-end on the WDR4300 SDK, including Bluetooth MIDI, SBC, BlueALSA and the compact D-Bus controller. The first complete ImageBuilder measurement with that stack produced a `5,763.81 KiB` SquashFS root filesystem but still exceeded the TP-Link firmware limit by `780,394` bytes (about 762 KiB). This is a reduction of `1,297,268` bytes compared with the original generic Bluetooth build, but it still does not fit.
+The minimized stack compiled end-to-end on the WDR4300 SDK with Bluetooth MIDI, SBC, BlueALSA and the compact D-Bus controller. That historical measurement produced a `5,763.81 KiB` SquashFS root filesystem but still exceeded the TP-Link firmware limit by `780,394` bytes (about 762 KiB). MIDI has since been removed; the next build is authoritative for the new size.
 
 The next size pass keeps the explicitly requested generic LuCI pages for Status, System and Package Manager, but does not preinstall `luci-mod-network`. Network configuration is an AudioWRT-owned product flow: the dedicated Wi-Fi Client UI handles SSID/AP selection and IPv4 configuration directly. This avoids carrying the generic network UI while preserving the appliance administration pages that are intentionally part of the product.
 
@@ -87,7 +88,7 @@ fresh flash
   -> controller starts playback
   -> AudioWRT routes audio to Bluetooth A2DP Source
   -> optionally switch to a USB Audio Class DAC
-  -> Bluetooth MIDI remains available through ALSA Sequencer
+  -> MIDI is omitted until AudioWRT can provide a complete synthesizer or routing feature
 ```
 
 The Bluetooth minimization is a size-driven implementation step toward this acceptance path. DLNA remains the next network-input milestone after the output baseline produces a valid WDR4300 firmware.

@@ -45,6 +45,10 @@ def normalize_dependency(token: str) -> str:
     token = token.lstrip("+")
     token = re.split(r"[<>= ]", token, maxsplit=1)[0]
     token = token.split("/", 1)[0]
+    # Kernel packages are runtime requirements, not headers or libraries that
+    # an AudioWRT userspace source package needs staged for compilation.
+    if token.startswith("kmod-") or token == "kernel":
+        return ""
     return token
 
 
@@ -66,11 +70,14 @@ def load_metadata(path: Path):
                 "build": list(source_fields.get("build", [])),
                 "host": list(source_fields.get("host", [])),
                 "runtime": [],
+                "provides": [],
             }
             source_fields = {}
             continue
         if current and raw.startswith("Depends:"):
             metadata[current]["runtime"] = raw.split(":", 1)[1].strip().split()
+        if current and raw.startswith("Provides:"):
+            metadata[current]["provides"] = raw.split(":", 1)[1].strip().split()
 
     return metadata
 
@@ -93,6 +100,11 @@ def main() -> None:
 
     owned = load_owned_packages(targets_path)
     metadata = load_metadata(packageinfo_path)
+    selected_provides = {
+        normalize_dependency(provided)
+        for package in selected
+        for provided in metadata.get(package, {}).get("provides", [])
+    }
     dependencies: list[str] = []
     seen: set[str] = set()
 
@@ -105,7 +117,7 @@ def main() -> None:
                 dependency = normalize_dependency(token)
                 if not dependency:
                     continue
-                if dependency in owned or dependency in TOOLCHAIN_PROVIDED:
+                if dependency in owned or dependency in selected_provides or dependency in TOOLCHAIN_PROVIDED:
                     continue
                 if dependency not in seen:
                     seen.add(dependency)

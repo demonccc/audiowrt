@@ -3,7 +3,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-packages="$repo_root/config/packages.add"
+packages="$repo_root/config/flavors/minimal/packages.add"
 
 # Keep the general LuCI pages explicitly requested for the appliance, while
 # AudioWRT owns network setup through its dedicated Wi-Fi/IP configuration UI.

@@ -1,0 +1,24 @@
+# AudioWRT for constrained 8 MB devices.
+audiowrt-core
+audiowrt-provisioning
+audiowrt-audio
+audiowrt-usb-audio
+audiowrt-bluetooth
+audiowrt-extensions
+audiowrt-wifi-client
+audiowrt-minimal-alsa
+audiowrt-minimal-mbedtls
+kmod-audiowrt-bluetooth
+luci-base
+luci-theme-bootstrap
+luci-mod-status
+luci-mod-system
+luci-app-package-manager
+luci-app-audiowrt
+luci-app-audiowrt-wifi-client
+luci-app-audiowrt-core
+uhttpd
+uhttpd-mod-ubus
+umdns
+dnsmasq
+wpad-basic-mbedtls

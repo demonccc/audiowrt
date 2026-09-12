@@ -1,0 +1,8 @@
+schema_version: 1
+status: candidate
+maintainer_github: demonccc
+openwrt_profile: rpi-3
+target: bcm27xx
+subtarget: bcm2710
+packages_add: []
+packages_remove: []
