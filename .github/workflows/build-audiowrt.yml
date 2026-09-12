@@ -32,11 +32,11 @@ on:
       verbosity:
         description: "OpenWrt/SDK build log detail"
         required: true
-        default: normal
+        default: verbose
         type: choice
         options:
-          - normal
           - verbose
+          - normal
           - debug
 
 permissions:
@@ -77,6 +77,22 @@ jobs:
             FEATURES='${{ inputs.features }}' \
             JOBS='${{ inputs.jobs }}' \
             VERBOSITY='${{ inputs.verbosity }}'
+
+      - name: Collect failure diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          diagnostics=output/failure-diagnostics
+          mkdir -p "$diagnostics"
+
+          if [[ -d .work ]]; then
+            while IFS= read -r -d '' file; do
+              relative="${file#.work/}"
+              destination="$diagnostics/$relative"
+              mkdir -p "$(dirname "$destination")"
+              cp -f "$file" "$destination" || true
+            done < <(find .work -type f \( -name 'config.log' -o -name '*.log' \) -print0 2>/dev/null)
+          fi
 
       - name: Upload firmware and diagnostics
         if: always()

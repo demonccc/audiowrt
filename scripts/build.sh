@@ -46,8 +46,43 @@ fi
 
 make_run() {
     local cwd="$1"; shift
+    local status
+
     echo "+ (cd $cwd && make $*)"
-    make -C "$cwd" "$@" "${make_verbosity[@]}"
+    if make -C "$cwd" "$@" "${make_verbosity[@]}"; then
+        return 0
+    else
+        status=$?
+    fi
+
+    if [[ "$verbosity" == "normal" ]]; then
+        local -a retry_args=()
+        local skip_jobs_value=0
+        local arg
+
+        for arg in "$@"; do
+            if (( skip_jobs_value )); then
+                skip_jobs_value=0
+                continue
+            fi
+            case "$arg" in
+                -j|--jobs)
+                    skip_jobs_value=1
+                    ;;
+                -j[0-9]*|--jobs=*)
+                    ;;
+                *)
+                    retry_args+=("$arg")
+                    ;;
+            esac
+        done
+
+        echo >&2
+        echo "AudioWRT: make failed; repeating with -j1 V=s for diagnostics." >&2
+        make -C "$cwd" "${retry_args[@]}" -j1 V=s || true
+    fi
+
+    return "$status"
 }
 
 read_package_file() {
