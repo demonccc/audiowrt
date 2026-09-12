@@ -8,11 +8,14 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 cat > "$tmp/targets" <<'EOF'
-audiowrt-core|package/audiowrt/audiowrt-core/compile
-audiowrt-provisioning|package/audiowrt/audiowrt-provisioning/compile
-audiowrt-storage|package/audiowrt/audiowrt-storage/compile
-audiowrt-storage-luci|package/audiowrt/luci-app-audiowrt-storage/compile
+audiowrt-core|package/feeds/audiowrt/audiowrt-core/compile
+audiowrt-provisioning|package/feeds/audiowrt/audiowrt-provisioning/compile
+audiowrt-storage|package/feeds/audiowrt/audiowrt-storage/compile
+audiowrt-storage-luci|package/feeds/audiowrt/luci-app-audiowrt-storage/compile
+kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
+audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
+audiowrt-minimal-mbedtls|package/feeds/audiowrt/audiowrt-minimal-mbedtls/compile
 audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
 audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 luci-app-audiowrt-wifi-client|package/feeds/audiowrt/luci-app-audiowrt-wifi-client/compile
@@ -29,6 +32,9 @@ EOF
 cat > "$tmp/packageinfo" <<'EOF'
 Package: audiowrt-core
 Depends: +libc +audiowrt-audio
+Package: audiowrt-minimal-mbedtls
+Depends: +libc
+Provides: libmbedtls libmbedtls21
 Package: audiowrt-provisioning
 Depends: +audiowrt-core +audiowrt-wifi-client
 Package: audiowrt-storage
@@ -53,18 +59,23 @@ Package: audiowrt-bluez-libs
 Depends: +libpthread
 Package: audiowrt-bluez
 Depends: +audiowrt-bluez-libs +glib2 +dbus +alsa-lib
+Package: audiowrt-minimal-alsa
+Depends: +kmod-sound-core
+Provides: alsa-lib
 Package: audiowrt-btctl
 Depends: +glib2
 Package: bluez-alsa
 Depends: +alsa-lib +audiowrt-bluez +audiowrt-bluez-libs +glib2 +audiowrt-sbc +dbus
 Package: audiowrt-bluetooth
-Depends: +audiowrt-audio +audiowrt-bluez +audiowrt-btctl +bluez-alsa +kmod-btusb
+Depends: +audiowrt-audio +audiowrt-bluez +audiowrt-btctl +bluez-alsa +kmod-bluetooth +kmod-btusb
+Package: kmod-audiowrt-bluetooth
+Depends: +kernel +kmod-usb-core
 EOF
 
 resolver="$repo_root/scripts/resolve-package-build-targets.py"
 
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-core audiowrt-provisioning audiowrt-extensions luci-app-audiowrt-wifi-client > "$tmp/core"
+    audiowrt-core audiowrt-provisioning audiowrt-minimal-mbedtls audiowrt-extensions luci-app-audiowrt-wifi-client > "$tmp/core"
 
 grep -q '^audiowrt-audio|' "$tmp/core"
 grep -q '^audiowrt-core|' "$tmp/core"
@@ -72,6 +83,7 @@ grep -q '^audiowrt-provisioning|' "$tmp/core"
 grep -q '^audiowrt-wifi-client|' "$tmp/core"
 grep -q '^luci-app-audiowrt-wifi-client|' "$tmp/core"
 grep -q '^audiowrt-extensions|' "$tmp/core"
+grep -q '^audiowrt-minimal-mbedtls|' "$tmp/core"
 if grep -Eq '^(audiowrt-storage|audiowrt-storage-luci|audiowrt-spotify|librespot|audiowrt-bluetooth|bluez-alsa|audiowrt-bluez|audiowrt-bluez-libs|audiowrt-sbc|audiowrt-btctl)\|' "$tmp/core"; then
     echo "ERROR: non-Bluetooth core roots selected unrelated AudioWRT packages." >&2
     cat "$tmp/core" >&2
@@ -92,12 +104,12 @@ if grep -Eq '^(audiowrt-bluetooth|bluez-alsa|audiowrt-bluez|audiowrt-bluez-libs|
     exit 1
 fi
 
-# The Bluetooth root includes the same BlueZ package that carries A2DP/AVRCP
-# and the measured Bluetooth MIDI plugin; ALSA is a runtime/source dependency,
-# not a separate AudioWRT package target.
+# The Bluetooth root includes the BlueZ package that carries A2DP/AVRCP; the
+# minimal ALSA and Bluetooth kernel packages are part of
+# the AudioWRT-owned dependency closure.
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-core audiowrt-extensions audiowrt-bluetooth > "$tmp/bluetooth"
-for package in audiowrt-sbc audiowrt-bluez-libs audiowrt-bluez audiowrt-btctl bluez-alsa audiowrt-bluetooth; do
+    audiowrt-core audiowrt-extensions audiowrt-minimal-alsa kmod-audiowrt-bluetooth audiowrt-bluetooth > "$tmp/bluetooth"
+for package in audiowrt-minimal-alsa audiowrt-sbc audiowrt-bluez-libs audiowrt-bluez audiowrt-btctl bluez-alsa kmod-audiowrt-bluetooth audiowrt-bluetooth; do
     grep -q "^${package}|" "$tmp/bluetooth"
 done
 if grep -Eq '^(audiowrt-spotify|librespot)\|' "$tmp/bluetooth"; then

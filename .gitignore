@@ -2,4 +2,5 @@
 .cache/
 output/
 *.log
+__pycache__/
 .DS_Store

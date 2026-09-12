@@ -1,28 +1,37 @@
 name: Build AudioWRT
-run-name: AudioWRT ${{ inputs.openwrt_release }} / ${{ inputs.platform }}
+run-name: AudioWRT ${{ inputs.audiowrt_profile }}
 
 on:
   workflow_dispatch:
     inputs:
-      platform:
-        description: "OpenWrt device profile identifier"
+      audiowrt_profile:
+        description: "AudioWRT device + flavor + OpenWrt version (YAML file name without extension)"
         required: true
-        default: tplink_tl-wdr4300-v1
-        type: string
-      openwrt_release:
-        description: "Exact final OpenWrt release tag/version (X.Y.Z or vX.Y.Z)"
-        required: true
-        default: 25.12.5
-        type: string
+        default: tplink-tl-wdr4300-v1-minimal-25.12.5
+        type: choice
+        options:
+          # BEGIN GENERATED PROFILE OPTIONS
+          - linksys-ea8300-full-25.12.5
+          - linksys-ea8300-minimal-25.12.5
+          - linksys-ea8300-standard-25.12.5
+          - raspberry-pi-3-full-25.12.5
+          - raspberry-pi-3-minimal-25.12.5
+          - raspberry-pi-3-standard-25.12.5
+          - raspberry-pi-4-full-25.12.5
+          - raspberry-pi-4-minimal-25.12.5
+          - raspberry-pi-4-standard-25.12.5
+          - tplink-archer-a9-v6-full-25.12.5
+          - tplink-archer-a9-v6-minimal-25.12.5
+          - tplink-archer-a9-v6-standard-25.12.5
+          - tplink-tl-wdr4300-v1-minimal-25.12.5
+          - x86-64-full-25.12.5
+          - x86-64-minimal-25.12.5
+          - x86-64-standard-25.12.5
+          # END GENERATED PROFILE OPTIONS
       audiowrt_packages_ref:
         description: "AudioWRT reusable package-feed branch, tag or commit"
         required: true
         default: main
-        type: string
-      features:
-        description: "Optional preinstalled services (mpd, airplay, spotify, storage); leave empty for core only"
-        required: false
-        default: ''
         type: string
       jobs:
         description: "Number of parallel package build jobs"
@@ -43,7 +52,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.platform }}-${{ inputs.openwrt_release }}
+  group: ${{ github.workflow }}-${{ inputs.audiowrt_profile }}
   cancel-in-progress: false
 
 jobs:
@@ -55,26 +64,14 @@ jobs:
       - name: Checkout AudioWRT
         uses: actions/checkout@v4
 
-      - name: Validate exact OpenWrt release
-        env:
-          OPENWRT_RELEASE: ${{ inputs.openwrt_release }}
-        run: |
-          if ! [[ "$OPENWRT_RELEASE" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "OpenWrt release must be an exact final version such as 25.12.5 or v25.12.5." >&2
-            echo "Branches, aliases, snapshots and release candidates are not accepted." >&2
-            exit 1
-          fi
-
       - name: Free disk space
         run: sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc || true
 
       - name: Build AudioWRT
         run: |
           make build \
-            PLATFORM='${{ inputs.platform }}' \
-            OPENWRT_RELEASE='${{ inputs.openwrt_release }}' \
+            AUDIOWRT_PROFILE='${{ inputs.audiowrt_profile }}' \
             AUDIOWRT_PACKAGES_REF='${{ inputs.audiowrt_packages_ref }}' \
-            FEATURES='${{ inputs.features }}' \
             JOBS='${{ inputs.jobs }}' \
             VERBOSITY='${{ inputs.verbosity }}'
 
@@ -98,7 +95,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: audiowrt-${{ inputs.platform }}-${{ inputs.openwrt_release }}
+          name: audiowrt-${{ inputs.audiowrt_profile }}
           path: output/
           if-no-files-found: warn
           retention-days: 14

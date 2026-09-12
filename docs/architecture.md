@@ -2,16 +2,17 @@
 
 ## Build contract
 
-AudioWRT firmware is anchored to one exact final OpenWrt release tag. Builds from moving branches, aliases or snapshots are intentionally unsupported.
+Each AudioWRT profile declares its OpenWrt source through its name. Release
+profiles are anchored to an exact final tag; explicitly named snapshot profiles
+are moving, experimental builds.
 
 ```text
-OPENWRT_RELEASE=25.12.5
-        |
-        v
-v25.12.5
+tplink-tl-wdr4300-v1-minimal-25.12.5
+        -> release tag v25.12.5
 ```
 
-`stable`, `openwrt-X.Y`, `main`, snapshots and release candidates are rejected. The default release is explicitly pinned by AudioWRT and must be updated deliberately when a newer OpenWrt release is adopted.
+`stable`, `openwrt-X.Y`, `main`, release candidates and caller-provided version
+overrides are rejected. A moving build must be visibly named `-snapshot`.
 
 The exact release establishes a compatibility contract across:
 
@@ -64,32 +65,32 @@ The builder image is part of the AudioWRT build contract and is deliberately fix
 
 ```text
 1. Validate exact release tag
-2. Clone exact OpenWrt tag for authoritative device metadata
-3. Resolve PLATFORM -> target/subtarget
-4. Validate USB host support
-5. Resolve official SDK + ImageBuilder URLs
-6. Download official feeds.buildinfo as provenance
-7. Prepare official SDK
+2. Resolve the selected AudioWRT YAML profile and flavor
+3. Clone exact OpenWrt tag for authoritative device metadata
+4. Resolve the profile's OpenWrt device -> target/subtarget and verify its declaration
+5. Validate USB host support
+6. Resolve official SDK + ImageBuilder URLs
+7. Download official feeds.buildinfo as provenance
+8. Prepare official SDK
    - preserve SDK feeds.conf.default
-   - copy AudioWRT distribution-only packages
    - append audiowrt-packages feed
    - update only packages helper feed + audiowrt feed for core builds
    - register AudioWRT feed sources directly, without recursive runtime-dependency install
-8. Resolve selected AudioWRT package closure
-9. Split AudioWRT targets into:
+9. Resolve selected AudioWRT package closure
+10. Split AudioWRT targets into:
    - package-only targets -> NO_DEPS=1
    - genuine source targets -> explicit build dependency path
-10. Compile/package AudioWRT APKs
-11. Collect local AudioWRT APKs
-12. Prepare official ImageBuilder
-13. Copy local AudioWRT APKs into ImageBuilder packages/
-14. make image with:
+11. Compile/package AudioWRT APKs
+12. Collect local AudioWRT APKs
+13. Prepare official ImageBuilder
+14. Copy local AudioWRT APKs into ImageBuilder packages/
+15. make image with:
     - OpenWrt device defaults
     - AudioWRT core packages
-    - optional FEATURES
+    - selected AUDIOWRT_PROFILE
     - generic router package exclusions
     - AudioWRT FILES overlay
-15. Write firmware + BUILD_INFO + manifest
+16. Write firmware + resolved profile + BUILD_INFO + manifest
 ```
 
 ## Official feeds
@@ -118,7 +119,7 @@ AudioWRT APK
 
 Runtime dependencies such as `hostapd`, `dnsmasq`, `uhttpd`, `uci`, `ubus`, kernel packages and OpenWrt libraries are not rebuilt for those targets. They remain dependency metadata in the APK and are resolved by the official ImageBuilder from the exact release repositories.
 
-Only genuine AudioWRT source packages, currently `librespot` and `bluez-alsa`, are allowed to traverse SDK build dependencies. Those packages need development headers/libraries/tooling to produce their AudioWRT-owned binary, so the build resolves their external source dependency roots only when the corresponding feature is selected.
+Only genuine AudioWRT source packages are allowed to traverse SDK build dependencies. This includes service implementations such as `librespot` and `bluez-alsa` plus the alternative `audiowrt-minimal-*` providers when the `minimal` profile selects them. The build resolves external source dependencies only for the selected package closure.
 
 A core-only build must therefore compile/package only the AudioWRT core layer and must not enter hostapd, dnsmasq, kernel or other unrelated OpenWrt source builds.
 
@@ -126,18 +127,25 @@ A core-only build must therefore compile/package only the AudioWRT core layer an
 
 ```text
 OpenWrt device defaults
-+ config/packages.add
-+ selected feature packages
-- config/packages.remove
++ config/flavors/<flavor>/packages.add
+- config/flavors/<flavor>/packages.remove
++/- profiles/<device>-<flavor>.yaml package overrides
 + local AudioWRT APK repository
 + files/ overlay
 ```
 
 The official ImageBuilder remains responsible for dependency solving, device image layout and maximum image-size enforcement.
 
+Flavor files hold shared package policy. Device profiles are declarative YAML
+and contain only identity, the authoritative OpenWrt mapping, validation status,
+the selected flavor and exceptional package additions/removals. The build
+resolves both layers before downloading target artifacts. This keeps community
+profile pull requests small and prevents executable per-device build logic.
+
 ## Hardware ownership
 
-AudioWRT does not maintain target/platform YAML or board metadata. OpenWrt remains authoritative for:
+AudioWRT profiles reference target/platform identifiers but do not redefine
+board metadata. OpenWrt remains authoritative for:
 
 - target and subtarget;
 - device definitions;
@@ -147,7 +155,8 @@ AudioWRT does not maintain target/platform YAML or board metadata. OpenWrt remai
 - USB host-controller packages;
 - device image layout.
 
-The TP-Link TL-WDR4300 v1 (`tplink_tl-wdr4300-v1`) is only the initial reference target.
+The TP-Link TL-WDR4300 v1 minimal profile is the initial reference. Other
+profiles remain candidates until their generated image is tested on hardware.
 
 ## Reproducibility metadata
 
@@ -161,7 +170,7 @@ Every build records:
 - official SDK URL;
 - official ImageBuilder URL;
 - official `feeds.buildinfo` provenance;
-- selected features;
+- resolved AudioWRT profile, flavor and package lists;
 - AudioWRT package-only/source-build split;
 - external source-build dependency roots when applicable;
 - locally built APK count;

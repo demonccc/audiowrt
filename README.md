@@ -2,37 +2,21 @@
 
 AudioWRT is an audio-focused OpenWrt distribution that turns compatible OpenWrt devices into lightweight network audio appliances.
 
-AudioWRT does not maintain a fork of the OpenWrt source tree. Every firmware build is anchored to an **exact final OpenWrt release**, uses the official SDK and ImageBuilder for that same release/target, builds the AudioWRT layer, and assembles the final image from official release binaries plus locally produced AudioWRT APKs.
+AudioWRT does not maintain a fork of the OpenWrt source tree. Every firmware
+profile names and declares its OpenWrt base, uses the matching official SDK and
+ImageBuilder, builds the AudioWRT layer, and assembles the final image from
+official binaries plus locally produced AudioWRT APKs.
 
-## Exact-release policy
+## OpenWrt version policy
 
-AudioWRT intentionally does not build from moving OpenWrt branches, snapshots, aliases or release candidates.
+The OpenWrt source and version are part of the profile itself and must also be
+visible in its ID. Stable profiles use an exact final release, for example
+`tplink-tl-wdr4300-v1-minimal-25.12.5`. Snapshot profiles use the explicit
+`-snapshot` suffix and are treated as moving/experimental builds. Branch aliases,
+release candidates and implicit version overrides are not accepted.
 
-Accepted:
-
-```text
-25.12.5    -> normalized to v25.12.5
-v25.12.5   -> exact tag
-```
-
-Rejected:
-
-```text
-stable
-openwrt-25.12
-main
-master
-snapshot
-v25.12.5-rc1
-```
-
-The default is explicitly pinned to:
-
-```text
-OPENWRT_RELEASE=25.12.5
-```
-
-Moving to a newer OpenWrt version is therefore a deliberate AudioWRT change instead of an implicit consequence of an upstream branch or alias moving.
+Moving a device to another OpenWrt release therefore creates a separately named
+profile that can be built and tested without changing the known-good one.
 
 ## Build model
 
@@ -44,7 +28,7 @@ Exact OpenWrt release tag (for example v25.12.5)
                 v
 Clean source checkout for device metadata only
                 |
-                +--> resolve PLATFORM -> target/subtarget
+                +--> resolve AudioWRT profile -> OpenWrt profile/target/subtarget
                 +--> validate USB host support
                 |
                 v
@@ -100,8 +84,7 @@ Run:
 
 ```sh
 make build \
-  PLATFORM=tplink_tl-wdr4300-v1 \
-  OPENWRT_RELEASE=25.12.5
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5
 ```
 
 `make build` pulls the canonical image and executes the AudioWRT build inside it. If the image cannot be pulled, the build fails; AudioWRT never falls back to building or substituting a Docker image locally.
@@ -124,8 +107,7 @@ For difficult local failures, use one job and save the complete host-side output
 
 ```sh
 make build \
-  PLATFORM=tplink_tl-wdr4300-v1 \
-  OPENWRT_RELEASE=25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
   JOBS=1 \
   VERBOSITY=debug \
   LOG_FILE=logs/wdr4300.log
@@ -137,8 +119,7 @@ The builder's persistent-download-cache pattern also applies to AudioWRT. Local 
 
 ```sh
 make build \
-  PLATFORM=tplink_tl-wdr4300-v1 \
-  OPENWRT_RELEASE=25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
   CACHE_DIR=.cache/audiowrt
 ```
 
@@ -148,8 +129,7 @@ For repeated troubleshooting, combine both features:
 
 ```sh
 make build \
-  PLATFORM=tplink_tl-wdr4300-v1 \
-  OPENWRT_RELEASE=25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
   CACHE_DIR=.cache/audiowrt \
   JOBS=1 \
   VERBOSITY=debug \
@@ -160,9 +140,27 @@ GitHub Actions does not expose either a log-file or cache input. Hosted jobs rem
 
 The latest `openwrt-builder` stabilization changes how `release-patched` handles SDK host tools and generated custom ImageBuilders. AudioWRT does not need equivalent host-tool replacement logic because it uses the official SDK to build its package layer and the official ImageBuilder to assemble the firmware directly.
 
-## Core versus optional features
+## Flavors and device profiles
 
-The default firmware is the AudioWRT 8 MB functional core:
+AudioWRT separates package policy from hardware selection. A **flavor** defines
+the common capability/size tier; a **device profile** combines one OpenWrt
+device with one flavor and any device-specific package exceptions.
+
+| Flavor | Intended target | Runtime providers | Included services |
+|---|---|---|---|
+| `minimal` | constrained 8 MB devices | AudioWRT minimal ALSA, Mbed TLS and Bluetooth kernel variants | USB Audio, Bluetooth A2DP and essential UI |
+| `standard` | devices with normal flash headroom | unmodified OpenWrt infrastructure packages | minimal capabilities plus MPD and storage |
+| `full` | large-flash devices | unmodified OpenWrt infrastructure packages | all AudioWRT services and storage |
+
+Flavor definitions live in `config/flavors/`. Buildable profiles are declarative
+YAML files in `profiles/`, for example
+`tplink-tl-wdr4300-v1-minimal-25.12.5.yaml`. The profile records the OpenWrt
+source/version, profile, target, subtarget, flavor, validation status and optional package
+add/remove overrides. The build derives OpenWrt's `PROFILE` from this file; it
+is no longer a separate caller-controlled input.
+
+The default profile is `tplink-tl-wdr4300-v1-minimal-25.12.5`. The minimal functional
+core includes:
 
 - AudioWRT appliance identity;
 - Ethernet DHCP-client behavior;
@@ -172,47 +170,43 @@ The default firmware is the AudioWRT 8 MB functional core:
 - minimal LuCI (`luci-base` + AudioWRT applications);
 - AudioWRT extension management.
 
-Local USB storage/extroot is deliberately **not** part of the mandatory baseline. MPD, AirPlay, Spotify Connect and guided external storage are optional build-time features:
-
-```sh
-make build \
-  PLATFORM=tplink_tl-wdr4300-v1 \
-  OPENWRT_RELEASE=25.12.5 \
-  FEATURES="mpd storage"
-```
-
-Available feature IDs:
-
-```text
-mpd
-airplay
-spotify
-storage
-```
-
-`FEATURES=storage` installs the AudioWRT storage CLI plus the filesystem/USB dependencies and its LuCI management page. Without that explicit feature, none of those storage packages are pulled into the 8 MB baseline.
+Local USB storage/extroot, MPD, AirPlay and Spotify Connect are deliberately
+absent from the minimal flavor. `standard` adds MPD and storage; `full` adds
+the complete AudioWRT service set. Package composition is controlled only by
+the selected profile—there is no second build-time feature list.
 
 Bluetooth is a mandatory output capability for the current reference baseline rather than an optional feature. Its current BlueZ/BlueALSA implementation remains included so firmware-size reports expose its actual cost on constrained devices.
 
-OpenWrt ImageBuilder enforces the selected device's image-size limit. AudioWRT does not silently drop requested features. AudioWRT additionally treats a successful ImageBuilder command that produces no firmware image as a failed build. On constrained devices, larger services can instead be installed later through AudioWRT Extensions and optional USB extension storage.
+OpenWrt ImageBuilder enforces the selected device's image-size limit. AudioWRT does not silently drop profile packages. AudioWRT additionally treats a successful ImageBuilder command that produces no firmware image as a failed build. On constrained devices, larger services can instead be installed later through AudioWRT Extensions and optional USB extension storage.
 
 ## Reference device
 
 The initial reference/test device is the TP-Link TL-WDR4300 v1:
 
 ```text
-PLATFORM=tplink_tl-wdr4300-v1
+AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5
 ```
 
 Example core build:
 
 ```sh
 make build \
-  PLATFORM=tplink_tl-wdr4300-v1 \
-  OPENWRT_RELEASE=25.12.5
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5
 ```
 
-The WDR4300 is a reference target only. AudioWRT does not maintain its own hardware database; device-specific drivers, firmware and base package choices remain OpenWrt responsibilities.
+The WDR4300 is a reference target only. AudioWRT profiles reference OpenWrt's
+hardware database; device definitions, drivers, firmware and base package
+choices remain OpenWrt responsibilities.
+
+Initial candidate profiles are included for x86-64, Raspberry Pi 3,
+Raspberry Pi 4, TP-Link Archer A9 v6 and Linksys EA8300. Candidate means the
+mapping is valid but still needs a successful build and hardware test before
+being promoted to `tested`. Raspberry Pi 3 and 4 intentionally use different
+profiles: both are 64-bit ARM, but OpenWrt builds them as `bcm2710` and
+`bcm2711`, respectively.
+
+Community profiles are submitted as one YAML file through a pull request. They
+do not contain executable shell code or duplicate flavor package lists.
 
 ## USB capability gate
 
@@ -230,20 +224,7 @@ This prevents `kmod-usb-audio` from creating a false positive on devices whose O
 
 ## Package ownership
 
-Distribution-only behavior lives in this repository under `package/`:
-
-```text
-package/
-├── audiowrt-core
-├── audiowrt-provisioning
-├── audiowrt-storage
-├── luci-app-audiowrt-core
-└── luci-app-audiowrt-storage
-```
-
-`luci-app-audiowrt-storage` is the source package directory for the optional `audiowrt-storage-luci` binary package. Keeping the binary under the `audiowrt-storage-*` namespace also lets the distribution collect its locally built APKs together with the storage package family.
-
-Reusable audio functionality comes from [`demonccc/audiowrt-packages`](https://github.com/demonccc/audiowrt-packages):
+Every package maintained by AudioWRT lives in [`demonccc/audiowrt-packages`](https://github.com/demonccc/audiowrt-packages). This repository owns only firmware profiles, package selection, build orchestration and validation:
 
 ```text
 audiowrt-audio
@@ -263,10 +244,9 @@ Installing the reusable feed on a normal OpenWrt system does not change its LAN,
 ## Build inputs
 
 ```text
-PLATFORM                 required OpenWrt device profile
-OPENWRT_RELEASE          exact X.Y.Z / vX.Y.Z release (default 25.12.5)
+AUDIOWRT_PROFILE         device + flavor profile ID
+                         (default tplink-tl-wdr4300-v1-minimal-25.12.5)
 AUDIOWRT_PACKAGES_REF    reusable package-feed branch/tag/commit (default main)
-FEATURES                 optional services/storage
 JOBS                     package build parallelism
 VERBOSITY                normal, verbose or debug
 LOG_FILE                 optional local-only diagnostic log path
@@ -279,10 +259,8 @@ For example:
 
 ```sh
 make build \
-  PLATFORM=tplink_tl-wdr4300-v1 \
-  OPENWRT_RELEASE=25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
   AUDIOWRT_PACKAGES_REF=main \
-  FEATURES="mpd airplay" \
   CACHE_DIR=.cache/audiowrt \
   JOBS=8 \
   VERBOSITY=verbose
@@ -293,7 +271,7 @@ make build \
 Firmware is written under:
 
 ```text
-output/<platform>/v<release>/
+output/<audiowrt-profile>/
 ```
 
 The output also records:
@@ -304,7 +282,7 @@ The output also records:
 - exact SDK and ImageBuilder URLs;
 - official release feed provenance;
 - actual `audiowrt-packages` commit;
-- selected features;
+- resolved flavor and package composition;
 - resolved platform metadata;
 - registered AudioWRT SDK sources;
 - package-only versus source-build package classification;
@@ -322,14 +300,14 @@ The repository exposes the manual **Build AudioWRT** workflow under the Actions 
 Its main inputs are:
 
 ```text
-platform          default: tplink_tl-wdr4300-v1
-openwrt_release   default: 25.12.5
-features          default: empty (core only)
+audiowrt_profile      default: tplink-tl-wdr4300-v1-minimal-25.12.5
+audiowrt_packages_ref  default: main
 ```
 
 The builder image is fixed to `demonccc/openwrt-builder:latest` and is not shown as an editable workflow parameter.
 
-`openwrt_release` is editable, but it must be an exact final release such as `25.12.6`; moving release branches and aliases are rejected.
+The workflow does not expose a separate OpenWrt version parameter; the selected
+profile is the complete build contract.
 
 ## License
 

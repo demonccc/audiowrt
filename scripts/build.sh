@@ -4,12 +4,10 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-platform="${PLATFORM:-}"
-requested_release="${OPENWRT_RELEASE:-25.12.5}"
+audiowrt_profile="${AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-25.12.5}"
 openwrt_repo="${OPENWRT_REPOSITORY:-https://github.com/openwrt/openwrt.git}"
 packages_repo="${AUDIOWRT_PACKAGES_REPOSITORY:-https://github.com/demonccc/audiowrt-packages.git}"
 packages_ref="${AUDIOWRT_PACKAGES_REF:-main}"
-features="${FEATURES:-}"
 jobs="${JOBS:-}"
 verbosity="${VERBOSITY:-normal}"
 builder_image="demonccc/openwrt-builder:latest"
@@ -17,11 +15,10 @@ cache_dir="${CACHE_DIR:-}"
 
 [[ "${AUDIOWRT_IN_CONTAINER:-0}" == "1" ]] || {
     echo "ERROR: scripts/build.sh is an internal container entry point." >&2
-    echo "Run 'make build PLATFORM=<profile>' so AudioWRT uses the published openwrt-builder Docker image." >&2
+    echo "Run 'make build AUDIOWRT_PROFILE=<device-flavor>' so AudioWRT uses the published openwrt-builder Docker image." >&2
     exit 2
 }
 
-[[ -n "$platform" ]] || { echo "ERROR: PLATFORM is required." >&2; exit 2; }
 [[ -n "$jobs" ]] || jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)"
 [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { echo "ERROR: JOBS must be a positive integer." >&2; exit 2; }
 
@@ -158,63 +155,107 @@ extract_archive() {
     printf '%s\n' "${roots[0]}"
 }
 
-resolved_release="$(OPENWRT_REPOSITORY="$openwrt_repo" bash "$repo_root/scripts/resolve-openwrt-ref.sh" "$requested_release")"
-release="${resolved_release#v}"
-safe_release="${release//./_}"
-work_dir="$repo_root/.work/${platform}-${safe_release}"
+work_dir="$repo_root/.work/$audiowrt_profile"
 source_dir="$work_dir/openwrt-source"
+resolved_profile="$work_dir/audiowrt-profile.json"
+packages_add_file="$work_dir/resolved-packages.add"
+packages_remove_file="$work_dir/resolved-packages.remove"
 platform_metadata="$work_dir/platform.json"
-selected_features="$work_dir/features.json"
 artifacts_metadata="$work_dir/artifacts.json"
 local_apks_dir="$work_dir/local-apks"
 build_plan="$work_dir/package-build-plan.txt"
 registered_sources="$work_dir/sdk-audiowrt-sources.txt"
 source_dependencies_file="$work_dir/source-build-dependencies.txt"
 official_feeds_buildinfo="$work_dir/official-feeds.buildinfo"
-output_dir="$repo_root/output/$platform/$resolved_release"
+official_version_buildinfo="$work_dir/official-version.buildinfo"
+output_dir="$repo_root/output/$audiowrt_profile"
+
+rm -rf "$work_dir" "$output_dir"
+mkdir -p "$work_dir" "$output_dir"
+
+python3 "$repo_root/scripts/resolve-audiowrt-profile.py" \
+    "$repo_root/profiles" "$repo_root/config/flavors" "$audiowrt_profile" > "$resolved_profile"
+
+platform="$(json_field "$resolved_profile" openwrt_profile)"
+profile_flavor="$(json_field "$resolved_profile" flavor)"
+openwrt_source="$(json_field "$resolved_profile" openwrt_source)"
+openwrt_version="$(json_field "$resolved_profile" openwrt_version)"
+expected_target="$(json_field "$resolved_profile" target)"
+expected_subtarget="$(json_field "$resolved_profile" subtarget)"
+case "$openwrt_source" in
+    release)
+        resolved_release="$(bash "$repo_root/scripts/resolve-openwrt-ref.sh" "$openwrt_version")"
+        release="${resolved_release#v}"
+        ;;
+    snapshot)
+        resolved_release="snapshot"
+        release="snapshot"
+        ;;
+    *)
+        echo "ERROR: unsupported OpenWrt source in resolved profile: $openwrt_source" >&2
+        exit 2
+        ;;
+esac
+python3 - "$resolved_profile" "$packages_add_file" "$packages_remove_file" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+for key, destination in (("packages_add", sys.argv[2]), ("packages_remove", sys.argv[3])):
+    with open(destination, "w", encoding="utf-8") as handle:
+        handle.write("\n".join(data[key]) + "\n")
+PY
 
 printf 'AudioWRT build\n'
-printf '  Platform: %s\n' "$platform"
-printf '  OpenWrt release: %s -> %s\n' "$requested_release" "$resolved_release"
+printf '  Profile: %s\n' "$audiowrt_profile"
+printf '  Flavor: %s\n' "$profile_flavor"
+printf '  OpenWrt profile: %s (%s/%s)\n' "$platform" "$expected_target" "$expected_subtarget"
+printf '  OpenWrt source: %s %s\n' "$openwrt_source" "$openwrt_version"
 printf '  AudioWRT packages: %s\n' "$packages_ref"
-printf '  Features: %s\n' "${features:-none}"
 printf '  Builder image: %s (fixed)\n' "$builder_image"
 printf '  Jobs: %s\n' "$jobs"
 printf '  Verbosity: %s\n' "$verbosity"
 printf '  Download cache: %s\n' "${cache_dir:-disabled}"
 
-rm -rf "$work_dir" "$output_dir"
-mkdir -p "$work_dir" "$output_dir"
-
-# A clean checkout of the exact OpenWrt release is used only as authoritative
-# device metadata. AudioWRT never builds from the moving openwrt-X.Y branch.
-echo "Cloning exact OpenWrt release $resolved_release..."
-git clone --filter=blob:none --no-checkout "$openwrt_repo" "$source_dir"
-git -C "$source_dir" fetch --depth=1 origin "refs/tags/$resolved_release"
-git -C "$source_dir" checkout --detach FETCH_HEAD
+# A release profile uses its exact tag. A snapshot profile deliberately uses
+# the moving main branch and is recorded as such in the build provenance.
+if [[ "$openwrt_source" == "release" ]]; then
+    echo "Cloning exact OpenWrt release $resolved_release..."
+    git clone --filter=blob:none --no-checkout "$openwrt_repo" "$source_dir"
+    git -C "$source_dir" fetch --depth=1 origin "refs/tags/$resolved_release"
+    git -C "$source_dir" checkout --detach FETCH_HEAD
+else
+    echo "Cloning current OpenWrt main for snapshot metadata..."
+    git clone --filter=blob:none --depth=1 --branch main "$openwrt_repo" "$source_dir"
+fi
 openwrt_commit="$(git -C "$source_dir" rev-parse HEAD)"
+
+if [[ "${AUDIOWRT_SKIP_HOST_PREREQ:-0}" == "1" ]]; then
+    mkdir -p "$source_dir/staging_dir/host"
+    touch "$source_dir/staging_dir/host/.prereq-build"
+fi
 
 make_run "$source_dir" -s prepare-tmpinfo
 python3 "$repo_root/scripts/resolve-platform.py" "$source_dir/tmp/.targetinfo" "$platform" > "$platform_metadata"
 python3 "$repo_root/scripts/check-usb.py" "$platform_metadata" "$repo_root/config/usb-host-packages"
-python3 "$repo_root/scripts/resolve-features.py" "$repo_root/config/features.map" "$features" > "$selected_features"
 
-mapfile -t firmware_packages < <(
-    read_package_file "$repo_root/config/packages.add"
-    python3 - "$selected_features" <<'PY'
-import json, sys
-for package in json.load(open(sys.argv[1], encoding="utf-8"))["packages"]:
-    print(package)
-PY
-)
+mapfile -t firmware_packages < <(read_package_file "$packages_add_file")
 
 target="$(json_field "$platform_metadata" target)"
 subtarget="$(json_field "$platform_metadata" subtarget)"
+if [[ "$target" != "$expected_target" || "$subtarget" != "$expected_subtarget" ]]; then
+    echo "ERROR: profile $audiowrt_profile declares $expected_target/$expected_subtarget," >&2
+    echo "but OpenWrt resolves $platform to $target/$subtarget." >&2
+    exit 5
+fi
 
-python3 "$repo_root/scripts/resolve-openwrt-artifacts.py" "$resolved_release" "$target" "$subtarget" > "$artifacts_metadata"
+python3 "$repo_root/scripts/resolve-openwrt-artifacts.py" "$release" "$target" "$subtarget" > "$artifacts_metadata"
 sdk_url="$(json_field "$artifacts_metadata" sdk_url)"
 imagebuilder_url="$(json_field "$artifacts_metadata" imagebuilder_url)"
 feeds_buildinfo_url="$(json_field "$artifacts_metadata" feeds_buildinfo_url)"
+version_buildinfo_url="$(json_field "$artifacts_metadata" version_buildinfo_url)"
+kmod_bluetooth_url="$(json_field "$artifacts_metadata" kmod_bluetooth_url)"
+kmod_btmtk_url="$(json_field "$artifacts_metadata" kmod_btmtk_url)"
+kmod_btusb_url="$(json_field "$artifacts_metadata" kmod_btusb_url)"
+kmods_sha256sums_url="$(json_field "$artifacts_metadata" kmods_sha256sums_url)"
 
 printf '  Target: %s/%s\n' "$target" "$subtarget"
 printf '  SDK: %s\n' "$sdk_url"
@@ -232,8 +273,50 @@ if [[ -n "$cache_dir" ]]; then
     echo "OpenWrt source download cache: $cache_dir/dl"
 fi
 
-mkdir -p "$sdk_dir/package/audiowrt"
-rsync -a "$repo_root/package/" "$sdk_dir/package/audiowrt/"
+# AudioWRT needs only the Bluetooth core plus USB HCI transports. Reuse the
+# modules produced and signed for this exact OpenWrt kernel ABI, but repackage
+# them without RFCOMM, BNEP or HIDP. This preserves binary compatibility and
+# avoids compiling or patching the release kernel.
+prepare_bluetooth_package() {
+bluetooth_module_source="$sdk_dir/feeds/audiowrt/audiowrt-kmod-bluetooth"
+[[ -d "$bluetooth_module_source" ]] || {
+    echo "ERROR: AudioWRT minimal Bluetooth kernel package source is missing." >&2
+    exit 5
+}
+bluetooth_stage="$work_dir/prebuilt-bluetooth-modules"
+rm -rf "$bluetooth_stage"
+mkdir -p "$bluetooth_stage/apks" "$bluetooth_stage/extracted" "$bluetooth_module_source/files"
+download_file "$kmods_sha256sums_url" "$bluetooth_stage/sha256sums"
+
+for module_url in "$kmod_bluetooth_url" "$kmod_btmtk_url" "$kmod_btusb_url"; do
+    module_apk="$bluetooth_stage/apks/$(basename "$module_url")"
+    download_file "$module_url" "$module_apk"
+    expected_line="$(grep -F "  $(basename "$module_apk")" "$bluetooth_stage/sha256sums" || true)"
+    [[ -n "$expected_line" ]] || {
+        echo "ERROR: missing OpenWrt checksum for $(basename "$module_apk")." >&2
+        exit 5
+    }
+    printf '%s\n' "$expected_line" | (cd "$bluetooth_stage/apks" && sha256sum -c -)
+    "$sdk_dir/staging_dir/host/bin/apk" --allow-untrusted extract \
+        --destination "$bluetooth_stage/extracted" "$module_apk"
+done
+
+for module in bluetooth.ko btmtk.ko btintel.ko btrtl.ko btusb.ko; do
+    mapfile -t module_matches < <(find "$bluetooth_stage/extracted" -type f -name "$module" -print)
+    [[ "${#module_matches[@]}" -eq 1 ]] || {
+        echo "ERROR: expected one exact-release $module, found ${#module_matches[@]}." >&2
+        exit 5
+    }
+    cp -f "${module_matches[0]}" "$bluetooth_module_source/files/$module"
+done
+
+for omitted in rfcomm.ko bnep.ko hidp.ko; do
+    [[ ! -e "$bluetooth_module_source/files/$omitted" ]] || {
+        echo "ERROR: omitted Bluetooth module leaked into AudioWRT package: $omitted" >&2
+        exit 5
+    }
+done
+}
 
 # Keep the SDK's official exact-release feed configuration intact. We only
 # update the feeds whose source trees are needed by AudioWRT package Makefiles:
@@ -251,6 +334,7 @@ if ! grep -Eq '^[[:space:]]*src-git([[:space:]]+--root=package)?[[:space:]]+base
     exit 5
 fi
 download_file "$feeds_buildinfo_url" "$official_feeds_buildinfo"
+download_file "$version_buildinfo_url" "$official_version_buildinfo"
 
 if [[ "$packages_ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
     feed_source="${packages_repo}^${packages_ref}"
@@ -264,6 +348,9 @@ printf '\n# AudioWRT reusable packages\nsrc-git audiowrt %s\n' "$feed_source" >>
     ./scripts/feeds update packages audiowrt
 )
 audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
+if [[ " ${firmware_packages[*]} " == *" kmod-audiowrt-bluetooth "* ]]; then
+    prepare_bluetooth_package
+fi
 
 # Register only AudioWRT feed source directories. Do not call scripts/feeds
 # install for package-only AudioWRT packages because that recursively installs
@@ -296,9 +383,8 @@ while IFS='|' read -r package target_path extra; do
     printf '%s|%s\n' "$package" "$source_rel" >> "$registered_sources"
 done < "$repo_root/config/package-build-targets"
 
-# Select only the AudioWRT-owned firmware roots requested by packages.add plus
-# FEATURES. The SDK's shipped package selections are deliberately not used as
-# AudioWRT build intent.
+# Select only the AudioWRT-owned firmware roots requested by the resolved
+# profile. The SDK's shipped package selections are not AudioWRT build intent.
 for package in "${firmware_packages[@]}"; do
     if awk -F '|' -v package="$package" '$0 !~ /^[[:space:]]*#/ && $1 == package { found=1 } END { exit found ? 0 : 1 }' "$repo_root/config/package-build-targets"; then
         sed -i -E "/^(# )?CONFIG_PACKAGE_${package}(=| is not set)/d" "$sdk_dir/.config" 2>/dev/null || true
@@ -315,8 +401,8 @@ packageinfo="$sdk_dir/tmp/.packageinfo"
 }
 
 # Resolve only the AudioWRT-owned dependency closure of the explicitly
-# requested firmware roots. Optional AudioWRT source packages such as librespot
-# and bluez-alsa are included only when their feature wrapper requires them.
+# requested firmware roots. AudioWRT source packages such as librespot and
+# bluez-alsa are included only when the selected flavor requires them.
 python3 "$repo_root/scripts/resolve-package-build-targets.py" \
     "$repo_root/config/package-build-targets" \
     "$packageinfo" \
@@ -428,14 +514,6 @@ while IFS= read -r -d '' apk; do
     cp -f "$apk" "$local_apks_dir/"
 done < <(find "$sdk_dir/bin/packages" -type f -path '*/audiowrt/*.apk' -print0 2>/dev/null || true)
 
-# Distribution-only packages are local source packages rather than feed
-# packages, so copy their APKs explicitly by package name.
-for package in audiowrt-core audiowrt-provisioning audiowrt-storage luci-app-audiowrt-core; do
-    while IFS= read -r -d '' apk; do
-        cp -f "$apk" "$local_apks_dir/"
-    done < <(find "$sdk_dir/bin/packages" -type f -name "${package}-*.apk" -print0 2>/dev/null || true)
-done
-
 local_apk_count="$(find "$local_apks_dir" -maxdepth 1 -type f -name '*.apk' | wc -l | tr -d ' ')"
 [[ "$local_apk_count" -gt 0 ]] || {
     echo "ERROR: SDK build did not produce AudioWRT APKs." >&2
@@ -450,14 +528,8 @@ mkdir -p "$imagebuilder_dir/packages"
 cp -f "$local_apks_dir"/*.apk "$imagebuilder_dir/packages/"
 
 package_args=()
-while IFS= read -r package; do package_args+=("$package"); done < <(read_package_file "$repo_root/config/packages.add")
-while IFS= read -r package; do package_args+=("$package"); done < <(python3 - "$selected_features" <<'PY'
-import json, sys
-for package in json.load(open(sys.argv[1], encoding="utf-8"))["packages"]:
-    print(package)
-PY
-)
-while IFS= read -r package; do package_args+=("-$package"); done < <(read_package_file "$repo_root/config/packages.remove")
+while IFS= read -r package; do package_args+=("$package"); done < <(read_package_file "$packages_add_file")
+while IFS= read -r package; do package_args+=("-$package"); done < <(read_package_file "$packages_remove_file")
 package_string="${package_args[*]}"
 
 make_run "$imagebuilder_dir" image \
@@ -467,14 +539,15 @@ make_run "$imagebuilder_dir" image \
     "BIN_DIR=$output_dir"
 
 cp "$platform_metadata" "$output_dir/platform.json"
-cp "$selected_features" "$output_dir/selected-features.json"
+cp "$resolved_profile" "$output_dir/audiowrt-profile.json"
 cp "$artifacts_metadata" "$output_dir/openwrt-artifacts.json"
 cp "$sdk_dir/feeds.conf" "$output_dir/sdk-feeds.conf"
 cp "$official_feeds_buildinfo" "$output_dir/official-feeds.buildinfo"
+cp "$official_version_buildinfo" "$output_dir/official-version.buildinfo"
 cp "$registered_sources" "$output_dir/sdk-audiowrt-sources.txt"
 cp "$source_dependencies_file" "$output_dir/source-build-dependencies.txt"
-cp "$repo_root/config/packages.add" "$output_dir/audiowrt-packages.add"
-cp "$repo_root/config/packages.remove" "$output_dir/audiowrt-packages.remove"
+cp "$packages_add_file" "$output_dir/audiowrt-packages.add"
+cp "$packages_remove_file" "$output_dir/audiowrt-packages.remove"
 cp "$repo_root/config/package-build-targets" "$output_dir/package-build-targets"
 cp "$repo_root/config/source-build-packages" "$output_dir/source-build-packages"
 cp "$build_plan" "$output_dir/package-build-plan.txt"
@@ -496,20 +569,24 @@ cat > "$output_dir/BUILD_INFO" <<EOF
 BUILD_MODE=exact-release-sdk-imagebuilder
 BUILDER_IMAGE=$builder_image
 PLATFORM=$platform
+AUDIOWRT_PROFILE=$audiowrt_profile
+AUDIOWRT_FLAVOR=$profile_flavor
 TARGET=$target
 SUBTARGET=$subtarget
-OPENWRT_RELEASE=$resolved_release
+OPENWRT_RESOLVED_REF=$resolved_release
+OPENWRT_SOURCE=$openwrt_source
+OPENWRT_VERSION=$openwrt_version
 OPENWRT_COMMIT=$openwrt_commit
 SDK_URL=$sdk_url
 IMAGEBUILDER_URL=$imagebuilder_url
 OFFICIAL_FEEDS_BUILDINFO=$feeds_buildinfo_url
+OFFICIAL_VERSION_BUILDINFO=$version_buildinfo_url
 SDK_FEEDS_CONFIG=official-sdk-default+audiowrt
 SDK_PACKAGE_ONLY_MODE=NO_DEPS
 AUDIOWRT_COMMIT=$audiowrt_commit
 AUDIOWRT_PACKAGES_REPOSITORY=$packages_repo
 AUDIOWRT_PACKAGES_REF=$packages_ref
 AUDIOWRT_PACKAGES_COMMIT=$audiowrt_packages_commit
-FEATURES=${features:-none}
 AUDIOWRT_BUILD_PACKAGES=${build_packages[*]}
 AUDIOWRT_PACKAGE_ONLY_PACKAGES=${package_only_packages[*]}
 AUDIOWRT_SOURCE_PACKAGES=${source_packages[*]}
@@ -519,11 +596,11 @@ VERBOSITY=$verbosity
 CACHE_ENABLED=$cache_enabled
 EOF
 
-python3 - "$platform_metadata" "$selected_features" "$artifacts_metadata" "$output_dir/manifest.json" <<PY
+python3 - "$platform_metadata" "$artifacts_metadata" "$resolved_profile" "$output_dir/manifest.json" <<PY
 import json, sys
 platform_data = json.load(open(sys.argv[1], encoding="utf-8"))
-features_data = json.load(open(sys.argv[2], encoding="utf-8"))
-artifacts = json.load(open(sys.argv[3], encoding="utf-8"))
+artifacts = json.load(open(sys.argv[2], encoding="utf-8"))
+profile_data = json.load(open(sys.argv[3], encoding="utf-8"))
 manifest = {
     "build_mode": "exact-release-sdk-imagebuilder",
     "builder_image": "$builder_image",
@@ -531,13 +608,17 @@ manifest = {
     "audiowrt_packages_repository": "$packages_repo",
     "audiowrt_packages_ref": "$packages_ref",
     "audiowrt_packages_commit": "$audiowrt_packages_commit",
+    "audiowrt_profile": "$audiowrt_profile",
+    "audiowrt_flavor": "$profile_flavor",
+    "resolved_profile": profile_data,
     "openwrt_repository": "$openwrt_repo",
-    "openwrt_release": "$resolved_release",
+    "openwrt_source": "$openwrt_source",
+    "openwrt_version": "$openwrt_version",
+    "openwrt_resolved_ref": "$resolved_release",
     "openwrt_commit": "$openwrt_commit",
     "openwrt_artifacts": artifacts,
     "sdk_feeds_config": "official-sdk-default+audiowrt",
     "sdk_package_only_mode": "NO_DEPS",
-    "features": features_data["features"],
     "platform": platform_data,
     "audiowrt_build_packages": "${build_packages[*]}".split(),
     "audiowrt_package_only_packages": "${package_only_packages[*]}".split(),

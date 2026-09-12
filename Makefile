@@ -1,7 +1,5 @@
-PLATFORM ?=
-OPENWRT_RELEASE ?= 25.12.5
+AUDIOWRT_PROFILE ?= tplink-tl-wdr4300-v1-minimal-25.12.5
 AUDIOWRT_PACKAGES_REF ?= main
-FEATURES ?=
 JOBS ?=
 VERBOSITY ?= normal
 LOG_FILE ?=
@@ -13,11 +11,11 @@ help:
 	@printf '%s\n' \
 	  'AudioWRT build targets:' \
 	  '' \
-	  '  make build PLATFORM=<openwrt-profile> [OPENWRT_RELEASE=25.12.5] [AUDIOWRT_PACKAGES_REF=main] [FEATURES="mpd airplay spotify bluetooth"] [JOBS=N] [VERBOSITY=normal|verbose|debug] [LOG_FILE=logs/build.log] [CACHE_DIR=.cache/audiowrt]' \
+	  '  make build AUDIOWRT_PROFILE=<device-flavor-version> [AUDIOWRT_PACKAGES_REF=main] [JOBS=N] [VERBOSITY=normal|verbose|debug] [LOG_FILE=logs/build.log] [CACHE_DIR=.cache/audiowrt]' \
 	  '  make clean' \
 	  '' \
 	  'Reference device:' \
-	  '  make build PLATFORM=tplink_tl-wdr4300-v1 OPENWRT_RELEASE=25.12.5' \
+	  '  make build AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5' \
 	  '' \
 	  'Diagnostics:' \
 	  '  JOBS=1 VERBOSITY=debug LOG_FILE=logs/wdr4300.log CACHE_DIR=.cache/audiowrt' \
@@ -27,14 +25,12 @@ help:
 	  'Build environment:' \
 	  '  demonccc/openwrt-builder:latest (fixed by AudioWRT; not configurable)' \
 	  '' \
-	  'AudioWRT accepts exact final OpenWrt releases only. openwrt-25.12, main and snapshots are intentionally rejected.'
+	  'The selected profile pins its OpenWrt release or explicitly opts into snapshot.'
 
 build:
-	@if [ -z "$(PLATFORM)" ]; then echo 'ERROR: PLATFORM is required.' >&2; echo 'Example: make build PLATFORM=tplink_tl-wdr4300-v1 OPENWRT_RELEASE=25.12.5' >&2; exit 2; fi
-	@PLATFORM="$(PLATFORM)" \
-	 OPENWRT_RELEASE="$(OPENWRT_RELEASE)" \
+	@if [ -z "$(AUDIOWRT_PROFILE)" ]; then echo 'ERROR: AUDIOWRT_PROFILE is required.' >&2; exit 2; fi
+	@AUDIOWRT_PROFILE="$(AUDIOWRT_PROFILE)" \
 	 AUDIOWRT_PACKAGES_REF="$(AUDIOWRT_PACKAGES_REF)" \
-	 FEATURES="$(FEATURES)" \
 	 JOBS="$(JOBS)" \
 	 VERBOSITY="$(VERBOSITY)" \
 	 LOG_FILE="$(LOG_FILE)" \

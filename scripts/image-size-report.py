@@ -42,7 +42,7 @@ def main() -> None:
         [
             "",
             "OpenWrt performs the authoritative device image-size check during the build.",
-            "If a selected feature set exceeds the device image limit, the build fails instead of producing an oversized image.",
+            "If the selected profile exceeds the device image limit, the build fails instead of producing an oversized image.",
         ]
     )
     text_path.write_text("\n".join(lines) + "\n", encoding="utf-8")

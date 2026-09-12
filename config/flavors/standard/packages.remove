@@ -1,0 +1,19 @@
+# Audio appliance policy; keep IPv6 and official runtime implementations.
+firewall4
+nftables
+kmod-nft-nat
+kmod-nft-offload
+ppp
+ppp-mod-pppoe
+odhcpd-ipv6only
+kmod-sound-midi2
+kmod-sound-midi2-usb
+luci
+luci-light
+luci-mod-admin-full
+luci-mod-network
+luci-app-firewall
+luci-proto-ppp
+audiowrt-minimal-alsa
+audiowrt-minimal-mbedtls
+kmod-audiowrt-bluetooth

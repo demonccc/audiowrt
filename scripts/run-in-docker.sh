@@ -78,12 +78,10 @@ docker run --rm \
     --user "$uid:$gid" \
     -e HOME=/tmp \
     -e AUDIOWRT_IN_CONTAINER=1 \
-    -e PLATFORM="${PLATFORM:-}" \
-    -e OPENWRT_RELEASE="${OPENWRT_RELEASE:-25.12.5}" \
+    -e AUDIOWRT_PROFILE="${AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-25.12.5}" \
     -e OPENWRT_REPOSITORY="${OPENWRT_REPOSITORY:-https://github.com/openwrt/openwrt.git}" \
     -e AUDIOWRT_PACKAGES_REPOSITORY="${AUDIOWRT_PACKAGES_REPOSITORY:-https://github.com/demonccc/audiowrt-packages.git}" \
     -e AUDIOWRT_PACKAGES_REF="${AUDIOWRT_PACKAGES_REF:-main}" \
-    -e FEATURES="${FEATURES:-}" \
     -e JOBS="${JOBS:-}" \
     -e VERBOSITY="${VERBOSITY:-normal}" \
     -e CACHE_DIR="$container_cache_dir" \

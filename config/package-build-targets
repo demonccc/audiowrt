@@ -6,13 +6,16 @@
 # separately in config/source-build-packages genuinely compile/link upstream
 # source and may traverse the SDK build dependency graph when selected.
 
-audiowrt-core|package/audiowrt/audiowrt-core/compile
-audiowrt-provisioning|package/audiowrt/audiowrt-provisioning/compile
-audiowrt-storage|package/audiowrt/audiowrt-storage/compile
-luci-app-audiowrt-core|package/audiowrt/luci-app-audiowrt-core/compile
-audiowrt-storage-luci|package/audiowrt/luci-app-audiowrt-storage/compile
+audiowrt-core|package/feeds/audiowrt/audiowrt-core/compile
+audiowrt-provisioning|package/feeds/audiowrt/audiowrt-provisioning/compile
+audiowrt-storage|package/feeds/audiowrt/audiowrt-storage/compile
+luci-app-audiowrt-core|package/feeds/audiowrt/luci-app-audiowrt-core/compile
+audiowrt-storage-luci|package/feeds/audiowrt/luci-app-audiowrt-storage/compile
+kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
 
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
+audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
+audiowrt-minimal-mbedtls|package/feeds/audiowrt/audiowrt-minimal-mbedtls/compile
 audiowrt-usb-audio|package/feeds/audiowrt/audiowrt-usb-audio/compile
 audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
 audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
