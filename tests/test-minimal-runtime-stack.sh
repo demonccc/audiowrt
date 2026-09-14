@@ -27,6 +27,10 @@ for drop in rfcomm.ko bnep.ko hidp.ko; do
     grep -Fq "$drop" "$build_script"
 done
 
+grep -Fq 'find "$sdk_dir/bin/targets/$target/$subtarget/packages"' "$build_script"
+grep -Fq -- "-name 'kmod-audiowrt-*.apk'" "$build_script"
+grep -Fq 'SDK build did not produce selected AudioWRT package' "$build_script"
+
 grep -q 'kmods_sha256sums_url' "$repo_root/scripts/resolve-openwrt-artifacts.py"
 grep -q '"kmods_sha256sums_url": urljoin(base_url, "sha256sums")' "$repo_root/scripts/resolve-openwrt-artifacts.py"
 fixture_dir="$(mktemp -d)"

@@ -427,6 +427,8 @@ package_only_packages=()
 package_only_targets=()
 source_packages=()
 source_targets=()
+declare -A package_only_target_seen=()
+declare -A source_target_seen=()
 
 for spec in "${build_specs[@]}"; do
     package="${spec%%|*}"
@@ -439,10 +441,16 @@ for spec in "${build_specs[@]}"; do
     build_packages+=("$package")
     if [[ -n "${source_build_package[$package]+x}" ]]; then
         source_packages+=("$package")
-        source_targets+=("$target_path")
+        if [[ -z "${source_target_seen[$target_path]+x}" ]]; then
+            source_targets+=("$target_path")
+            source_target_seen["$target_path"]=1
+        fi
     else
         package_only_packages+=("$package")
-        package_only_targets+=("$target_path")
+        if [[ -z "${package_only_target_seen[$target_path]+x}" ]]; then
+            package_only_targets+=("$target_path")
+            package_only_target_seen["$target_path"]=1
+        fi
     fi
 done
 
@@ -509,18 +517,30 @@ fi
 rm -rf "$local_apks_dir"
 mkdir -p "$local_apks_dir"
 
-# All APKs produced by the reusable AudioWRT feed are ours. Copy them all so
-# custom dependencies such as librespot and bluez-alsa are available to the
-# ImageBuilder when their wrapper feature is selected.
+# All APKs produced by the reusable AudioWRT feed are ours. Userspace feed
+# packages are emitted under bin/packages, while kernel packages can be emitted
+# under the target-specific package directory. Copy both classes so every
+# selected AudioWRT package is visible to the ImageBuilder.
 while IFS= read -r -d '' apk; do
     cp -f "$apk" "$local_apks_dir/"
-done < <(find "$sdk_dir/bin/packages" -type f -path '*/audiowrt/*.apk' -print0 2>/dev/null || true)
+done < <(
+    find "$sdk_dir/bin/packages" -type f -path '*/audiowrt/*.apk' -print0 2>/dev/null || true
+    find "$sdk_dir/bin/targets/$target/$subtarget/packages" \
+        -type f -name 'kmod-audiowrt-*.apk' -print0 2>/dev/null || true
+)
 
 local_apk_count="$(find "$local_apks_dir" -maxdepth 1 -type f -name '*.apk' | wc -l | tr -d ' ')"
 [[ "$local_apk_count" -gt 0 ]] || {
     echo "ERROR: SDK build did not produce AudioWRT APKs." >&2
     exit 6
 }
+
+for package in "${build_packages[@]}"; do
+    if ! compgen -G "$local_apks_dir/${package}-*.apk" > /dev/null; then
+        echo "ERROR: SDK build did not produce selected AudioWRT package: $package" >&2
+        exit 6
+    fi
+done
 
 # Assemble the final firmware from the official ImageBuilder for the same exact
 # release. OpenWrt runtime dependencies are resolved from the official release

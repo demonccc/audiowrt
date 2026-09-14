@@ -36,6 +36,11 @@ grep -Fq 'make_run "$sdk_dir" "${source_targets[@]}" -j"$jobs"' "$build_script" 
     exit 1
 }
 
+grep -Fq 'declare -A source_target_seen=()' "$build_script" || {
+    echo "ERROR: split packages must not compile the same source target repeatedly." >&2
+    exit 1
+}
+
 grep -Fq 'config/source-build-packages' "$build_script" || {
     echo "ERROR: build.sh must classify genuine source builds explicitly." >&2
     exit 1
