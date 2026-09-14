@@ -252,6 +252,7 @@ sdk_url="$(json_field "$artifacts_metadata" sdk_url)"
 imagebuilder_url="$(json_field "$artifacts_metadata" imagebuilder_url)"
 feeds_buildinfo_url="$(json_field "$artifacts_metadata" feeds_buildinfo_url)"
 version_buildinfo_url="$(json_field "$artifacts_metadata" version_buildinfo_url)"
+openwrt_base_url="$(json_field "$artifacts_metadata" base_url)"
 kmod_bluetooth_url="$(json_field "$artifacts_metadata" kmod_bluetooth_url)"
 kmod_btmtk_url="$(json_field "$artifacts_metadata" kmod_btmtk_url)"
 kmod_btusb_url="$(json_field "$artifacts_metadata" kmod_btusb_url)"
@@ -291,12 +292,13 @@ download_file "$kmods_sha256sums_url" "$bluetooth_stage/sha256sums"
 for module_url in "$kmod_bluetooth_url" "$kmod_btmtk_url" "$kmod_btusb_url"; do
     module_apk="$bluetooth_stage/apks/$(basename "$module_url")"
     download_file "$module_url" "$module_apk"
-    expected_line="$(grep -F "  $(basename "$module_apk")" "$bluetooth_stage/sha256sums" || true)"
-    [[ -n "$expected_line" ]] || {
-        echo "ERROR: missing OpenWrt checksum for $(basename "$module_apk")." >&2
+    module_path="${module_url#"$openwrt_base_url"}"
+    [[ "$module_path" != "$module_url" && -n "$module_path" ]] || {
+        echo "ERROR: kernel module URL is outside the OpenWrt target: $module_url" >&2
         exit 5
     }
-    printf '%s\n' "$expected_line" | (cd "$bluetooth_stage/apks" && sha256sum -c -)
+    python3 "$repo_root/scripts/verify-openwrt-checksum.py" \
+        "$bluetooth_stage/sha256sums" "$module_path" "$module_apk"
     "$sdk_dir/staging_dir/host/bin/apk" --allow-untrusted extract \
         --destination "$bluetooth_stage/extracted" "$module_apk"
 done
