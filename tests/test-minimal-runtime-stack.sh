@@ -28,6 +28,7 @@ for drop in rfcomm.ko bnep.ko hidp.ko; do
 done
 
 grep -q 'kmods_sha256sums_url' "$repo_root/scripts/resolve-openwrt-artifacts.py"
+grep -q '"kmods_sha256sums_url": urljoin(base_url, "sha256sums")' "$repo_root/scripts/resolve-openwrt-artifacts.py"
 grep -q 'sha256sum -c' "$build_script"
 
 echo 'Minimal runtime stack distribution contracts passed.'
