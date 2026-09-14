@@ -148,9 +148,12 @@ device with one flavor and any device-specific package exceptions.
 
 | Flavor | Intended target | Runtime providers | Included services |
 |---|---|---|---|
-| `minimal` | constrained 8 MB devices | AudioWRT minimal ALSA, Mbed TLS and Bluetooth kernel variants | USB Audio, Bluetooth A2DP and essential UI |
-| `standard` | devices with normal flash headroom | unmodified OpenWrt infrastructure packages | minimal capabilities plus MPD and storage |
-| `full` | large-flash devices | unmodified OpenWrt infrastructure packages | all AudioWRT services and storage |
+| `usb-audio` | USB Audio only | standard OpenWrt USB Audio stack | USB Audio, Wi-Fi, DLNA and essential UI |
+| `minimal-usb-bluetooth` | constrained Bluetooth USB devices | AudioWRT minimal Bluetooth stack | Bluetooth A2DP, Wi-Fi, DLNA and essential UI; no SSH/DHCP/mDNS |
+| `usb-bluetooth` | standard Bluetooth USB devices | standard OpenWrt Bluetooth stack | Bluetooth A2DP, Wi-Fi, DLNA and essential UI |
+| `minimal-usb-bluetooth-audio` | constrained combined devices | AudioWRT minimal Bluetooth + standard USB Audio | Bluetooth A2DP, USB Audio, Wi-Fi and DLNA |
+| `usb-bluetooth-audio` | combined standard devices | standard OpenWrt Bluetooth + USB Audio stacks | Bluetooth A2DP, USB Audio, Wi-Fi and DLNA |
+| `minimal` / `standard` / `full` | legacy profiles | preserved for existing non-reference devices | compatibility profiles |
 
 Flavor definitions live in `config/flavors/`. Buildable profiles are declarative
 YAML files in `profiles/`, for example
@@ -159,7 +162,7 @@ source/version, profile, target, subtarget, flavor, validation status and option
 add/remove overrides. The build derives OpenWrt's `PROFILE` from this file; it
 is no longer a separate caller-controlled input.
 
-The default profile is `tplink-tl-wdr4300-v1-minimal-25.12.5`. The minimal functional
+The default profile is `tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5`. The minimal functional
 core includes:
 
 - AudioWRT appliance identity;
