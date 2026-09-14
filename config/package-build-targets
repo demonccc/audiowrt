@@ -12,6 +12,8 @@ audiowrt-storage|package/feeds/audiowrt/audiowrt-storage/compile
 luci-app-audiowrt-core|package/feeds/audiowrt/luci-app-audiowrt-core/compile
 audiowrt-storage-luci|package/feeds/audiowrt/luci-app-audiowrt-storage/compile
 kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
+kmod-audiowrt-sound-core|package/feeds/audiowrt/packages/audiowrt-kmod-sound-core/compile
+kmod-audiowrt-usb-audio|package/feeds/audiowrt/packages/audiowrt-kmod-usb-audio/compile
 
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile

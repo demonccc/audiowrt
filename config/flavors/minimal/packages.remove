@@ -17,6 +17,8 @@ luci-app-firewall
 luci-proto-ppp
 alsa-lib
 libmbedtls21
+kmod-sound-core
+kmod-usb-audio
 kmod-bluetooth
 kmod-btusb
 kmod-btmtk
