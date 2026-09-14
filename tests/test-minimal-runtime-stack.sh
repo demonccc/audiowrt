@@ -29,6 +29,28 @@ done
 
 grep -q 'kmods_sha256sums_url' "$repo_root/scripts/resolve-openwrt-artifacts.py"
 grep -q '"kmods_sha256sums_url": urljoin(base_url, "sha256sums")' "$repo_root/scripts/resolve-openwrt-artifacts.py"
-grep -q 'sha256sum -c' "$build_script"
+fixture_dir="$(mktemp -d)"
+trap 'rm -rf "$fixture_dir"' EXIT
+fixture_name='kmod-bluetooth-6.12.94-r1.apk'
+fixture_relative="kmods/6.12.94-1-test/$fixture_name"
+printf 'exact OpenWrt APK fixture\n' > "$fixture_dir/$fixture_name"
+fixture_checksum="$(sha256sum "$fixture_dir/$fixture_name" | awk '{print $1}')"
+printf '%s *%s\n' "$fixture_checksum" "$fixture_relative" > "$fixture_dir/sha256sums"
+
+python3 "$repo_root/scripts/verify-openwrt-checksum.py" \
+    "$fixture_dir/sha256sums" "$fixture_relative" "$fixture_dir/$fixture_name"
+
+if python3 "$repo_root/scripts/verify-openwrt-checksum.py" \
+    "$fixture_dir/sha256sums" "kmods/wrong/$fixture_name" "$fixture_dir/$fixture_name" 2>/dev/null; then
+    echo 'Checksum verification accepted the wrong target-relative path.' >&2
+    exit 1
+fi
+
+printf 'tampered\n' >> "$fixture_dir/$fixture_name"
+if python3 "$repo_root/scripts/verify-openwrt-checksum.py" \
+    "$fixture_dir/sha256sums" "$fixture_relative" "$fixture_dir/$fixture_name" 2>/dev/null; then
+    echo 'Checksum verification accepted a modified APK.' >&2
+    exit 1
+fi
 
 echo 'Minimal runtime stack distribution contracts passed.'
