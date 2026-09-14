@@ -77,3 +77,6 @@ jobs:
 
       - name: Test canonical builder image pin
         run: bash tests/test-builder-image-pin.sh
+
+      - name: Test build workflow performance safeguards
+        run: bash tests/test-build-workflow-performance.sh
