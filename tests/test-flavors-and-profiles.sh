@@ -4,7 +4,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-for flavor in minimal standard full; do
+for flavor in minimal standard full usb-audio minimal-usb-bluetooth usb-bluetooth minimal-usb-bluetooth-audio usb-bluetooth-audio; do
     add="$repo_root/config/flavors/$flavor/packages.add"
     remove="$repo_root/config/flavors/$flavor/packages.remove"
     test -s "$add"
@@ -49,7 +49,7 @@ for profile_file in "$repo_root"/profiles/*.yaml; do
 import json, sys
 data = json.load(sys.stdin)
 assert data["id"] == sys.argv[1]
-assert data["flavor"] in {"minimal", "standard", "full"}
+assert data["flavor"] in {"minimal", "standard", "full", "usb-audio", "minimal-usb-bluetooth", "usb-bluetooth", "minimal-usb-bluetooth-audio", "usb-bluetooth-audio"}
 assert data["openwrt_source"] in {"release", "snapshot"}
 assert data["id"].endswith("-" + data["openwrt_version"])
 assert data["maintainer_github"]
@@ -86,5 +86,23 @@ assert data["openwrt_source"] == "snapshot"
 assert data["openwrt_version"] == "snapshot"
 ' <<< "$snapshot"
 
-grep -q 'AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-25.12.5' "$repo_root/scripts/build.sh"
+grep -q 'AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5' "$repo_root/scripts/build.sh"
+
+for flavor in usb-audio minimal-usb-bluetooth usb-bluetooth minimal-usb-bluetooth-audio usb-bluetooth-audio; do
+    profile="tplink-tl-wdr4300-v1-$flavor-25.12.5"
+    resolved="$(python3 "$repo_root/scripts/resolve-audiowrt-profile.py" \
+        "$repo_root/profiles" "$repo_root/config/flavors" "$profile")"
+    python3 -c 'import json, sys; data=json.load(sys.stdin); assert data["flavor"] == sys.argv[1]' \
+        "$flavor" <<< "$resolved"
+done
+
+minimal_bluetooth="$(python3 "$repo_root/scripts/resolve-audiowrt-profile.py" \
+    "$repo_root/profiles" "$repo_root/config/flavors" tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)"
+python3 -c 'import json, sys; data=json.load(sys.stdin); packages=set(data["packages_add"]); removed=set(data["packages_remove"]); assert {"luci-mod-status", "luci-mod-system", "luci-app-package-manager"} <= packages; assert {"dropbear", "dnsmasq", "umdns"} <= removed' <<< "$minimal_bluetooth"
+
+for flavor in usb-audio usb-bluetooth usb-bluetooth-audio; do
+    resolved="$(python3 "$repo_root/scripts/resolve-audiowrt-profile.py" \
+        "$repo_root/profiles" "$repo_root/config/flavors" "tplink-tl-wdr4300-v1-$flavor-25.12.5")"
+    python3 -c 'import json, sys; data=json.load(sys.stdin); packages=set(data["packages_add"]); assert {"dropbear", "dnsmasq", "umdns", "luci-mod-system"} <= packages' <<< "$resolved"
+done
 echo 'AudioWRT flavor and device profile tests passed.'
