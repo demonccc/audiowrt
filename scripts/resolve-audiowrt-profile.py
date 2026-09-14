@@ -141,12 +141,22 @@ def main() -> int:
         fail("profile ID must end with an OpenWrt release or -snapshot")
     openwrt_version = version_match.group(1)
     without_version = args.profile_id[: version_match.start()]
+    supported_flavors = (
+        "minimal-usb-bluetooth-audio",
+        "usb-bluetooth-audio",
+        "minimal-usb-bluetooth",
+        "usb-bluetooth",
+        "usb-audio",
+        "minimal",
+        "standard",
+        "full",
+    )
     flavor = next(
-        (candidate for candidate in ("minimal", "standard", "full") if without_version.endswith(f"-{candidate}")),
+        (candidate for candidate in supported_flavors if without_version.endswith(f"-{candidate}")),
         None,
     )
     if flavor is None:
-        fail("profile ID must contain a minimal, standard or full flavor before its version")
+        fail("profile ID must contain a supported flavor before its version")
     device_id = without_version[: -(len(flavor) + 1)]
     require_string(device_id, "device ID", PROFILE_ID)
     openwrt_source = "snapshot" if openwrt_version == "snapshot" else "release"
