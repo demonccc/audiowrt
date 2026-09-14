@@ -13,6 +13,8 @@ audiowrt-provisioning|package/feeds/audiowrt/audiowrt-provisioning/compile
 audiowrt-storage|package/feeds/audiowrt/audiowrt-storage/compile
 audiowrt-storage-luci|package/feeds/audiowrt/luci-app-audiowrt-storage/compile
 kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
+kmod-audiowrt-sound-core|package/feeds/audiowrt/packages/audiowrt-kmod-sound-core/compile
+kmod-audiowrt-usb-audio|package/feeds/audiowrt/packages/audiowrt-kmod-usb-audio/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
 audiowrt-minimal-mbedtls|package/feeds/audiowrt/audiowrt-minimal-mbedtls/compile
@@ -70,6 +72,10 @@ Package: audiowrt-bluetooth
 Depends: +audiowrt-audio +audiowrt-bluez +audiowrt-btctl +bluez-alsa +kmod-bluetooth +kmod-btusb
 Package: kmod-audiowrt-bluetooth
 Depends: +kernel +kmod-usb-core
+Package: kmod-audiowrt-sound-core
+Depends: +kernel +kmod-input-core
+Package: kmod-audiowrt-usb-audio
+Depends: +kernel +kmod-usb-core +kmod-audiowrt-sound-core +kmod-media-controller +kmod-sound-midi2
 EOF
 
 resolver="$repo_root/scripts/resolve-package-build-targets.py"
@@ -108,8 +114,12 @@ fi
 # minimal ALSA and Bluetooth kernel packages are part of
 # the AudioWRT-owned dependency closure.
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-core audiowrt-extensions audiowrt-minimal-alsa kmod-audiowrt-bluetooth audiowrt-bluetooth > "$tmp/bluetooth"
+    audiowrt-core audiowrt-extensions audiowrt-minimal-alsa kmod-audiowrt-bluetooth \
+    kmod-audiowrt-sound-core kmod-audiowrt-usb-audio audiowrt-bluetooth > "$tmp/bluetooth"
 for package in audiowrt-minimal-alsa audiowrt-sbc audiowrt-bluez-libs audiowrt-bluez audiowrt-btctl bluez-alsa kmod-audiowrt-bluetooth audiowrt-bluetooth; do
+    grep -q "^${package}|" "$tmp/bluetooth"
+done
+for package in kmod-audiowrt-sound-core kmod-audiowrt-usb-audio; do
     grep -q "^${package}|" "$tmp/bluetooth"
 done
 if grep -Eq '^(audiowrt-spotify|librespot)\|' "$tmp/bluetooth"; then

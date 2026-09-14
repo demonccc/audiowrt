@@ -108,6 +108,8 @@ def main() -> None:
         "kmod_bluetooth_url": resolve_kmod_package(kmods_url, "kmod-bluetooth"),
         "kmod_btmtk_url": resolve_kmod_package(kmods_url, "kmod-btmtk"),
         "kmod_btusb_url": resolve_kmod_package(kmods_url, "kmod-btusb"),
+        "kmod_sound_core_url": resolve_kmod_package(kmods_url, "kmod-sound-core"),
+        "kmod_usb_audio_url": resolve_kmod_package(kmods_url, "kmod-usb-audio"),
     }
     json.dump(result, sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write("\n")

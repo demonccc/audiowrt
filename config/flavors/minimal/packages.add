@@ -9,6 +9,8 @@ audiowrt-wifi-client
 audiowrt-minimal-alsa
 audiowrt-minimal-mbedtls
 kmod-audiowrt-bluetooth
+kmod-audiowrt-sound-core
+kmod-audiowrt-usb-audio
 luci-base
 luci-theme-bootstrap
 luci-mod-status
