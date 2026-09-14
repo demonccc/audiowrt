@@ -101,7 +101,10 @@ def main() -> None:
         "feeds_buildinfo_url": urljoin(base_url, "feeds.buildinfo"),
         "version_buildinfo_url": urljoin(base_url, "version.buildinfo"),
         "kmods_url": kmods_url,
-        "kmods_sha256sums_url": urljoin(kmods_url, "sha256sums"),
+        # OpenWrt publishes kmod checksums in the target-level manifest. The
+        # kmods directory itself contains index.json and APKs, but no nested
+        # sha256sums file.
+        "kmods_sha256sums_url": urljoin(base_url, "sha256sums"),
         "kmod_bluetooth_url": resolve_kmod_package(kmods_url, "kmod-bluetooth"),
         "kmod_btmtk_url": resolve_kmod_package(kmods_url, "kmod-btmtk"),
         "kmod_btusb_url": resolve_kmod_package(kmods_url, "kmod-btusb"),
