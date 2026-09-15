@@ -11,7 +11,7 @@ official binaries plus locally produced AudioWRT APKs.
 
 The OpenWrt source and version are part of the profile itself and must also be
 visible in its ID. Stable profiles use an exact final release, for example
-`tplink-tl-wdr4300-v1-minimal-25.12.5`. Snapshot profiles use the explicit
+`tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5`. Snapshot profiles use the explicit
 `-snapshot` suffix and are treated as moving/experimental builds. Branch aliases,
 release candidates and implicit version overrides are not accepted.
 
@@ -84,7 +84,7 @@ Run:
 
 ```sh
 make build \
-  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
 ```
 
 `make build` pulls the canonical image and executes the AudioWRT build inside it. If the image cannot be pulled, the build fails; AudioWRT never falls back to building or substituting a Docker image locally.
@@ -107,7 +107,7 @@ For difficult local failures, use one job and save the complete host-side output
 
 ```sh
 make build \
-  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5 \
   JOBS=1 \
   VERBOSITY=debug \
   LOG_FILE=logs/wdr4300.log
@@ -119,7 +119,7 @@ The builder's persistent-download-cache pattern also applies to AudioWRT. Local 
 
 ```sh
 make build \
-  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5 \
   CACHE_DIR=.cache/audiowrt
 ```
 
@@ -129,7 +129,7 @@ For repeated troubleshooting, combine both features:
 
 ```sh
 make build \
-  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5 \
   CACHE_DIR=.cache/audiowrt \
   JOBS=1 \
   VERBOSITY=debug \
@@ -155,11 +155,11 @@ for the flavor contract and size guidance.
 | `usb-bluetooth` | standard Bluetooth USB devices | standard OpenWrt Bluetooth stack | Bluetooth A2DP, Wi-Fi, DLNA and essential UI |
 | `minimal-usb-bluetooth-audio` | constrained combined devices | AudioWRT minimal Bluetooth + standard USB Audio | Bluetooth A2DP, USB Audio, Wi-Fi and DLNA |
 | `usb-bluetooth-audio` | combined standard devices | standard OpenWrt Bluetooth + USB Audio stacks | Bluetooth A2DP, USB Audio, Wi-Fi and DLNA |
-| `minimal` / `standard` / `full` | legacy profiles | preserved for existing non-reference devices | compatibility profiles |
+| `minimal` / `standard` / `full` | reusable legacy bases | available only when selected by a profile | compatibility bases |
 
 Flavor definitions live in `config/flavors/`. Buildable profiles are declarative
 YAML files in `profiles/`, for example
-`tplink-tl-wdr4300-v1-minimal-25.12.5.yaml`. The profile records the OpenWrt
+`tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5.yaml`. The profile records the OpenWrt
 source/version, profile, target, subtarget, flavor, validation status and
 optional package add/remove overrides. The build derives OpenWrt's `PROFILE`
 from this file; it is no longer a separate caller-controlled input. Profile
@@ -192,28 +192,25 @@ OpenWrt ImageBuilder enforces the selected device's image-size limit. AudioWRT d
 The initial reference/test device is the TP-Link TL-WDR4300 v1:
 
 ```text
-AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5
+AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
 ```
 
 Example core build:
 
 ```sh
 make build \
-  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
 ```
 
 The WDR4300 is a reference target only. AudioWRT profiles reference OpenWrt's
 hardware database; device definitions, drivers, firmware and base package
 choices remain OpenWrt responsibilities.
 
-Initial candidate profiles are included for x86-64, Raspberry Pi 3,
-Raspberry Pi 4, TP-Link Archer A9 v6 and Linksys EA8300. Candidate means the
-mapping is valid but still needs a successful build and hardware test before
-being promoted to `tested`. Raspberry Pi 3 and 4 intentionally use different
-profiles: both are 64-bit ARM, but OpenWrt builds them as `bcm2710` and
-`bcm2711`, respectively.
+The catalog contains one candidate profile each for x86-64, Raspberry Pi 4 and
+Linksys EA8300. Candidate means the mapping is valid but still needs a
+successful build and hardware test before being promoted to `tested`.
 
-The recommended x86-64, Raspberry Pi 3 and Raspberry Pi 4 profiles use the
+The recommended x86-64, Raspberry Pi 4 and Linksys EA8300 profiles use the
 complete `usb-bluetooth-audio` flavor. The WDR4300 reference profiles remain
 split between `usb-audio` and `minimal-usb-bluetooth` because it is constrained
 by 8 MB flash.
@@ -258,7 +255,7 @@ Installing the reusable feed on a normal OpenWrt system does not change its LAN,
 
 ```text
 AUDIOWRT_PROFILE         device + flavor profile ID
-                         (default tplink-tl-wdr4300-v1-minimal-25.12.5)
+                         (default tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)
 AUDIOWRT_PACKAGES_REF    reusable package-feed branch/tag/commit (default main)
 JOBS                     package build parallelism
 VERBOSITY                normal, verbose or debug
@@ -272,7 +269,7 @@ For example:
 
 ```sh
 make build \
-  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5 \
   AUDIOWRT_PACKAGES_REF=main \
   CACHE_DIR=.cache/audiowrt \
   JOBS=8 \
@@ -313,7 +310,7 @@ The repository exposes the manual **Build AudioWRT** workflow under the Actions 
 Its main inputs are:
 
 ```text
-audiowrt_profile      default: tplink-tl-wdr4300-v1-minimal-25.12.5
+audiowrt_profile      default: tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
 audiowrt_packages_ref  default: main
 ```
 
