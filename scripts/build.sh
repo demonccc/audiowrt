@@ -562,7 +562,12 @@ image_args=(
     "BIN_DIR=$output_dir"
 )
 if [[ "$squashfs_block_size" != "default" ]]; then
-    image_args+=("CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=$squashfs_block_size")
+    imagebuilder_config="$imagebuilder_dir/.config"
+    if grep -q '^CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=' "$imagebuilder_config"; then
+        sed -i "s/^CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=.*/CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=$squashfs_block_size/" "$imagebuilder_config"
+    else
+        printf 'CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=%s\n' "$squashfs_block_size" >> "$imagebuilder_config"
+    fi
 fi
 
 make_run "$imagebuilder_dir" image "${image_args[@]}"
