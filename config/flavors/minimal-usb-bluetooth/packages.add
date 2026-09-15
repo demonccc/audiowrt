@@ -5,6 +5,7 @@ audiowrt-audio
 audiowrt-bluetooth
 audiowrt-extensions
 audiowrt-wifi-client
+dropbear
 audiowrt-minimal-alsa
 audiowrt-minimal-mbedtls
 kmod-audiowrt-bluetooth
