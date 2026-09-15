@@ -14,30 +14,16 @@ grep -qx 'audiowrt-minimal-mbedtls' "$packages"
 grep -qx 'audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile' "$targets"
 grep -qx 'audiowrt-minimal-mbedtls|package/feeds/audiowrt/audiowrt-minimal-mbedtls/compile' "$targets"
 grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile' "$targets"
-grep -qx 'kmod-audiowrt-sound-core|package/feeds/audiowrt/packages/audiowrt-kmod-sound-core/compile' "$targets"
-grep -qx 'kmod-audiowrt-usb-audio|package/feeds/audiowrt/packages/audiowrt-kmod-usb-audio/compile' "$targets"
 grep -qx 'audiowrt-minimal-alsa' "$sources"
 grep -qx 'audiowrt-minimal-mbedtls' "$sources"
 
 grep -qx 'kmod-sound-midi2' "$removed"
 grep -qx 'kmod-sound-midi2-usb' "$removed"
-grep -qx 'kmod-sound-core' "$removed"
-grep -qx 'kmod-usb-audio' "$removed"
-
-grep -qx 'kmod-audiowrt-sound-core' "$packages"
-grep -qx 'kmod-audiowrt-usb-audio' "$packages"
 
 for keep in bluetooth.ko btmtk.ko btintel.ko btrtl.ko btusb.ko; do
     grep -Fq "$keep" "$build_script"
 done
 for drop in rfcomm.ko bnep.ko hidp.ko; do
-    grep -Fq "$drop" "$build_script"
-done
-
-for keep in soundcore.ko snd.ko snd-hwdep.ko snd-seq-device.ko snd-rawmidi.ko snd-timer.ko snd-pcm.ko snd-usbmidi-lib.ko snd-usb-audio.ko; do
-    grep -Fq "$keep" "$build_script"
-done
-for drop in snd-mixer-oss.ko snd-pcm-oss.ko snd-compress.ko; do
     grep -Fq "$drop" "$build_script"
 done
 
@@ -47,8 +33,7 @@ grep -Fq 'SDK build did not produce selected AudioWRT package' "$build_script"
 
 grep -q 'kmods_sha256sums_url' "$repo_root/scripts/resolve-openwrt-artifacts.py"
 grep -q '"kmods_sha256sums_url": urljoin(base_url, "sha256sums")' "$repo_root/scripts/resolve-openwrt-artifacts.py"
-grep -q '"kmod_sound_core_url": resolve_kmod_package(kmods_url, "kmod-sound-core")' "$repo_root/scripts/resolve-openwrt-artifacts.py"
-grep -q '"kmod_usb_audio_url": resolve_kmod_package(kmods_url, "kmod-usb-audio")' "$repo_root/scripts/resolve-openwrt-artifacts.py"
+
 fixture_dir="$(mktemp -d)"
 trap 'rm -rf "$fixture_dir"' EXIT
 fixture_name='kmod-bluetooth-6.12.94-r1.apk'

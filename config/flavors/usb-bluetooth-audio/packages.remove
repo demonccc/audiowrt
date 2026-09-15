@@ -1,0 +1,11 @@
+# Combined standard flavor with the router stack removed.
+firewall4
+nftables
+kmod-nft-nat
+kmod-nft-offload
+ppp
+ppp-mod-pppoe
+odhcpd-ipv6only
+audiowrt-minimal-alsa
+audiowrt-minimal-mbedtls
+kmod-audiowrt-bluetooth

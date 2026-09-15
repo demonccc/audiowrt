@@ -4,7 +4,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-audiowrt_profile="${AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-25.12.5}"
+audiowrt_profile="${AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5}"
 openwrt_repo="${OPENWRT_REPOSITORY:-https://github.com/openwrt/openwrt.git}"
 packages_repo="${AUDIOWRT_PACKAGES_REPOSITORY:-https://github.com/demonccc/audiowrt-packages.git}"
 packages_ref="${AUDIOWRT_PACKAGES_REF:-main}"
@@ -256,8 +256,6 @@ openwrt_base_url="$(json_field "$artifacts_metadata" base_url)"
 kmod_bluetooth_url="$(json_field "$artifacts_metadata" kmod_bluetooth_url)"
 kmod_btmtk_url="$(json_field "$artifacts_metadata" kmod_btmtk_url)"
 kmod_btusb_url="$(json_field "$artifacts_metadata" kmod_btusb_url)"
-kmod_sound_core_url="$(json_field "$artifacts_metadata" kmod_sound_core_url)"
-kmod_usb_audio_url="$(json_field "$artifacts_metadata" kmod_usb_audio_url)"
 kmods_sha256sums_url="$(json_field "$artifacts_metadata" kmods_sha256sums_url)"
 
 printf '  Target: %s/%s\n' "$target" "$subtarget"
@@ -286,7 +284,6 @@ bluetooth_module_source="$sdk_dir/feeds/audiowrt/audiowrt-kmod-bluetooth"
     echo "ERROR: AudioWRT minimal Bluetooth kernel package source is missing." >&2
     exit 5
 }
-
 bluetooth_stage="$work_dir/prebuilt-bluetooth-modules"
 rm -rf "$bluetooth_stage"
 mkdir -p "$bluetooth_stage/apks" "$bluetooth_stage/extracted" "$bluetooth_module_source/files"
@@ -323,67 +320,6 @@ for omitted in rfcomm.ko bnep.ko hidp.ko; do
 done
 }
 
-# Keep the modified kernel package definitions in the AudioWRT packages feed.
-# Their payload is sourced from the exact release, checksum-verified and
-# reduced only where the module dependency graph permits it. This avoids a
-# release-kernel rebuild and preserves the exact kernel ABI.
-prepare_audio_kernel_packages() {
-local sound_source="$sdk_dir/feeds/audiowrt/packages/audiowrt-kmod-sound-core"
-local usb_source="$sdk_dir/feeds/audiowrt/packages/audiowrt-kmod-usb-audio"
-local audio_stage="$work_dir/prebuilt-audio-modules"
-
-for source in "$sound_source" "$usb_source"; do
-    [[ -d "$source" ]] || {
-        echo "ERROR: AudioWRT modified audio kernel package source is missing: $source" >&2
-        exit 5
-    }
-    mkdir -p "$source/files"
-done
-
-mkdir -p "$audio_stage/apks" "$audio_stage/extracted"
-download_file "$kmods_sha256sums_url" "$audio_stage/sha256sums"
-
-for module_url in "$kmod_sound_core_url" "$kmod_usb_audio_url"; do
-    module_apk="$audio_stage/apks/$(basename "$module_url")"
-    download_file "$module_url" "$module_apk"
-    module_path="${module_url#"$openwrt_base_url"}"
-    [[ "$module_path" != "$module_url" && -n "$module_path" ]] || {
-        echo "ERROR: kernel module URL is outside the OpenWrt target: $module_url" >&2
-        exit 5
-    }
-    python3 "$repo_root/scripts/verify-openwrt-checksum.py" \
-        "$audio_stage/sha256sums" "$module_path" "$module_apk"
-    "$sdk_dir/staging_dir/host/bin/apk" --allow-untrusted extract \
-        --destination "$audio_stage/extracted" "$module_apk"
-done
-
-for module in soundcore.ko snd.ko snd-hwdep.ko snd-seq-device.ko \
-        snd-rawmidi.ko snd-timer.ko snd-pcm.ko; do
-    mapfile -t module_matches < <(find "$audio_stage/extracted" -type f -name "$module" -print)
-    [[ "${#module_matches[@]}" -eq 1 ]] || {
-        echo "ERROR: expected one exact-release $module, found ${#module_matches[@]}." >&2
-        exit 5
-    }
-    cp -f "${module_matches[0]}" "$sound_source/files/$module"
-done
-
-for omitted in snd-mixer-oss.ko snd-pcm-oss.ko snd-compress.ko; do
-    [[ ! -e "$sound_source/files/$omitted" ]] || {
-        echo "ERROR: omitted sound-core module leaked into AudioWRT package: $omitted" >&2
-        exit 5
-    }
-done
-
-for module in snd-usbmidi-lib.ko snd-usb-audio.ko; do
-    mapfile -t module_matches < <(find "$audio_stage/extracted" -type f -name "$module" -print)
-    [[ "${#module_matches[@]}" -eq 1 ]] || {
-        echo "ERROR: expected one exact-release $module, found ${#module_matches[@]}." >&2
-        exit 5
-    }
-    cp -f "${module_matches[0]}" "$usb_source/files/$module"
-done
-}
-
 # Keep the SDK's official exact-release feed configuration intact. We only
 # update the feeds whose source trees are needed by AudioWRT package Makefiles:
 # packages (for shared build helpers such as rust-package.mk) and audiowrt.
@@ -416,10 +352,6 @@ printf '\n# AudioWRT reusable packages\nsrc-git audiowrt %s\n' "$feed_source" >>
 audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
 if [[ " ${firmware_packages[*]} " == *" kmod-audiowrt-bluetooth "* ]]; then
     prepare_bluetooth_package
-fi
-if [[ " ${firmware_packages[*]} " == *" kmod-audiowrt-sound-core "* || \
-      " ${firmware_packages[*]} " == *" kmod-audiowrt-usb-audio "* ]]; then
-    prepare_audio_kernel_packages
 fi
 
 # Register only AudioWRT feed source directories. Do not call scripts/feeds

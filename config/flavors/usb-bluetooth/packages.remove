@@ -1,0 +1,15 @@
+# USB Bluetooth only: no USB Audio kernel stack.
+firewall4
+nftables
+kmod-nft-nat
+kmod-nft-offload
+ppp
+ppp-mod-pppoe
+odhcpd-ipv6only
+kmod-usb-audio
+kmod-sound-core
+kmod-sound-midi2
+kmod-sound-midi2-usb
+audiowrt-minimal-alsa
+audiowrt-minimal-mbedtls
+kmod-audiowrt-bluetooth
