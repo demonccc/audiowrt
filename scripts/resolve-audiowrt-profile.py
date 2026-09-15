@@ -21,6 +21,7 @@ PROFILE_KEYS = {
     "openwrt_profile",
     "target",
     "subtarget",
+    "squashfs_block_size",
     "packages_add",
     "packages_remove",
 }
@@ -86,7 +87,7 @@ def read_profile_yaml(path: Path) -> dict[str, object]:
                 fail(f"inline YAML comments are not supported at {path}:{number}")
             data[key] = raw_value
             current_list = None
-    missing = sorted(PROFILE_KEYS - data.keys())
+    missing = sorted((PROFILE_KEYS - {"squashfs_block_size"}) - data.keys())
     if missing:
         fail(f"missing profile keys in {path}: {', '.join(missing)}")
     return data
@@ -172,6 +173,10 @@ def main() -> int:
     target = require_string(data.get("target"), "target")
     subtarget = require_string(data.get("subtarget"), "subtarget")
 
+    squashfs_block_size = data.get("squashfs_block_size", "default")
+    if not isinstance(squashfs_block_size, str) or squashfs_block_size not in {"default", "256", "512", "1024"}:
+        fail("squashfs_block_size must be default, 256, 512 or 1024")
+
     device_add = package_list(data.get("packages_add"), "packages_add")
     device_remove = package_list(data.get("packages_remove"), "packages_remove")
     overlap = sorted(set(device_add) & set(device_remove))
@@ -204,6 +209,7 @@ def main() -> int:
             "openwrt_profile": openwrt_profile,
             "target": target,
             "subtarget": subtarget,
+            "squashfs_block_size": squashfs_block_size,
             "packages_add": resolved_add,
             "packages_remove": resolved_remove,
         },
