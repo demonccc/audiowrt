@@ -12,6 +12,7 @@ from pathlib import Path
 
 BEGIN = "          # BEGIN GENERATED PROFILE OPTIONS"
 END = "          # END GENERATED PROFILE OPTIONS"
+PREFERRED_DEFAULT = "tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5"
 
 
 def main() -> int:
@@ -40,7 +41,8 @@ def main() -> int:
     if not match:
         raise SystemExit("ERROR: profile dropdown default is missing")
     if match.group(2) not in profiles:
-        expected = expected[:match.start(2)] + profiles[0] + expected[match.end(2):]
+        default = PREFERRED_DEFAULT if PREFERRED_DEFAULT in profiles else profiles[0]
+        expected = expected[:match.start(2)] + default + expected[match.end(2):]
 
     if args.check:
         if text != expected:
