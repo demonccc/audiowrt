@@ -54,7 +54,6 @@ the build must pass that target's own ImageBuilder limit.
 The reference complete profiles for larger devices are:
 
 - `x86-64-usb-bluetooth-audio-25.12.5`;
-- `raspberry-pi-3-usb-bluetooth-audio-25.12.5`;
 - `raspberry-pi-4-usb-bluetooth-audio-25.12.5`.
 
 They use the complete Bluetooth and USB Audio stacks. The WDR4300 reference
