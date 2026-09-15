@@ -1,5 +1,5 @@
 # Bluetooth minimal policy: keep the USB Bluetooth stack, remove optional
-# router/audio capabilities and administrative SSH access.
+# router/audio capabilities and administrative service packages.
 firewall4
 nftables
 kmod-nft-nat
@@ -8,7 +8,6 @@ ppp
 ppp-mod-pppoe
 odhcp6c
 odhcpd-ipv6only
-dropbear
 dnsmasq
 umdns
 kmod-sound-core
