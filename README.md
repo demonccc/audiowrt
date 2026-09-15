@@ -151,7 +151,7 @@ for the flavor contract and size guidance.
 | Flavor | Intended target | Runtime providers | Included services |
 |---|---|---|---|
 | `usb-audio` | USB Audio only | standard OpenWrt USB Audio stack | USB Audio, Wi-Fi, DLNA and essential UI |
-| `minimal-usb-bluetooth` | constrained Bluetooth USB devices | AudioWRT minimal Bluetooth stack | Bluetooth A2DP, Wi-Fi, DLNA and essential UI; no SSH/DHCP/mDNS by default |
+| `minimal-usb-bluetooth` | constrained Bluetooth USB devices | AudioWRT minimal Bluetooth stack | Bluetooth A2DP, Wi-Fi, DLNA, SSH and essential UI; no DHCP/mDNS by default |
 | `usb-bluetooth` | standard Bluetooth USB devices | standard OpenWrt Bluetooth stack | Bluetooth A2DP, Wi-Fi, DLNA and essential UI |
 | `minimal-usb-bluetooth-audio` | constrained combined devices | AudioWRT minimal Bluetooth + standard USB Audio | Bluetooth A2DP, USB Audio, Wi-Fi and DLNA |
 | `usb-bluetooth-audio` | combined standard devices | standard OpenWrt Bluetooth + USB Audio stacks | Bluetooth A2DP, USB Audio, Wi-Fi and DLNA |
