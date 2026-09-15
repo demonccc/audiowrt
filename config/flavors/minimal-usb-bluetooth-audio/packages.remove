@@ -1,4 +1,4 @@
-# Minimal Bluetooth plus USB Audio; no SSH, DHCP/DNS or mDNS daemon.
+# Minimal Bluetooth plus USB Audio; no DHCP/DNS or mDNS daemon.
 firewall4
 nftables
 kmod-nft-nat
@@ -7,7 +7,6 @@ ppp
 ppp-mod-pppoe
 odhcp6c
 odhcpd-ipv6only
-dropbear
 dnsmasq
 umdns
 libmbedtls21
