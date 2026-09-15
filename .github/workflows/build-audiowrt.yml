@@ -7,31 +7,15 @@ on:
       audiowrt_profile:
         description: "AudioWRT device + flavor + OpenWrt version (YAML file name without extension)"
         required: true
-        default: tplink-tl-wdr4300-v1-minimal-25.12.5
+        default: tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
         type: choice
         options:
           # BEGIN GENERATED PROFILE OPTIONS
-          - linksys-ea8300-full-25.12.5
-          - linksys-ea8300-minimal-25.12.5
-          - linksys-ea8300-standard-25.12.5
-          - raspberry-pi-3-full-25.12.5
-          - raspberry-pi-3-minimal-25.12.5
-          - raspberry-pi-3-standard-25.12.5
-          - raspberry-pi-4-full-25.12.5
-          - raspberry-pi-4-minimal-25.12.5
-          - raspberry-pi-4-standard-25.12.5
-          - tplink-archer-a9-v6-full-25.12.5
-          - tplink-archer-a9-v6-minimal-25.12.5
-          - tplink-archer-a9-v6-standard-25.12.5
-          - tplink-tl-wdr4300-v1-minimal-25.12.5
+          - linksys-ea8300-usb-bluetooth-audio-25.12.5
+          - raspberry-pi-4-usb-bluetooth-audio-25.12.5
           - tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
-          - tplink-tl-wdr4300-v1-minimal-usb-bluetooth-audio-25.12.5
           - tplink-tl-wdr4300-v1-usb-audio-25.12.5
-          - tplink-tl-wdr4300-v1-usb-bluetooth-25.12.5
-          - tplink-tl-wdr4300-v1-usb-bluetooth-audio-25.12.5
-          - x86-64-full-25.12.5
-          - x86-64-minimal-25.12.5
-          - x86-64-standard-25.12.5
+          - x86-64-usb-bluetooth-audio-25.12.5
           # END GENERATED PROFILE OPTIONS
       audiowrt_packages_ref:
         description: "AudioWRT reusable package-feed branch, tag or commit"

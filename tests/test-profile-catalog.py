@@ -11,7 +11,7 @@ with tempfile.TemporaryDirectory() as temp:
     root = Path(temp)
     for directory in ('scripts', 'profiles', 'config', '.github'):
         shutil.copytree(source / directory, root / directory)
-    profile = root / 'profiles/tplink-tl-wdr4300-v1-minimal-25.12.5.yaml'
+    profile = root / 'profiles/tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5.yaml'
     original = profile.read_text()
 
     def run(script, *args, valid=True):
@@ -57,6 +57,6 @@ with tempfile.TemporaryDirectory() as temp:
     added.unlink()
     run('sync-profile-workflow.py')
     run('sync-profile-workflow.py', '--check')
-    assert 'default: tplink-tl-wdr4300-v1-minimal-25.12.5' not in workflow.read_text()
+    assert 'default: tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5' not in workflow.read_text()
     assert '          - example-device-full-snapshot' not in workflow.read_text()
 print('Profile catalog rejection and dropdown lifecycle tests passed.')

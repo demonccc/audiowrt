@@ -1,8 +1,9 @@
 schema_version: 1
 status: candidate
 maintainer_github: demonccc
-openwrt_profile: rpi-3
-target: bcm27xx
-subtarget: bcm2710
+openwrt_profile: linksys_ea8300
+target: ipq40xx
+subtarget: generic
+squashfs_block_size: default
 packages_add: []
 packages_remove: []

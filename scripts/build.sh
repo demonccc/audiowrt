@@ -182,6 +182,7 @@ openwrt_source="$(json_field "$resolved_profile" openwrt_source)"
 openwrt_version="$(json_field "$resolved_profile" openwrt_version)"
 expected_target="$(json_field "$resolved_profile" target)"
 expected_subtarget="$(json_field "$resolved_profile" subtarget)"
+squashfs_block_size="$(json_field "$resolved_profile" squashfs_block_size)"
 case "$openwrt_source" in
     release)
         resolved_release="$(bash "$repo_root/scripts/resolve-openwrt-ref.sh" "$openwrt_version")"
@@ -554,11 +555,17 @@ while IFS= read -r package; do package_args+=("$package"); done < <(read_package
 while IFS= read -r package; do package_args+=("-$package"); done < <(read_package_file "$packages_remove_file")
 package_string="${package_args[*]}"
 
-make_run "$imagebuilder_dir" image \
-    "PROFILE=$platform" \
-    "PACKAGES=$package_string" \
-    "FILES=$repo_root/files" \
+image_args=(
+    "PROFILE=$platform"
+    "PACKAGES=$package_string"
+    "FILES=$repo_root/files"
     "BIN_DIR=$output_dir"
+)
+if [[ "$squashfs_block_size" != "default" ]]; then
+    image_args+=("CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=$squashfs_block_size")
+fi
+
+make_run "$imagebuilder_dir" image "${image_args[@]}"
 
 cp "$platform_metadata" "$output_dir/platform.json"
 cp "$resolved_profile" "$output_dir/audiowrt-profile.json"
