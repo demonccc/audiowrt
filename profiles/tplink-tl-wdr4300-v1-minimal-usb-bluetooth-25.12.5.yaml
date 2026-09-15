@@ -5,5 +5,7 @@ openwrt_profile: tplink_tl-wdr4300-v1
 target: ath79
 subtarget: generic
 squashfs_block_size: 1024
-packages_add: []
+packages_add:
+  # Temporary diagnostic access for validating the constrained image.
+  - dropbear
 packages_remove: []

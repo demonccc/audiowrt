@@ -26,8 +26,8 @@ with tempfile.TemporaryDirectory() as temp:
         original.replace('maintainer_github: demonccc', 'maintainer_github: @invalid'),
         original.replace('schema_version: 1', 'schema_version: 2'),
         original.replace('status: reference', 'status: []'),
-        original.replace('packages_add: []', 'packages_add:\n  - test\n  - test'),
-        original.replace('packages_add: []', 'packages_add:\n  - test').replace('packages_remove: []', 'packages_remove:\n  - test'),
+        original.replace('packages_add:\n', 'packages_add:\n  - test\n  - test\n', 1),
+        original.replace('packages_add:\n', 'packages_add:\n  - test\n', 1).replace('packages_remove: []', 'packages_remove:\n  - test'),
     ):
         profile.write_text(content)
         run('validate-profile-catalog.py', valid=False)
@@ -52,7 +52,6 @@ with tempfile.TemporaryDirectory() as temp:
     run('sync-profile-workflow.py', '--check')
     workflow = root / '.github/workflows/build-audiowrt.yml'
     assert '          - example-device-full-snapshot' in workflow.read_text()
-    # Removing the current default must also repair its value.
     profile.unlink()
     added.unlink()
     run('sync-profile-workflow.py')

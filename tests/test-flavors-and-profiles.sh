@@ -92,6 +92,6 @@ grep -q 'CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=' "$repo_root/scripts/build.sh"
 
 minimal_bluetooth="$(python3 "$repo_root/scripts/resolve-audiowrt-profile.py" \
     "$repo_root/profiles" "$repo_root/config/flavors" tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)"
-python3 -c 'import json, sys; data=json.load(sys.stdin); packages=set(data["packages_add"]); removed=set(data["packages_remove"]); assert {"luci-mod-status", "luci-mod-system", "luci-app-package-manager"} <= packages; assert {"dropbear", "dnsmasq", "umdns"} <= removed' <<< "$minimal_bluetooth"
+python3 -c 'import json, sys; data=json.load(sys.stdin); packages=set(data["packages_add"]); removed=set(data["packages_remove"]); assert {"luci-mod-status", "luci-mod-system", "luci-app-package-manager", "dropbear"} <= packages; assert {"dnsmasq", "umdns"} <= removed; assert "dropbear" not in removed' <<< "$minimal_bluetooth"
 
 echo 'AudioWRT flavor and device profile tests passed.'
