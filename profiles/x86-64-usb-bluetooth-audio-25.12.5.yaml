@@ -1,0 +1,9 @@
+schema_version: 1
+status: candidate
+maintainer_github: demonccc
+openwrt_profile: generic
+target: x86
+subtarget: 64
+squashfs_block_size: default
+packages_add: []
+packages_remove: []
