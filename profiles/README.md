@@ -10,6 +10,7 @@ maintainer_github: github-user
 openwrt_profile: vendor_example-device
 target: ath79
 subtarget: generic
+squashfs_block_size: default
 packages_add:
   - device-specific-package
 packages_remove: []
@@ -21,8 +22,18 @@ The supported reference flavors are `usb-audio`, `minimal-usb-bluetooth`,
 The legacy `minimal`, `standard` and `full` flavors remain available for
 existing non-reference profiles. Device, flavor,
 OpenWrt source and version are derived from it and deliberately are not
-repeated inside the file. Flavor package sets live under `config/flavors/`;
-use `packages_add` and `packages_remove` only for genuine device exceptions.
+repeated inside the file. Flavor package sets live under `config/flavors/`; see
+[`config/flavors/README.md`](../config/flavors/README.md) for their intended
+flash tiers and package composition. A flavor is a base, not an immutable
+package lock: use `packages_add` and `packages_remove` to customize the final
+image. Profile overrides take precedence over the selected flavor, so a profile
+can, for example, add `dropbear` to `minimal-usb-bluetooth`.
+
+`squashfs_block_size` is optional. Omit it or set it to `default` to preserve
+the OpenWrt target configuration. Set it to `256`, `512` or `1024` to override
+the target's block size for that profile. This is an image-building option, not
+a flavor option; it belongs to the profile because it depends on the device's
+flash and boot constraints.
 
 Status values are:
 
