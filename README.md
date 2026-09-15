@@ -142,14 +142,16 @@ The latest `openwrt-builder` stabilization changes how `release-patched` handles
 
 ## Flavors and device profiles
 
-AudioWRT separates package policy from hardware selection. A **flavor** defines
-the common capability/size tier; a **device profile** combines one OpenWrt
-device with one flavor and any device-specific package exceptions.
+AudioWRT separates package policy from hardware selection. A **flavor** is a
+reusable minimum package base chosen for a flash-size tier; a **device profile**
+combines one OpenWrt device with one flavor and may add or remove packages for
+that specific image. See [`config/flavors/README.md`](config/flavors/README.md)
+for the flavor contract and size guidance.
 
 | Flavor | Intended target | Runtime providers | Included services |
 |---|---|---|---|
 | `usb-audio` | USB Audio only | standard OpenWrt USB Audio stack | USB Audio, Wi-Fi, DLNA and essential UI |
-| `minimal-usb-bluetooth` | constrained Bluetooth USB devices | AudioWRT minimal Bluetooth stack | Bluetooth A2DP, Wi-Fi, DLNA and essential UI; no SSH/DHCP/mDNS |
+| `minimal-usb-bluetooth` | constrained Bluetooth USB devices | AudioWRT minimal Bluetooth stack | Bluetooth A2DP, Wi-Fi, DLNA and essential UI; no SSH/DHCP/mDNS by default |
 | `usb-bluetooth` | standard Bluetooth USB devices | standard OpenWrt Bluetooth stack | Bluetooth A2DP, Wi-Fi, DLNA and essential UI |
 | `minimal-usb-bluetooth-audio` | constrained combined devices | AudioWRT minimal Bluetooth + standard USB Audio | Bluetooth A2DP, USB Audio, Wi-Fi and DLNA |
 | `usb-bluetooth-audio` | combined standard devices | standard OpenWrt Bluetooth + USB Audio stacks | Bluetooth A2DP, USB Audio, Wi-Fi and DLNA |
@@ -158,9 +160,11 @@ device with one flavor and any device-specific package exceptions.
 Flavor definitions live in `config/flavors/`. Buildable profiles are declarative
 YAML files in `profiles/`, for example
 `tplink-tl-wdr4300-v1-minimal-25.12.5.yaml`. The profile records the OpenWrt
-source/version, profile, target, subtarget, flavor, validation status and optional package
-add/remove overrides. The build derives OpenWrt's `PROFILE` from this file; it
-is no longer a separate caller-controlled input.
+source/version, profile, target, subtarget, flavor, validation status and
+optional package add/remove overrides. The build derives OpenWrt's `PROFILE`
+from this file; it is no longer a separate caller-controlled input. Profile
+package overrides are applied after the flavor and can add optional packages
+such as `dropbear` to a minimal base or remove packages from a standard base.
 
 The default profile is `tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5`. The minimal functional
 core includes:
@@ -175,8 +179,9 @@ core includes:
 
 Local USB storage/extroot, MPD, AirPlay and Spotify Connect are deliberately
 absent from the minimal flavor. `standard` adds MPD and storage; `full` adds
-the complete AudioWRT service set. Package composition is controlled only by
-the selected profile—there is no second build-time feature list.
+the complete AudioWRT service set. Package composition starts with the selected
+flavor and is then customized by the profile; there is no second build-time
+feature list.
 
 Bluetooth is a mandatory output capability for the current reference baseline rather than an optional feature. Its current BlueZ/BlueALSA implementation remains included so firmware-size reports expose its actual cost on constrained devices.
 
@@ -207,6 +212,11 @@ mapping is valid but still needs a successful build and hardware test before
 being promoted to `tested`. Raspberry Pi 3 and 4 intentionally use different
 profiles: both are 64-bit ARM, but OpenWrt builds them as `bcm2710` and
 `bcm2711`, respectively.
+
+The recommended x86-64, Raspberry Pi 3 and Raspberry Pi 4 profiles use the
+complete `usb-bluetooth-audio` flavor. The WDR4300 reference profiles remain
+split between `usb-audio` and `minimal-usb-bluetooth` because it is constrained
+by 8 MB flash.
 
 Community profiles are submitted as one YAML file through a pull request. They
 do not contain executable shell code or duplicate flavor package lists.
