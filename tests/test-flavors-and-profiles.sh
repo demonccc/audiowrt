@@ -67,6 +67,7 @@ assert data["flavor"] == "minimal-usb-bluetooth"
 assert (data["openwrt_source"], data["openwrt_version"]) == ("release", "25.12.5")
 assert data["openwrt_profile"] == "tplink_tl-wdr4300-v1"
 assert (data["target"], data["subtarget"]) == ("ath79", "generic")
+assert data["squashfs_block_size"] == "1024"
 assert "audiowrt-minimal-alsa" in data["packages_add"]
 assert "alsa-lib" in data["packages_remove"]
 ' <<< "$wdr"
