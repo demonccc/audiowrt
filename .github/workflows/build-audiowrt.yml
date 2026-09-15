@@ -12,6 +12,7 @@ on:
         options:
           # BEGIN GENERATED PROFILE OPTIONS
           - linksys-ea8300-usb-bluetooth-audio-25.12.5
+          - raspberry-pi-3-usb-bluetooth-audio-25.12.5
           - raspberry-pi-4-usb-bluetooth-audio-25.12.5
           - tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
           - tplink-tl-wdr4300-v1-usb-audio-25.12.5
