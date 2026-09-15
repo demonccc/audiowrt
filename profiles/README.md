@@ -19,8 +19,9 @@ packages_remove: []
 The file name is the normalized `<device>-<flavor>-<X.Y.Z|snapshot>` identifier.
 The supported reference flavors are `usb-audio`, `minimal-usb-bluetooth`,
 `usb-bluetooth`, `minimal-usb-bluetooth-audio` and `usb-bluetooth-audio`.
-The legacy `minimal`, `standard` and `full` flavors remain available for
-existing non-reference profiles. Device, flavor,
+The legacy `minimal`, `standard` and `full` flavors remain available as
+reusable bases, but the reference catalog intentionally does not duplicate
+them for every device. Device, flavor,
 OpenWrt source and version are derived from it and deliberately are not
 repeated inside the file. Flavor package sets live under `config/flavors/`; see
 [`config/flavors/README.md`](../config/flavors/README.md) for their intended
