@@ -88,6 +88,7 @@ assert data["openwrt_version"] == "snapshot"
 ' <<< "$snapshot"
 
 grep -q 'AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5' "$repo_root/scripts/build.sh"
+grep -q 'CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=' "$repo_root/scripts/build.sh"
 
 minimal_bluetooth="$(python3 "$repo_root/scripts/resolve-audiowrt-profile.py" \
     "$repo_root/profiles" "$repo_root/config/flavors" tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)"
