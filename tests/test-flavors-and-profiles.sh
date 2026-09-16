@@ -9,6 +9,7 @@ groups="$repo_root/config/package-groups"
 for group in \
     common \
     minimal \
+    standard \
     minimal-usb-audio \
     minimal-usb-bluetooth \
     minimal-usb-audio-bluetooth \
@@ -20,7 +21,9 @@ done
 
 test ! -e "$repo_root/config/flavors"
 
-# Global AudioWRT policy belongs to common and common is automatic.
+# Global AudioWRT policy belongs to common and common is automatic. Runtime
+# implementations such as SSH, Wi-Fi supplicant and DLNA belong to minimal or
+# standard instead of being fixed here.
 for package in \
     audiowrt-branding \
     audiowrt-udhcpd \
@@ -29,6 +32,9 @@ for package in \
     luci-mod-system \
     luci-app-package-manager; do
     grep -q "^  - $package$" "$groups/common.yaml"
+done
+for package in dropbear wpad-basic-mbedtls minidlna umdns; do
+    ! grep -q "^  - $package$" "$groups/common.yaml"
 done
 for package in \
     busybox \
@@ -45,14 +51,38 @@ for package in \
     grep -q "^  - $package$" "$groups/common.yaml"
 done
 
-# Minimal policy is shared by every constrained capability group. The custom
-# ALSA and Mbed TLS providers replace the official packages and must not coexist.
-grep -q '^  - audiowrt-minimal-alsa$' "$groups/minimal.yaml"
-grep -q '^  - audiowrt-minimal-mbedtls$' "$groups/minimal.yaml"
-grep -q '^  - alsa-lib$' "$groups/minimal.yaml"
-grep -q '^  - libmbedtls21$' "$groups/minimal.yaml"
+# Minimal runtime uses AudioWRT-owned constrained implementations.
+for package in \
+    audiowrt-minimal-alsa \
+    audiowrt-minimal-mbedtls \
+    audiowrt-dropbear \
+    audiowrt-wpa-supplicant \
+    audiowrt-minidlna \
+    audiowrt-umdns; do
+    grep -q "^  - $package$" "$groups/minimal.yaml"
+done
+for package in alsa-lib libmbedtls21 dropbear wpad-basic-mbedtls minidlna umdns; do
+    grep -q "^  - $package$" "$groups/minimal.yaml"
+done
 for group in minimal-usb-audio minimal-usb-bluetooth minimal-usb-audio-bluetooth; do
     grep -A1 '^include:$' "$groups/$group.yaml" | grep -q '^  - minimal$'
+done
+
+# Standard runtime uses the ordinary OpenWrt implementations.
+for package in alsa-lib libmbedtls21 dropbear wpad-basic-mbedtls minidlna umdns; do
+    grep -q "^  - $package$" "$groups/standard.yaml"
+done
+for package in \
+    audiowrt-minimal-alsa \
+    audiowrt-minimal-mbedtls \
+    audiowrt-dropbear \
+    audiowrt-wpa-supplicant \
+    audiowrt-minidlna \
+    audiowrt-umdns; do
+    grep -q "^  - $package$" "$groups/standard.yaml"
+done
+for group in usb-audio usb-bluetooth usb-audio-bluetooth; do
+    grep -A1 '^include:$' "$groups/$group.yaml" | grep -q '^  - standard$'
 done
 
 for profile_file in "$repo_root"/profiles/*.yaml; do
@@ -82,9 +112,8 @@ assert data["openwrt_profile"] == "tplink_tl-wdr4300-v1"
 assert data["squashfs_block_size"] == "1024"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
-assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "kmod-audiowrt-bluetooth"} <= added
-assert {"alsa-lib", "libmbedtls21", "dnsmasq", "kmod-bluetooth", "kmod-usb-audio"} <= removed
-assert "alsa-lib" not in added and "libmbedtls21" not in added
+assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-dropbear", "audiowrt-wpa-supplicant", "audiowrt-minidlna", "audiowrt-umdns", "kmod-audiowrt-bluetooth"} <= added
+assert {"alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "minidlna", "umdns", "dnsmasq", "kmod-bluetooth", "kmod-usb-audio"} <= removed
 ' <<< "$wdr_bt"
 
 wdr_audio="$(python3 "$resolver" "$repo_root/profiles" "$groups" tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5)"
@@ -95,9 +124,8 @@ assert data["package_groups"] == ["minimal-usb-audio"]
 assert data["openwrt_profile"] == "tplink_tl-wdr4300-v1"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
-assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-usb-audio", "kmod-usb-audio"} <= added
-assert {"alsa-lib", "libmbedtls21", "dnsmasq", "kmod-bluetooth", "kmod-audiowrt-bluetooth"} <= removed
-assert "alsa-lib" not in added and "libmbedtls21" not in added
+assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-dropbear", "audiowrt-wpa-supplicant", "audiowrt-minidlna", "audiowrt-umdns", "audiowrt-usb-audio", "kmod-usb-audio"} <= added
+assert {"alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "minidlna", "umdns", "dnsmasq", "kmod-bluetooth", "kmod-audiowrt-bluetooth"} <= removed
 ' <<< "$wdr_audio"
 
 # Package groups may include reusable groups; current group entries apply last.
