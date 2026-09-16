@@ -6,4 +6,12 @@ packages_add:
   - kmod-bluetooth
   - kmod-btusb
   - umdns
-packages_remove: []
+packages_remove:
+  - audiowrt-usb-audio
+  - kmod-sound-core
+  - kmod-sound-midi2
+  - kmod-sound-midi2-usb
+  - kmod-usb-audio
+  - audiowrt-minimal-alsa
+  - audiowrt-minimal-mbedtls
+  - kmod-audiowrt-bluetooth
