@@ -117,11 +117,11 @@ AudioWRT wrapper/config/LuCI package
 AudioWRT APK
 ```
 
-Runtime dependencies such as `hostapd`, `odhcpd`, `uhttpd`, `uci`, `ubus`, kernel packages and OpenWrt libraries are not rebuilt for those targets. They remain dependency metadata in the APK and are resolved by the official ImageBuilder from the exact release repositories.
+Runtime dependencies such as `hostapd`, `uhttpd`, `uci`, `ubus`, kernel packages and OpenWrt libraries are not rebuilt for those targets. They remain dependency metadata in the APK and are resolved by the official ImageBuilder from the exact release repositories.
 
 Only genuine AudioWRT source packages are allowed to traverse SDK build dependencies. This includes service implementations such as `librespot` and `bluez-alsa` plus the alternative `audiowrt-minimal-*` providers when the `minimal` profile selects them. The build resolves external source dependencies only for the selected package closure.
 
-A core-only build must therefore compile/package only the AudioWRT core layer and must not enter hostapd, odhcpd, kernel or other unrelated OpenWrt source builds.
+A core-only build must therefore compile/package only the AudioWRT core layer and must not enter hostapd, kernel or other unrelated OpenWrt source builds.
 
 ## Firmware composition
 

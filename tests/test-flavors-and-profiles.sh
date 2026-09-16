@@ -16,13 +16,13 @@ for flavor in minimal standard full usb-audio minimal-usb-bluetooth usb-bluetoot
     fi
 done
 
-# DHCP for provisioning is provided by odhcpd in every flavor; dnsmasq is not
-# part of the AudioWRT flavor contract.
+# DHCP for provisioning is provided by the standalone BusyBox udhcpd package;
+# neither odhcpd nor dnsmasq is part of the AudioWRT flavor contract.
 for flavor in minimal standard full usb-audio minimal-usb-bluetooth usb-bluetooth minimal-usb-bluetooth-audio usb-bluetooth-audio; do
     add="$repo_root/config/flavors/$flavor/packages.add"
-    grep -qx 'odhcpd' "$add"
-    if grep -qx 'dnsmasq' "$add"; then
-        echo "ERROR: $flavor must not include dnsmasq." >&2
+    grep -qx 'audiowrt-udhcpd' "$add"
+    if grep -Eq '^(odhcpd|dnsmasq)$' "$add"; then
+        echo "ERROR: $flavor must not include odhcpd or dnsmasq." >&2
         exit 1
     fi
 done
@@ -103,6 +103,6 @@ grep -q 'CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=' "$repo_root/scripts/build.sh"
 
 minimal_bluetooth="$(python3 "$repo_root/scripts/resolve-audiowrt-profile.py" \
     "$repo_root/profiles" "$repo_root/config/flavors" tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)"
-python3 -c 'import json, sys; data=json.load(sys.stdin); packages=set(data["packages_add"]); removed=set(data["packages_remove"]); assert {"luci-mod-status", "luci-mod-system", "luci-app-package-manager", "dropbear", "odhcpd"} <= packages; assert "dnsmasq" not in packages; assert "dropbear" not in removed' <<< "$minimal_bluetooth"
+python3 -c 'import json, sys; data=json.load(sys.stdin); packages=set(data["packages_add"]); removed=set(data["packages_remove"]); assert {"luci-mod-status", "luci-mod-system", "luci-app-package-manager", "dropbear", "audiowrt-udhcpd"} <= packages; assert not packages & {"dnsmasq", "odhcpd"}; assert "dropbear" not in removed' <<< "$minimal_bluetooth"
 
 echo 'AudioWRT flavor and device profile tests passed.'

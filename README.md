@@ -43,7 +43,7 @@ Package-only AudioWRT APKs
                 |
                 +--> explicit AudioWRT targets
                 +--> NO_DEPS=1
-                +--> no hostapd/odhcpd/uhttpd/kernel rebuilds
+                +--> no hostapd/uhttpd/kernel rebuilds
                 |
                 +--> optional genuine AudioWRT source packages
                      may stage only the build dependencies they actually need
@@ -62,7 +62,7 @@ AudioWRT firmware
 
 For the core image and wrapper-style AudioWRT packages, unchanged OpenWrt packages are **not rebuilt** just because they appear in `DEPENDS`. They remain runtime dependencies and are resolved by the official ImageBuilder from the exact release repositories.
 
-Most AudioWRT packages only install scripts, configuration, LuCI files or service wrappers. Those packages are built with OpenWrt's `NO_DEPS=1` boundary. This prevents runtime dependencies such as `hostapd`, `odhcpd`, `uhttpd`, `uci`, `ubus`, kernel packages and OpenWrt libraries from becoming SDK compile targets.
+Most AudioWRT packages only install scripts, configuration, LuCI files or service wrappers. Those packages are built with OpenWrt's `NO_DEPS=1` boundary. This prevents runtime dependencies such as `hostapd`, `uhttpd`, `uci`, `ubus`, kernel packages and OpenWrt libraries from becoming SDK compile targets.
 
 A very small set of AudioWRT-owned packages genuinely compiles upstream source (`librespot` and `bluez-alsa`). They are classified separately in `config/source-build-packages`. Only when such a feature is selected may the SDK stage and build the external development dependencies required to compile/link that AudioWRT-owned binary.
 
@@ -151,7 +151,7 @@ for the flavor contract and size guidance.
 | Flavor | Intended target | Runtime providers | Included services |
 |---|---|---|---|
 | `usb-audio` | USB Audio only | standard OpenWrt USB Audio stack | USB Audio, Wi-Fi, DLNA and essential UI |
-| `minimal-usb-bluetooth` | constrained Bluetooth USB devices | AudioWRT minimal Bluetooth stack | Bluetooth A2DP, Wi-Fi, DLNA, SSH and essential UI; no DHCP/mDNS by default |
+| `minimal-usb-bluetooth` | constrained Bluetooth USB devices | AudioWRT minimal Bluetooth stack | Bluetooth A2DP, Wi-Fi, DLNA, SSH, BusyBox udhcpd and essential UI |
 | `usb-bluetooth` | standard Bluetooth USB devices | standard OpenWrt Bluetooth stack | Bluetooth A2DP, Wi-Fi, DLNA and essential UI |
 | `minimal-usb-bluetooth-audio` | constrained combined devices | AudioWRT minimal Bluetooth + standard USB Audio | Bluetooth A2DP, USB Audio, Wi-Fi and DLNA |
 | `usb-bluetooth-audio` | combined standard devices | standard OpenWrt Bluetooth + USB Audio stacks | Bluetooth A2DP, USB Audio, Wi-Fi and DLNA |
