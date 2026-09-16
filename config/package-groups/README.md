@@ -1,27 +1,31 @@
 # AudioWRT package groups
 
-AudioWRT firmware composition is based on ordered package groups, not flavors.
+AudioWRT firmware composition is based on package groups, not flavors.
 
-`common` is applied automatically to every profile. A device profile then selects zero or more additional groups through `package_groups`.
+`common` is the mandatory AudioWRT baseline and is applied automatically to every profile. It is not selected explicitly.
 
-Groups are overlays and are applied in the order listed by the profile. When a later group adds a package that an earlier group removed, it is added. When a later group removes a package that an earlier group added, it is removed. Device-level `packages_add` and `packages_remove` overrides are applied last.
+Selectable package groups are:
+
+- `minimal-usb-audio`
+- `minimal-usb-bluetooth`
+- `minimal-usb-audio-bluetooth`
+- `usb-audio`
+- `usb-bluetooth`
+- `usb-audio-bluetooth`
+
+A profile selects the package group or groups it needs through `package_groups`. Package groups define package selection only. Device-specific exceptions belong in the profile's `packages_add` / `packages_remove` overrides.
 
 Example:
 
 ```yaml
 package_groups:
-  - usb-bluetooth
-  - minimal
-  - usb-audio
+  - minimal-usb-bluetooth
 ```
 
-This produces the common AudioWRT baseline, then Bluetooth, then the minimal replacements/policy, then re-adds the normal USB Audio stack. This replaces the old dedicated combined flavor definitions.
+`common` is applied first, selected package groups are applied in the order listed, and profile overrides are applied last.
 
-Current groups:
+Runtime files and package-specific configuration do not belong in this repository. They must be owned by a package under `audiowrt-packages` (including metadata/configuration-only packages when appropriate).
 
-- `common`: mandatory AudioWRT baseline and global exclusions. It is automatic and must not be listed explicitly.
-- `minimal`: constrained-device replacements and removals.
-- `usb-audio`: USB Audio capability.
-- `usb-bluetooth`: USB Bluetooth capability.
+## Hardware responsibility
 
-A package group owns package selection only. Runtime files and package-specific configuration belong in packages under `audiowrt-packages`. For example, system branding is installed by the `audiowrt-branding` metadata package rather than injected from this repository.
+AudioWRT does not try to infer or enforce USB-host capability during the build. A profile maintainer must verify that the target hardware can expose an audio path suitable for the selected package group, such as USB Audio or a USB Bluetooth adapter. OpenWrt device metadata and the hardware documentation should be checked before publishing or using a profile.
