@@ -5,7 +5,6 @@ packages_add:
   - audiowrt-usb-audio
   - audiowrt-bluetooth
   - kmod-audiowrt-bluetooth
-  - alsa-lib
   - kmod-sound-core
   - kmod-sound-midi2
   - kmod-sound-midi2-usb
