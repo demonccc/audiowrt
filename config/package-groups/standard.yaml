@@ -1,0 +1,15 @@
+schema_version: 1
+packages_add:
+  - alsa-lib
+  - libmbedtls21
+  - dropbear
+  - wpad-basic-mbedtls
+  - minidlna
+  - umdns
+packages_remove:
+  - audiowrt-minimal-alsa
+  - audiowrt-minimal-mbedtls
+  - audiowrt-dropbear
+  - audiowrt-wpa-supplicant
+  - audiowrt-minidlna
+  - audiowrt-umdns
