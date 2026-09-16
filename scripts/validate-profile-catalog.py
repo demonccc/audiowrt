@@ -20,7 +20,7 @@ def validate_catalog(root: Path) -> list[str]:
             raise ValueError(f'{path}: profiles must use the .yaml extension')
         result = subprocess.run(
             [sys.executable, str(root / 'scripts/resolve-audiowrt-profile.py'),
-             str(directory), str(root / 'config/flavors'), path.stem],
+             str(directory), str(root / 'config/package-groups'), path.stem],
             capture_output=True, text=True,
         )
         if result.returncode:
