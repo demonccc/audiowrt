@@ -11,7 +11,7 @@ help:
 	@printf '%s\n' \
 	  'AudioWRT build targets:' \
 	  '' \
-	  '  make build AUDIOWRT_PROFILE=<device-flavor-version> [AUDIOWRT_PACKAGES_REF=main] [JOBS=N] [VERBOSITY=normal|verbose|debug] [LOG_FILE=logs/build.log] [CACHE_DIR=.cache/audiowrt]' \
+	  '  make build AUDIOWRT_PROFILE=<profile> [AUDIOWRT_PACKAGES_REF=main] [JOBS=N] [VERBOSITY=normal|verbose|debug] [LOG_FILE=logs/build.log] [CACHE_DIR=.cache/audiowrt]' \
 	  '  make clean' \
 	  '' \
 	  'Reference device:' \
