@@ -3,7 +3,6 @@ include:
   - minimal
 packages_add:
   - audiowrt-usb-audio
-  - alsa-lib
   - kmod-sound-core
   - kmod-sound-midi2
   - kmod-sound-midi2-usb
