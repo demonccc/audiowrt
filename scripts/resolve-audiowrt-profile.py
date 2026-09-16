@@ -18,7 +18,7 @@ PROFILE_KEYS = {
     "target", "subtarget", "squashfs_block_size", "package_groups",
     "packages_add", "packages_remove",
 }
-GROUP_KEYS = {"schema_version", "packages_add", "packages_remove"}
+GROUP_KEYS = {"schema_version", "include", "packages_add", "packages_remove"}
 
 
 def fail(message: str) -> None:
@@ -90,21 +90,22 @@ def read_profile(path: Path) -> dict[str, object]:
     return data
 
 
-def read_group(path: Path) -> tuple[list[str], list[str]]:
+def read_group(path: Path) -> tuple[list[str], list[str], list[str]]:
     if not path.is_file():
         fail(f"missing package group: {path.stem}")
-    data = read_small_yaml(path, GROUP_KEYS, {"packages_add", "packages_remove"})
+    data = read_small_yaml(path, GROUP_KEYS, {"include", "packages_add", "packages_remove"})
     if data.get("schema_version") != 1:
         fail(f"package group schema_version must be 1 in {path}")
-    missing = sorted(GROUP_KEYS - data.keys())
+    missing = sorted({"schema_version", "packages_add", "packages_remove"} - data.keys())
     if missing:
         fail(f"missing package group keys in {path}: {', '.join(missing)}")
+    includes = identifier_list(data.get("include", []), f"{path}:include")
     add = identifier_list(data.get("packages_add"), f"{path}:packages_add")
     remove = identifier_list(data.get("packages_remove"), f"{path}:packages_remove")
     overlap = sorted(set(add) & set(remove))
     if overlap:
         fail(f"package group {path.stem} both adds and removes: {', '.join(overlap)}")
-    return add, remove
+    return includes, add, remove
 
 
 def apply_overlay(base_add: list[str], base_remove: list[str], add: list[str], remove: list[str]) -> tuple[list[str], list[str]]:
@@ -117,6 +118,26 @@ def apply_overlay(base_add: list[str], base_remove: list[str], add: list[str], r
         if package not in resolved_remove:
             resolved_remove.append(package)
     return resolved_add, resolved_remove
+
+
+def resolve_group(groups_dir: Path, group_name: str, stack: list[str] | None = None) -> tuple[list[str], list[str]]:
+    stack = stack or []
+    if group_name in stack:
+        fail("package group include cycle: " + " -> ".join([*stack, group_name]))
+
+    includes, add, remove = read_group(groups_dir / f"{group_name}.yaml")
+    resolved_add: list[str] = []
+    resolved_remove: list[str] = []
+
+    for included in includes:
+        if included == "common":
+            fail("common is applied automatically and must not be included by package groups")
+        include_add, include_remove = resolve_group(groups_dir, included, [*stack, group_name])
+        resolved_add, resolved_remove = apply_overlay(
+            resolved_add, resolved_remove, include_add, include_remove
+        )
+
+    return apply_overlay(resolved_add, resolved_remove, add, remove)
 
 
 def require_string(value: object, field: str, pattern: re.Pattern[str] = IDENTIFIER) -> str:
@@ -161,8 +182,11 @@ def main() -> int:
 
     resolved_add: list[str] = []
     resolved_remove: list[str] = []
-    for group_name in ["common", *groups]:
-        group_add, group_remove = read_group(args.groups_dir / f"{group_name}.yaml")
+    common_add, common_remove = resolve_group(args.groups_dir, "common")
+    resolved_add, resolved_remove = apply_overlay(resolved_add, resolved_remove, common_add, common_remove)
+
+    for group_name in groups:
+        group_add, group_remove = resolve_group(args.groups_dir, group_name)
         resolved_add, resolved_remove = apply_overlay(resolved_add, resolved_remove, group_add, group_remove)
 
     profile_add = identifier_list(data.get("packages_add"), "packages_add")
