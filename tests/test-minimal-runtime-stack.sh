@@ -20,17 +20,47 @@ import json, sys
 data = json.load(sys.stdin)
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
-assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "kmod-audiowrt-bluetooth"} <= added
-assert {"alsa-lib", "libmbedtls21", "kmod-sound-midi2", "kmod-sound-midi2-usb"} <= removed
-assert "alsa-lib" not in added
-assert "libmbedtls21" not in added
+assert {
+    "audiowrt-minimal-alsa",
+    "audiowrt-minimal-mbedtls",
+    "audiowrt-dropbear",
+    "audiowrt-wpa-supplicant",
+    "audiowrt-minidlna",
+    "audiowrt-umdns",
+    "kmod-audiowrt-bluetooth",
+} <= added
+assert {
+    "alsa-lib",
+    "libmbedtls21",
+    "dropbear",
+    "wpad-basic-mbedtls",
+    "minidlna",
+    "umdns",
+    "kmod-sound-midi2",
+    "kmod-sound-midi2-usb",
+} <= removed
+assert not ({"alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "minidlna", "umdns"} & added)
 ' <<< "$resolved"
 
-grep -qx 'audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile' "$targets"
-grep -qx 'audiowrt-minimal-mbedtls|package/feeds/audiowrt/audiowrt-minimal-mbedtls/compile' "$targets"
+for package in \
+    audiowrt-minimal-alsa \
+    audiowrt-minimal-mbedtls \
+    audiowrt-dropbear \
+    audiowrt-wpa-supplicant \
+    audiowrt-minidlna \
+    audiowrt-umdns; do
+    grep -q "^${package}|package/feeds/audiowrt/${package}/compile$" "$targets"
+done
+
 grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile' "$targets"
-grep -qx 'audiowrt-minimal-alsa' "$sources"
-grep -qx 'audiowrt-minimal-mbedtls' "$sources"
+
+for package in audiowrt-minimal-alsa audiowrt-minimal-mbedtls audiowrt-dropbear audiowrt-minidlna audiowrt-umdns; do
+    grep -qx "$package" "$sources"
+done
+if grep -qx 'audiowrt-wpa-supplicant' "$sources"; then
+    echo 'ERROR: audiowrt-wpa-supplicant is a package-only selector and must not be classified as a source build.' >&2
+    exit 1
+fi
 
 for keep in bluetooth.ko btmtk.ko btintel.ko btrtl.ko btusb.ko; do
     grep -Fq "$keep" "$build_script"
