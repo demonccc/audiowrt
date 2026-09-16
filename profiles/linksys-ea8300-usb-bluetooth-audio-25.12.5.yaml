@@ -6,7 +6,6 @@ target: ipq40xx
 subtarget: generic
 squashfs_block_size: default
 package_groups:
-  - usb-audio
-  - usb-bluetooth
+  - usb-audio-bluetooth
 packages_add: []
 packages_remove: []
