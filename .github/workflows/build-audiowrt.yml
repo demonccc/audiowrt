@@ -14,8 +14,8 @@ on:
           - linksys-ea8300-usb-bluetooth-audio-25.12.5
           - raspberry-pi-3-usb-bluetooth-audio-25.12.5
           - raspberry-pi-4-usb-bluetooth-audio-25.12.5
+          - tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5
           - tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
-          - tplink-tl-wdr4300-v1-usb-audio-25.12.5
           - x86-64-usb-bluetooth-audio-25.12.5
           # END GENERATED PROFILE OPTIONS
       audiowrt_packages_ref:
