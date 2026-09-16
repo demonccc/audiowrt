@@ -1,7 +1,8 @@
 # Bluetooth minimal policy: keep the USB Bluetooth stack, BusyBox udhcpd
-# provisioning, AudioWRT LuCI apps, and administrative SSH while removing
-# optional router/audio capabilities and generic LuCI administration modules.
+# provisioning and administrative SSH while removing optional router/audio
+# capabilities. dnsmasq is replaced by audiowrt-udhcpd for provisioning DHCP.
 busybox
+dnsmasq
 firewall4
 nftables
 kmod-nft-nat
@@ -25,8 +26,5 @@ luci
 luci-light
 luci-mod-admin-full
 luci-mod-network
-luci-mod-status
-luci-mod-system
-luci-app-package-manager
 luci-app-firewall
 luci-proto-ppp
