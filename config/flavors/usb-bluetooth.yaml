@@ -1,0 +1,18 @@
+schema_version: 1
+include:
+  - common
+packages_add:
+  - audiowrt-bluetooth
+  - alsa-lib
+  - libmbedtls21
+  - kmod-bluetooth
+  - kmod-btusb
+  - umdns
+packages_remove:
+  - audiowrt-minimal-alsa
+  - audiowrt-minimal-mbedtls
+  - kmod-audiowrt-bluetooth
+  - kmod-sound-core
+  - kmod-sound-midi2
+  - kmod-sound-midi2-usb
+  - kmod-usb-audio
