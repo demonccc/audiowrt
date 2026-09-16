@@ -1,118 +1,80 @@
 # AudioWRT flavors
 
-A flavor is a reusable **base package set**, not a complete immutable firmware
-definition. Flavors provide the smallest coherent starting point for a class of
-devices. A device profile selects one flavor and may then add or remove packages
-for a particular device, installation, or use case.
+AudioWRT flavors are declared as composable YAML files. A file may include one or more other flavor files and then add or remove packages on top of the inherited package policy.
 
-The final package set is resolved in this order:
-
-1. the selected flavor's `packages.add` and `packages.remove` files;
-2. the profile's `packages_add` and `packages_remove` overrides.
-
-Profile overrides have the final say. Adding a package in `packages_add` cancels
-its removal from the flavor, and removing a package in `packages_remove` cancels
-its addition from the flavor. This makes it possible, for example, to use
-`minimal-usb-bluetooth` as a base and add an optional package in a profile:
+Each file has this shape:
 
 ```yaml
+schema_version: 1
+include:
+  - common
 packages_add:
-  - rtl8761b-firmware
-packages_remove: []
-```
-
-Profiles must contain only genuine device or deployment-specific overrides. Do
-not copy a complete flavor package list into a profile. Shared package policy
-belongs here, in the flavor.
-
-## Choosing a flavor
-
-Choose the base according to the available flash before adding optional
-packages. The estimates below are planning values for the WDR4300/ath79
-reference target, OpenWrt 25.12.5, and the normal 256 KiB SquashFS block size.
-They include the flavor composition but not arbitrary profile additions.
-ImageBuilder's final image-size check is authoritative.
-
-| Flavor | Base capability | Estimated compressed rootfs | Practical flash target |
-|---|---|---:|---:|
-| `usb-audio` | USB Audio, Wi-Fi and UI; no Bluetooth | ~3.6–4.0 MiB | 8 MB |
-| `minimal-usb-bluetooth` | Minimal Bluetooth A2DP, Wi-Fi, SSH, UI and BusyBox udhcpd | ~4.4–5.0 MiB | 8 MB, tight |
-| `minimal-usb-bluetooth-audio` | Minimal Bluetooth plus standard USB Audio | ~4.9–5.3 MiB | 16 MB |
-| `usb-bluetooth` | Standard OpenWrt Bluetooth plus Wi-Fi and UI | ~5.5–6.0 MiB | 16 MB |
-| `usb-bluetooth-audio` | Standard Bluetooth plus standard USB Audio | ~5.8–6.4 MiB | 16 MB |
-
-An 8 MB flash chip does not provide 8 MiB for the root filesystem: the
-bootloader, kernel, metadata and image format consume part of the device. For
-that reason only `usb-audio` and the carefully minimized Bluetooth flavor are
-8 MB candidates. The minimal Bluetooth flavor should not receive optional
-packages unless the resulting image-size report still passes.
-
-The combined and standard Bluetooth flavors are intended for devices with at
-least 16 MB of flash. A profile can still select them on another target, but
-the build must pass that target's own ImageBuilder limit.
-
-The reference complete profiles for larger devices are:
-
-- `x86-64-usb-bluetooth-audio-25.12.5`;
-- `raspberry-pi-4-usb-bluetooth-audio-25.12.5`.
-
-They use the complete Bluetooth and USB Audio stacks. The WDR4300 reference
-profiles remain split between `usb-audio` and `minimal-usb-bluetooth` because
-its 8 MB flash requires that choice.
-
-## Reference flavors
-
-### `usb-audio`
-
-Uses OpenWrt's standard USB Audio and ALSA kernel packages. Bluetooth packages
-are excluded. Dropbear, BusyBox udhcpd and umdns are included as standard services.
-
-### `minimal-usb-bluetooth`
-
-Uses AudioWRT's minimized Bluetooth runtime and generic USB Bluetooth kernel
-drivers. It excludes USB Audio and umdns to fit constrained devices, while
-retaining BusyBox udhcpd for provisioning. It retains `luci-mod-status`, `luci-mod-system` and
-`luci-app-package-manager`, so the system can be inspected, reconfigured and
-extended from LuCI.
-
-No chipset-specific Bluetooth firmware is included by the flavor. A profile or
-deployment may add a required firmware package for a particular dongle.
-
-### `usb-bluetooth`
-
-Uses the standard OpenWrt Bluetooth packages and kernel drivers. It keeps
-Dropbear, BusyBox udhcpd and umdns and is intended for devices with more flash.
-
-### `minimal-usb-bluetooth-audio`
-
-Combines the minimized Bluetooth runtime with OpenWrt's standard USB Audio
-stack. It keeps the minimal service policy and is intended for 16 MB devices.
-
-### `usb-bluetooth-audio`
-
-Combines the standard OpenWrt Bluetooth and USB Audio stacks. It keeps the
-standard service policy and is intended for 16 MB devices or larger.
-
-## Adding optional packages in a profile
-
-Use a profile override when a particular image needs an optional service:
-
-```yaml
-packages_add:
-  - dropbear
-  - rtl8761b-firmware
-packages_remove: []
-```
-
-Use `packages_remove` to make a standard base smaller for a known deployment:
-
-```yaml
-packages_add: []
+  - example-package
 packages_remove:
-  - dropbear
-  - umdns
+  - unwanted-package
 ```
 
-The package must exist in the selected OpenWrt release or in the AudioWRT
-package feed. Package names are validated during profile resolution, and the
-final image is checked by ImageBuilder.
+The resolver processes includes recursively, deduplicates repeated inherited directives, and then applies the current file's `packages_add` and `packages_remove` entries as explicit overrides.
+
+## Conflict rule
+
+Includes do **not** use "last include wins" semantics.
+
+If one inherited flavor adds a package and another inherited flavor removes the same package, resolution fails unless the child flavor explicitly decides the result by listing that package in its own `packages_add` or `packages_remove` section.
+
+This makes combined flavors self-documenting and prevents include order from silently changing the firmware composition.
+
+Include cycles are also rejected.
+
+## Shared fragments
+
+`common.yaml` and `minimal.yaml` are reusable fragments and are not selectable device flavors.
+
+### `common`
+
+Contains policy that applies to every AudioWRT image. This includes the core AudioWRT packages and global exclusions such as the stock `busybox`, router services, and `dnsmasq`. Provisioning DHCP is provided by `audiowrt-udhcpd`.
+
+### `minimal`
+
+Includes `common` and contains policy shared by every constrained/minimal image, including minimal runtime replacements and removal of optional OpenWrt administration/network packages.
+
+## Selectable flavors
+
+The selectable flavor files are:
+
+- `minimal-usb-audio`
+- `minimal-usb-bluetooth`
+- `minimal-usb-audio-bluetooth`
+- `usb-audio`
+- `usb-bluetooth`
+- `usb-audio-bluetooth`
+
+The two combined flavors are built by composition:
+
+```text
+minimal-usb-audio-bluetooth
+├── minimal-usb-audio
+└── minimal-usb-bluetooth
+
+usb-audio-bluetooth
+├── usb-audio
+└── usb-bluetooth
+```
+
+Both minimal capability flavors inherit `common` and `minimal`. The non-minimal USB capability flavors inherit `common` directly.
+
+## Device profiles
+
+A device profile selects a flavor through its profile ID and may still use `packages_add` and `packages_remove` for genuine device-specific overrides. Profile overrides are applied after the complete flavor include graph has been resolved.
+
+For example:
+
+```yaml
+packages_add:
+  - rtl8761b-firmware
+packages_remove: []
+```
+
+Shared package policy must live in `config/flavors/*.yaml`, not be duplicated into device profiles.
+
+For compatibility, existing profile IDs using the former `usb-bluetooth-audio` and `minimal-usb-bluetooth-audio` naming are accepted by the resolver and mapped to the canonical `usb-audio-bluetooth` and `minimal-usb-audio-bluetooth` flavors.
