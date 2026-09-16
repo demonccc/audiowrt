@@ -9,6 +9,7 @@ audiowrt-minimal-alsa
 audiowrt-minimal-mbedtls
 librespot
 audiowrt-sbc
+audiowrt-udhcpd
 audiowrt-bluez-libs
 audiowrt-bluez
 audiowrt-btctl

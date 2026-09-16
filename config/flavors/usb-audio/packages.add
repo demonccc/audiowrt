@@ -19,5 +19,5 @@ luci-app-audiowrt-core
 uhttpd
 uhttpd-mod-ubus
 umdns
-odhcpd
+audiowrt-udhcpd
 wpad-basic-mbedtls
