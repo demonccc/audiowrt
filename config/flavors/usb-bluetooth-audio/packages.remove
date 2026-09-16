@@ -1,5 +1,6 @@
 # Combined standard flavor with the router stack removed.
 busybox
+dnsmasq
 firewall4
 nftables
 kmod-nft-nat
