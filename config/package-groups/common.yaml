@@ -30,3 +30,9 @@ packages_remove:
   - ppp
   - ppp-mod-pppoe
   - odhcpd-ipv6only
+  - luci
+  - luci-light
+  - luci-mod-admin-full
+  - luci-mod-network
+  - luci-app-firewall
+  - luci-proto-ppp
