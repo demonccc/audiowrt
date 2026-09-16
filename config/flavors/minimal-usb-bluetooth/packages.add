@@ -19,4 +19,5 @@ luci-app-audiowrt-wifi-client
 luci-app-audiowrt-core
 uhttpd
 uhttpd-mod-ubus
+odhcpd
 wpad-basic-mbedtls

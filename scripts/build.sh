@@ -357,7 +357,7 @@ fi
 
 # Register only AudioWRT feed source directories. Do not call scripts/feeds
 # install for package-only AudioWRT packages because that recursively installs
-# runtime dependencies (hostapd, dnsmasq, uhttpd, kernel libraries, etc.) as
+# runtime dependencies (hostapd, odhcpd, uhttpd, kernel libraries, etc.) as
 # source packages and causes the SDK to rebuild them.
 mkdir -p "$sdk_dir/package/feeds/audiowrt"
 : > "$registered_sources"
@@ -490,7 +490,7 @@ if [[ "${#source_packages[@]}" -gt 0 ]]; then
 fi
 
 # Download and compile package-only roots without traversing runtime dependency
-# prerequisites. This is the critical boundary that keeps hostapd, dnsmasq,
+# prerequisites. This is the critical boundary that keeps hostapd, odhcpd,
 # uhttpd, kernel packages, libraries, etc. as official release binaries.
 package_only_download_targets=()
 for target_path in "${package_only_targets[@]}"; do
