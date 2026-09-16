@@ -28,8 +28,8 @@ with tempfile.TemporaryDirectory() as temp:
         original.replace('status: reference', 'status: []'),
         original.replace('package_groups:\n', ''),
         original.replace('  - minimal-usb-bluetooth\n', '  - missing-group\n', 1),
-        original.replace('packages_add:\n', 'packages_add:\n  - test\n  - test\n', 1),
-        original.replace('packages_add:\n', 'packages_add:\n  - test\n', 1).replace('packages_remove: []', 'packages_remove:\n  - test'),
+        original.replace('packages_add: []', 'packages_add:\n  - test\n  - test', 1),
+        original.replace('packages_add: []', 'packages_add:\n  - test', 1).replace('packages_remove: []', 'packages_remove:\n  - test', 1),
     ):
         profile.write_text(content)
         run('validate-profile-catalog.py', valid=False)

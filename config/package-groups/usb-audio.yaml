@@ -1,13 +1,12 @@
 schema_version: 1
+include:
+  - standard
 packages_add:
   - audiowrt-usb-audio
-  - alsa-lib
-  - libmbedtls21
   - kmod-sound-core
   - kmod-sound-midi2
   - kmod-sound-midi2-usb
   - kmod-usb-audio
-  - umdns
 packages_remove:
   - audiowrt-bluetooth
   - audiowrt-bluez
@@ -19,5 +18,3 @@ packages_remove:
   - kmod-bluetooth
   - kmod-btusb
   - kmod-btmtk
-  - audiowrt-minimal-alsa
-  - audiowrt-minimal-mbedtls

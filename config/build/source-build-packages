@@ -8,6 +8,9 @@
 audiowrt-busybox
 audiowrt-minimal-alsa
 audiowrt-minimal-mbedtls
+audiowrt-dropbear
+audiowrt-minidlna
+audiowrt-umdns
 librespot
 audiowrt-sbc
 audiowrt-bluez-libs

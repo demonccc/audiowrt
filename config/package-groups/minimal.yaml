@@ -2,9 +2,18 @@ schema_version: 1
 packages_add:
   - audiowrt-minimal-alsa
   - audiowrt-minimal-mbedtls
+  - audiowrt-dropbear
+  - audiowrt-wpa-supplicant
+  - audiowrt-minidlna
+  - audiowrt-umdns
 packages_remove:
   - odhcp6c
-  - umdns
   - alsa-lib
   - libmbedtls21
+  - dropbear
+  - wpad-basic-mbedtls
+  - wpad-basic
+  - wpad
+  - minidlna
+  - umdns
   - kmod-media-controller
