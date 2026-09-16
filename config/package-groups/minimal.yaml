@@ -1,0 +1,24 @@
+schema_version: 1
+packages_add:
+  - audiowrt-minimal-alsa
+  - audiowrt-minimal-mbedtls
+  - kmod-audiowrt-bluetooth
+packages_remove:
+  - odhcp6c
+  - umdns
+  - alsa-lib
+  - libmbedtls21
+  - kmod-bluetooth
+  - kmod-btusb
+  - kmod-btmtk
+  - kmod-sound-core
+  - kmod-sound-midi2
+  - kmod-sound-midi2-usb
+  - kmod-usb-audio
+  - kmod-media-controller
+  - luci
+  - luci-light
+  - luci-mod-admin-full
+  - luci-mod-network
+  - luci-app-firewall
+  - luci-proto-ppp
