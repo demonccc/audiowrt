@@ -3,25 +3,37 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-packages="$repo_root/config/flavors/minimal/packages.add"
+resolved="$(python3 "$repo_root/scripts/resolve-audiowrt-profile.py" \
+    "$repo_root/profiles" \
+    "$repo_root/config/package-groups" \
+    tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)"
 
-# Keep the general LuCI pages explicitly requested for the appliance, while
-# AudioWRT owns network setup through its dedicated Wi-Fi/IP configuration UI.
-for required in \
-    luci-base \
-    luci-theme-bootstrap \
-    luci-mod-status \
-    luci-mod-system \
-    luci-app-package-manager \
-    luci-app-audiowrt \
-    luci-app-audiowrt-wifi-client \
-    luci-app-audiowrt-core; do
-    grep -qx "$required" "$packages"
-done
-
-if grep -qx 'luci-mod-network' "$packages"; then
-    echo 'ERROR: luci-mod-network must not be preinstalled; AudioWRT owns network configuration.' >&2
-    exit 1
-fi
+python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+packages = set(data["packages_add"])
+removed = set(data["packages_remove"])
+required = {
+    "luci-base",
+    "luci-theme-bootstrap",
+    "luci-mod-status",
+    "luci-mod-system",
+    "luci-app-package-manager",
+    "luci-app-audiowrt",
+    "luci-app-audiowrt-wifi-client",
+    "luci-app-audiowrt-core",
+}
+assert required <= packages
+for package in {
+    "luci",
+    "luci-light",
+    "luci-mod-admin-full",
+    "luci-mod-network",
+    "luci-app-firewall",
+    "luci-proto-ppp",
+}:
+    assert package not in packages
+    assert package in removed
+' <<< "$resolved"
 
 echo 'AudioWRT LuCI network ownership tests passed.'

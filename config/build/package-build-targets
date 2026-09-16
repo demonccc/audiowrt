@@ -3,9 +3,10 @@
 # This file maps AudioWRT package names to their SDK source-tree make targets.
 # Packages are package-only by default and are compiled with NO_DEPS=1 so their
 # OpenWrt runtime dependencies remain official release binaries. Packages listed
-# separately in config/source-build-packages genuinely compile/link upstream
+# separately in config/build/source-build-packages genuinely compile/link upstream
 # source and may traverse the SDK build dependency graph when selected.
 
+audiowrt-branding|package/feeds/audiowrt/audiowrt-branding/compile
 audiowrt-core|package/feeds/audiowrt/audiowrt-core/compile
 audiowrt-provisioning|package/feeds/audiowrt/audiowrt-provisioning/compile
 audiowrt-storage|package/feeds/audiowrt/audiowrt-storage/compile

@@ -36,19 +36,20 @@ assert metadata["platform"] == "glinet_gl-mt6000"
 assert "kmod-usb3" in metadata["profile_packages"]
 PY
 
-python3 "$repo_root/scripts/check-usb.py" \
-    "$tmp_dir/platform.json" \
-    "$repo_root/config/usb-host-packages"
-
+# Platform resolution records OpenWrt metadata only. AudioWRT deliberately does
+# not reject devices based on an inferred USB-host capability. Profile maintainers
+# are responsible for validating that the hardware supports the selected audio path.
 python3 "$repo_root/scripts/resolve-platform.py" \
     "$tmp_dir/targetinfo" \
     example-no-usb > "$tmp_dir/no-usb.json"
 
-if python3 "$repo_root/scripts/check-usb.py" \
-    "$tmp_dir/no-usb.json" \
-    "$repo_root/config/usb-host-packages"; then
-    echo "ERROR: USB validation should have rejected example-no-usb." >&2
-    exit 1
-fi
+python3 - "$tmp_dir/no-usb.json" <<'PY'
+import json
+import sys
+
+metadata = json.load(open(sys.argv[1], encoding="utf-8"))
+assert metadata["platform"] == "example-no-usb"
+assert metadata["profile_packages"] == ["kmod-example"]
+PY
 
 echo "Build metadata tests passed."

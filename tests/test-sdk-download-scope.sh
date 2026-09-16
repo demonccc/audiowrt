@@ -41,8 +41,8 @@ grep -Fq 'declare -A source_target_seen=()' "$build_script" || {
     exit 1
 }
 
-grep -Fq 'config/source-build-packages' "$build_script" || {
-    echo "ERROR: build.sh must classify genuine source builds explicitly." >&2
+grep -Fq 'config/build/source-build-packages' "$build_script" || {
+    echo "ERROR: build.sh must classify genuine source builds through config/build/source-build-packages." >&2
     exit 1
 }
 

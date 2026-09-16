@@ -4,21 +4,33 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-packages="$repo_root/config/flavors/minimal/packages.add"
-targets="$repo_root/config/package-build-targets"
-sources="$repo_root/config/source-build-packages"
-removed="$repo_root/config/flavors/minimal/packages.remove"
+targets="$repo_root/config/build/package-build-targets"
+sources="$repo_root/config/build/source-build-packages"
 build_script="$repo_root/scripts/build.sh"
+resolver="$repo_root/scripts/resolve-audiowrt-profile.py"
+groups="$repo_root/config/package-groups"
 
-grep -qx 'audiowrt-minimal-mbedtls' "$packages"
+resolved="$(python3 "$resolver" \
+    "$repo_root/profiles" \
+    "$groups" \
+    tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)"
+
+python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+added = set(data["packages_add"])
+removed = set(data["packages_remove"])
+assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "kmod-audiowrt-bluetooth"} <= added
+assert {"alsa-lib", "libmbedtls21", "kmod-sound-midi2", "kmod-sound-midi2-usb"} <= removed
+assert "alsa-lib" not in added
+assert "libmbedtls21" not in added
+' <<< "$resolved"
+
 grep -qx 'audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile' "$targets"
 grep -qx 'audiowrt-minimal-mbedtls|package/feeds/audiowrt/audiowrt-minimal-mbedtls/compile' "$targets"
 grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile' "$targets"
 grep -qx 'audiowrt-minimal-alsa' "$sources"
 grep -qx 'audiowrt-minimal-mbedtls' "$sources"
-
-grep -qx 'kmod-sound-midi2' "$removed"
-grep -qx 'kmod-sound-midi2-usb' "$removed"
 
 for keep in bluetooth.ko btmtk.ko btintel.ko btrtl.ko btusb.ko; do
     grep -Fq "$keep" "$build_script"

@@ -3,106 +3,175 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+resolver="$repo_root/scripts/resolve-audiowrt-profile.py"
+groups="$repo_root/config/package-groups"
 
-for flavor in minimal standard full usb-audio minimal-usb-bluetooth usb-bluetooth minimal-usb-bluetooth-audio usb-bluetooth-audio; do
-    add="$repo_root/config/flavors/$flavor/packages.add"
-    remove="$repo_root/config/flavors/$flavor/packages.remove"
-    test -s "$add"
-    test -s "$remove"
-    if comm -12 <(grep -Ev '^[[:space:]]*(#|$)' "$add" | sort -u) \
-        <(grep -Ev '^[[:space:]]*(#|$)' "$remove" | sort -u) | grep -q .; then
-        echo "ERROR: $flavor adds and removes the same package." >&2
-        exit 1
-    fi
+for group in \
+    common \
+    minimal \
+    minimal-usb-audio \
+    minimal-usb-bluetooth \
+    minimal-usb-audio-bluetooth \
+    usb-audio \
+    usb-bluetooth \
+    usb-audio-bluetooth; do
+    test -s "$groups/$group.yaml"
 done
 
-# DHCP for provisioning is provided by the standalone BusyBox udhcpd package;
-# neither odhcpd nor dnsmasq is part of the AudioWRT flavor contract.
-for flavor in minimal standard full usb-audio minimal-usb-bluetooth usb-bluetooth minimal-usb-bluetooth-audio usb-bluetooth-audio; do
-    add="$repo_root/config/flavors/$flavor/packages.add"
-    grep -qx 'audiowrt-udhcpd' "$add"
-    if grep -Eq '^(odhcpd|dnsmasq)$' "$add"; then
-        echo "ERROR: $flavor must not include odhcpd or dnsmasq." >&2
-        exit 1
-    fi
+test ! -e "$repo_root/config/flavors"
+
+# Global AudioWRT policy belongs to common and common is automatic.
+for package in \
+    audiowrt-branding \
+    audiowrt-udhcpd \
+    luci-base \
+    luci-mod-status \
+    luci-mod-system \
+    luci-app-package-manager; do
+    grep -q "^  - $package$" "$groups/common.yaml"
+done
+for package in \
+    busybox \
+    dnsmasq \
+    firewall4 \
+    ppp \
+    ppp-mod-pppoe \
+    luci \
+    luci-light \
+    luci-mod-admin-full \
+    luci-mod-network \
+    luci-app-firewall \
+    luci-proto-ppp; do
+    grep -q "^  - $package$" "$groups/common.yaml"
 done
 
-minimal_add="$repo_root/config/flavors/minimal/packages.add"
-minimal_remove="$repo_root/config/flavors/minimal/packages.remove"
-for package in audiowrt-minimal-alsa audiowrt-minimal-mbedtls kmod-audiowrt-bluetooth; do
-    grep -qx "$package" "$minimal_add"
-done
-for package in alsa-lib libmbedtls21 kmod-bluetooth kmod-btusb kmod-btmtk odhcp6c; do
-    grep -qx "$package" "$minimal_remove"
-done
-
-for flavor in standard full; do
-    add="$repo_root/config/flavors/$flavor/packages.add"
-    remove="$repo_root/config/flavors/$flavor/packages.remove"
-    for package in alsa-lib libmbedtls21 kmod-bluetooth kmod-btusb; do
-        grep -qx "$package" "$add"
-    done
-    for package in audiowrt-minimal-alsa audiowrt-minimal-mbedtls kmod-audiowrt-bluetooth; do
-        grep -qx "$package" "$remove"
-    done
-done
-
-grep -qx 'audiowrt-mpd' "$repo_root/config/flavors/standard/packages.add"
-for package in audiowrt-mpd audiowrt-airplay audiowrt-spotify audiowrt-storage-luci; do
-    grep -qx "$package" "$repo_root/config/flavors/full/packages.add"
+# Minimal policy is shared by every constrained capability group. The custom
+# ALSA and Mbed TLS providers replace the official packages and must not coexist.
+grep -q '^  - audiowrt-minimal-alsa$' "$groups/minimal.yaml"
+grep -q '^  - audiowrt-minimal-mbedtls$' "$groups/minimal.yaml"
+grep -q '^  - alsa-lib$' "$groups/minimal.yaml"
+grep -q '^  - libmbedtls21$' "$groups/minimal.yaml"
+for group in minimal-usb-audio minimal-usb-bluetooth minimal-usb-audio-bluetooth; do
+    grep -A1 '^include:$' "$groups/$group.yaml" | grep -q '^  - minimal$'
 done
 
 for profile_file in "$repo_root"/profiles/*.yaml; do
     profile="$(basename "$profile_file" .yaml)"
-    resolved="$(python3 "$repo_root/scripts/resolve-audiowrt-profile.py" \
-        "$repo_root/profiles" "$repo_root/config/flavors" "$profile")"
+    resolved="$(python3 "$resolver" "$repo_root/profiles" "$groups" "$profile")"
     python3 -c '
 import json, sys
 data = json.load(sys.stdin)
 assert data["id"] == sys.argv[1]
-assert data["flavor"] in {"minimal", "standard", "full", "usb-audio", "minimal-usb-bluetooth", "usb-bluetooth", "minimal-usb-bluetooth-audio", "usb-bluetooth-audio"}
+assert isinstance(data["package_groups"], list)
+assert "flavor" not in data
 assert data["openwrt_source"] in {"release", "snapshot"}
-assert data["id"].endswith("-" + data["openwrt_version"])
-assert data["maintainer_github"]
-assert data["target"] and data["subtarget"] and data["openwrt_profile"]
 assert not set(data["packages_add"]) & set(data["packages_remove"])
+assert "audiowrt-branding" in data["packages_add"]
+assert "audiowrt-udhcpd" in data["packages_add"]
+for package in ("dnsmasq", "ppp", "ppp-mod-pppoe", "luci-proto-ppp", "luci-app-firewall", "luci-mod-network"):
+    assert package in data["packages_remove"]
 ' "$profile" <<< "$resolved"
 done
 
-wdr="$(python3 "$repo_root/scripts/resolve-audiowrt-profile.py" \
-    "$repo_root/profiles" "$repo_root/config/flavors" tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)"
+wdr_bt="$(python3 "$resolver" "$repo_root/profiles" "$groups" tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)"
 python3 -c '
 import json, sys
 data = json.load(sys.stdin)
-assert data["flavor"] == "minimal-usb-bluetooth"
-assert (data["openwrt_source"], data["openwrt_version"]) == ("release", "25.12.5")
+assert data["package_groups"] == ["minimal-usb-bluetooth"]
 assert data["openwrt_profile"] == "tplink_tl-wdr4300-v1"
-assert (data["target"], data["subtarget"]) == ("ath79", "generic")
 assert data["squashfs_block_size"] == "1024"
-assert "audiowrt-minimal-alsa" in data["packages_add"]
-assert "alsa-lib" in data["packages_remove"]
-' <<< "$wdr"
+added = set(data["packages_add"])
+removed = set(data["packages_remove"])
+assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "kmod-audiowrt-bluetooth"} <= added
+assert {"alsa-lib", "libmbedtls21", "dnsmasq", "kmod-bluetooth", "kmod-usb-audio"} <= removed
+assert "alsa-lib" not in added and "libmbedtls21" not in added
+' <<< "$wdr_bt"
 
+wdr_audio="$(python3 "$resolver" "$repo_root/profiles" "$groups" tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5)"
+python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+assert data["package_groups"] == ["minimal-usb-audio"]
+assert data["openwrt_profile"] == "tplink_tl-wdr4300-v1"
+added = set(data["packages_add"])
+removed = set(data["packages_remove"])
+assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-usb-audio", "kmod-usb-audio"} <= added
+assert {"alsa-lib", "libmbedtls21", "dnsmasq", "kmod-bluetooth", "kmod-audiowrt-bluetooth"} <= removed
+assert "alsa-lib" not in added and "libmbedtls21" not in added
+' <<< "$wdr_audio"
+
+# Package groups may include reusable groups; current group entries apply last.
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
-cp "$repo_root/profiles/tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5.yaml" \
-    "$tmp/example-device-full-snapshot.yaml"
-snapshot="$(python3 "$repo_root/scripts/resolve-audiowrt-profile.py" \
-    "$tmp" "$repo_root/config/flavors" example-device-full-snapshot)"
+mkdir -p "$tmp/groups" "$tmp/profiles"
+cat > "$tmp/groups/common.yaml" <<'EOF'
+schema_version: 1
+packages_add: []
+packages_remove: []
+EOF
+cat > "$tmp/groups/base.yaml" <<'EOF'
+schema_version: 1
+packages_add:
+  - inherited-package
+  - overridden-package
+packages_remove: []
+EOF
+cat > "$tmp/groups/child.yaml" <<'EOF'
+schema_version: 1
+include:
+  - base
+packages_add:
+  - child-package
+packages_remove:
+  - overridden-package
+EOF
+cat > "$tmp/profiles/example-device-test-25.12.5.yaml" <<'EOF'
+schema_version: 1
+status: candidate
+maintainer_github: demonccc
+openwrt_profile: example
+target: example
+subtarget: generic
+package_groups:
+  - child
+packages_add: []
+packages_remove: []
+EOF
+resolved="$(python3 "$resolver" "$tmp/profiles" "$tmp/groups" example-device-test-25.12.5)"
 python3 -c '
-import json, sys
-data = json.load(sys.stdin)
-assert data["device"] == "example-device"
-assert data["flavor"] == "full"
-assert data["openwrt_source"] == "snapshot"
-assert data["openwrt_version"] == "snapshot"
-' <<< "$snapshot"
+import json,sys
+d=json.load(sys.stdin)
+assert "inherited-package" in d["packages_add"]
+assert "child-package" in d["packages_add"]
+assert "overridden-package" not in d["packages_add"]
+assert "overridden-package" in d["packages_remove"]
+' <<< "$resolved"
+
+# Include cycles must fail explicitly.
+cat > "$tmp/groups/cycle-a.yaml" <<'EOF'
+schema_version: 1
+include:
+  - cycle-b
+packages_add: []
+packages_remove: []
+EOF
+cat > "$tmp/groups/cycle-b.yaml" <<'EOF'
+schema_version: 1
+include:
+  - cycle-a
+packages_add: []
+packages_remove: []
+EOF
+sed -i 's/  - child/  - cycle-a/' "$tmp/profiles/example-device-test-25.12.5.yaml"
+if python3 "$resolver" "$tmp/profiles" "$tmp/groups" example-device-test-25.12.5 >/dev/null 2>&1; then
+    echo "ERROR: package group include cycle should have failed." >&2
+    exit 1
+fi
 
 grep -q 'AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5' "$repo_root/scripts/build.sh"
 grep -q 'CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=' "$repo_root/scripts/build.sh"
+grep -q 'config/build/package-build-targets' "$repo_root/scripts/build.sh"
+grep -q 'config/build/source-build-packages' "$repo_root/scripts/build.sh"
+! grep -q 'check-usb.py' "$repo_root/scripts/build.sh"
 
-minimal_bluetooth="$(python3 "$repo_root/scripts/resolve-audiowrt-profile.py" \
-    "$repo_root/profiles" "$repo_root/config/flavors" tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)"
-python3 -c 'import json, sys; data=json.load(sys.stdin); packages=set(data["packages_add"]); removed=set(data["packages_remove"]); assert {"luci-mod-status", "luci-mod-system", "luci-app-package-manager", "dropbear", "audiowrt-udhcpd"} <= packages; assert not packages & {"dnsmasq", "odhcpd"}; assert "dropbear" not in removed' <<< "$minimal_bluetooth"
-
-echo 'AudioWRT flavor and device profile tests passed.'
+echo 'AudioWRT package group and device profile tests passed.'
