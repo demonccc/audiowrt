@@ -1,5 +1,6 @@
 # Minimal Bluetooth plus USB Audio; provisioning DHCP uses audiowrt-udhcpd.
 busybox
+dnsmasq
 firewall4
 nftables
 kmod-nft-nat
