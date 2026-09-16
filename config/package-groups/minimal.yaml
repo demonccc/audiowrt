@@ -7,9 +7,3 @@ packages_remove:
   - umdns
   - libmbedtls21
   - kmod-media-controller
-  - luci
-  - luci-light
-  - luci-mod-admin-full
-  - luci-mod-network
-  - luci-app-firewall
-  - luci-proto-ppp
