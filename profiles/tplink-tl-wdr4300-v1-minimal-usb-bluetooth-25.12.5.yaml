@@ -6,8 +6,7 @@ target: ath79
 subtarget: generic
 squashfs_block_size: 1024
 package_groups:
-  - usb-bluetooth
-  - minimal
+  - minimal-usb-bluetooth
 packages_add:
   # Temporary diagnostic access for validating the constrained image.
   - dropbear
