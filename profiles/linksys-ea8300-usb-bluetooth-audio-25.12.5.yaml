@@ -5,5 +5,8 @@ openwrt_profile: linksys_ea8300
 target: ipq40xx
 subtarget: generic
 squashfs_block_size: default
+package_groups:
+  - usb-audio
+  - usb-bluetooth
 packages_add: []
 packages_remove: []
