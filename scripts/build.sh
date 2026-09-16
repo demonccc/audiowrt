@@ -15,7 +15,7 @@ cache_dir="${CACHE_DIR:-}"
 
 [[ "${AUDIOWRT_IN_CONTAINER:-0}" == "1" ]] || {
     echo "ERROR: scripts/build.sh is an internal container entry point." >&2
-    echo "Run 'make build AUDIOWRT_PROFILE=<device-flavor>' so AudioWRT uses the published openwrt-builder Docker image." >&2
+    echo "Run 'make build AUDIOWRT_PROFILE=<profile>' so AudioWRT uses the published openwrt-builder Docker image." >&2
     exit 2
 }
 
@@ -174,10 +174,10 @@ rm -rf "$work_dir" "$output_dir"
 mkdir -p "$work_dir" "$output_dir"
 
 python3 "$repo_root/scripts/resolve-audiowrt-profile.py" \
-    "$repo_root/profiles" "$repo_root/config/flavors" "$audiowrt_profile" > "$resolved_profile"
+    "$repo_root/profiles" "$repo_root/config/package-groups" "$audiowrt_profile" > "$resolved_profile"
 
 platform="$(json_field "$resolved_profile" openwrt_profile)"
-profile_flavor="$(json_field "$resolved_profile" flavor)"
+profile_package_groups="$(python3 -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1], encoding="utf-8"))["package_groups"]))' "$resolved_profile")"
 openwrt_source="$(json_field "$resolved_profile" openwrt_source)"
 openwrt_version="$(json_field "$resolved_profile" openwrt_version)"
 expected_target="$(json_field "$resolved_profile" target)"
@@ -207,7 +207,7 @@ PY
 
 printf 'AudioWRT build\n'
 printf '  Profile: %s\n' "$audiowrt_profile"
-printf '  Flavor: %s\n' "$profile_flavor"
+printf '  Package groups: %s\n' "$profile_package_groups"
 printf '  OpenWrt profile: %s (%s/%s)\n' "$platform" "$expected_target" "$expected_subtarget"
 printf '  OpenWrt source: %s %s\n' "$openwrt_source" "$openwrt_version"
 printf '  AudioWRT packages: %s\n' "$packages_ref"
@@ -236,7 +236,6 @@ fi
 
 make_run "$source_dir" -s prepare-tmpinfo
 python3 "$repo_root/scripts/resolve-platform.py" "$source_dir/tmp/.targetinfo" "$platform" > "$platform_metadata"
-python3 "$repo_root/scripts/check-usb.py" "$platform_metadata" "$repo_root/config/usb-host-packages"
 
 mapfile -t firmware_packages < <(read_package_file "$packages_add_file")
 
@@ -384,12 +383,12 @@ while IFS='|' read -r package target_path extra; do
         ln -s "$source_path" "$destination"
     fi
     printf '%s|%s\n' "$package" "$source_rel" >> "$registered_sources"
-done < "$repo_root/config/package-build-targets"
+done < "$repo_root/config/build/package-build-targets"
 
 # Select only the AudioWRT-owned firmware roots requested by the resolved
 # profile. The SDK's shipped package selections are not AudioWRT build intent.
 for package in "${firmware_packages[@]}"; do
-    if awk -F '|' -v package="$package" '$0 !~ /^[[:space:]]*#/ && $1 == package { found=1 } END { exit found ? 0 : 1 }' "$repo_root/config/package-build-targets"; then
+    if awk -F '|' -v package="$package" '$0 !~ /^[[:space:]]*#/ && $1 == package { found=1 } END { exit found ? 0 : 1 }' "$repo_root/config/build/package-build-targets"; then
         sed -i -E "/^(# )?CONFIG_PACKAGE_${package}(=| is not set)/d" "$sdk_dir/.config" 2>/dev/null || true
         printf 'CONFIG_PACKAGE_%s=m\n' "$package" >> "$sdk_dir/.config"
     fi
@@ -405,9 +404,9 @@ packageinfo="$sdk_dir/tmp/.packageinfo"
 
 # Resolve only the AudioWRT-owned dependency closure of the explicitly
 # requested firmware roots. AudioWRT source packages such as librespot and
-# bluez-alsa are included only when the selected flavor requires them.
+# bluez-alsa are included only when the selected package groups require them.
 python3 "$repo_root/scripts/resolve-package-build-targets.py" \
-    "$repo_root/config/package-build-targets" \
+    "$repo_root/config/build/package-build-targets" \
     "$packageinfo" \
     "${firmware_packages[@]}" > "$build_plan"
 
@@ -421,7 +420,7 @@ declare -A source_build_package=()
 while IFS= read -r package; do
     [[ -n "$package" ]] || continue
     source_build_package["$package"]=1
-done < <(read_package_file "$repo_root/config/source-build-packages")
+done < <(read_package_file "$repo_root/config/build/source-build-packages")
 
 build_packages=()
 package_only_packages=()
@@ -472,7 +471,7 @@ fi
 source_dependencies=()
 if [[ "${#source_packages[@]}" -gt 0 ]]; then
     python3 "$repo_root/scripts/resolve-source-build-dependencies.py" \
-        "$repo_root/config/package-build-targets" \
+        "$repo_root/config/build/package-build-targets" \
         "$packageinfo" \
         "${source_packages[@]}" > "$source_dependencies_file"
     mapfile -t source_dependencies < "$source_dependencies_file"
@@ -558,7 +557,6 @@ package_string="${package_args[*]}"
 image_args=(
     "PROFILE=$platform"
     "PACKAGES=$package_string"
-    "FILES=$repo_root/files"
     "BIN_DIR=$output_dir"
 )
 if [[ "$squashfs_block_size" != "default" ]]; then
@@ -582,8 +580,8 @@ cp "$registered_sources" "$output_dir/sdk-audiowrt-sources.txt"
 cp "$source_dependencies_file" "$output_dir/source-build-dependencies.txt"
 cp "$packages_add_file" "$output_dir/audiowrt-packages.add"
 cp "$packages_remove_file" "$output_dir/audiowrt-packages.remove"
-cp "$repo_root/config/package-build-targets" "$output_dir/package-build-targets"
-cp "$repo_root/config/source-build-packages" "$output_dir/source-build-packages"
+cp "$repo_root/config/build/package-build-targets" "$output_dir/package-build-targets"
+cp "$repo_root/config/build/source-build-packages" "$output_dir/source-build-packages"
 cp "$build_plan" "$output_dir/package-build-plan.txt"
 mkdir -p "$output_dir/local-apks"
 cp -f "$local_apks_dir"/*.apk "$output_dir/local-apks/"
@@ -604,7 +602,7 @@ BUILD_MODE=exact-release-sdk-imagebuilder
 BUILDER_IMAGE=$builder_image
 PLATFORM=$platform
 AUDIOWRT_PROFILE=$audiowrt_profile
-AUDIOWRT_FLAVOR=$profile_flavor
+AUDIOWRT_PACKAGE_GROUPS=$profile_package_groups
 TARGET=$target
 SUBTARGET=$subtarget
 OPENWRT_RESOLVED_REF=$resolved_release
@@ -643,7 +641,7 @@ manifest = {
     "audiowrt_packages_ref": "$packages_ref",
     "audiowrt_packages_commit": "$audiowrt_packages_commit",
     "audiowrt_profile": "$audiowrt_profile",
-    "audiowrt_flavor": "$profile_flavor",
+    "package_groups": profile_data["package_groups"],
     "resolved_profile": profile_data,
     "openwrt_repository": "$openwrt_repo",
     "openwrt_source": "$openwrt_source",
