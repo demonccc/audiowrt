@@ -32,7 +32,7 @@ with tempfile.TemporaryDirectory() as temp:
         profile.write_text(content)
         run('validate-profile-catalog.py', valid=False)
     profile.write_text(original)
-    for name in ('bad.yaml', 'device-other-25.12.5.yaml', 'device-minimal-25.yaml', 'device--minimal-25.12.5.yaml', 'device-minimal-25.12.5.yml', 'notes.txt'):
+    for name in ('bad.yaml', 'device-other-25.12.5.yaml', 'device-usb-audio-25.yaml', 'device--usb-audio-25.12.5.yaml', 'device-usb-audio-25.12.5.yml', 'notes.txt'):
         bad = root / 'profiles' / name
         bad.write_text(original)
         run('validate-profile-catalog.py', valid=False)
@@ -41,21 +41,21 @@ with tempfile.TemporaryDirectory() as temp:
     nested.mkdir()
     run('validate-profile-catalog.py', valid=False)
     nested.rmdir()
-    link = root / 'profiles/link-minimal-25.12.5.yaml'
+    link = root / 'profiles/link-usb-audio-25.12.5.yaml'
     link.symlink_to(profile.name)
     run('validate-profile-catalog.py', valid=False)
     link.unlink()
-    added = root / 'profiles/example-device-full-snapshot.yaml'
+    added = root / 'profiles/example-device-usb-audio-snapshot.yaml'
     added.write_text(original)
     run('sync-profile-workflow.py', '--check', valid=False)
     run('sync-profile-workflow.py')
     run('sync-profile-workflow.py', '--check')
     workflow = root / '.github/workflows/build-audiowrt.yml'
-    assert '          - example-device-full-snapshot' in workflow.read_text()
+    assert '          - example-device-usb-audio-snapshot' in workflow.read_text()
     profile.unlink()
     added.unlink()
     run('sync-profile-workflow.py')
     run('sync-profile-workflow.py', '--check')
     assert 'default: tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5' not in workflow.read_text()
-    assert '          - example-device-full-snapshot' not in workflow.read_text()
+    assert '          - example-device-usb-audio-snapshot' not in workflow.read_text()
 print('Profile catalog rejection and dropdown lifecycle tests passed.')
