@@ -1,5 +1,6 @@
 # Bluetooth minimal policy: keep the USB Bluetooth stack, odhcpd provisioning
 # and administrative SSH while removing optional router/audio capabilities.
+busybox
 firewall4
 nftables
 kmod-nft-nat

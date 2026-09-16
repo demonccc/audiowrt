@@ -1,4 +1,5 @@
 # USB Bluetooth flavor using OpenWrt's standard Bluetooth packages.
+audiowrt-busybox
 audiowrt-core
 audiowrt-provisioning
 audiowrt-audio

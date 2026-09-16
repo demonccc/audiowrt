@@ -1,4 +1,5 @@
 # Balanced AudioWRT image using unmodified OpenWrt infrastructure packages.
+audiowrt-busybox
 audiowrt-core
 audiowrt-provisioning
 audiowrt-audio

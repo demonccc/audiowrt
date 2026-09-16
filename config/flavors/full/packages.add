@@ -1,4 +1,5 @@
 # Complete AudioWRT feature set using unmodified OpenWrt infrastructure packages.
+audiowrt-busybox
 audiowrt-core
 audiowrt-provisioning
 audiowrt-audio

@@ -1,4 +1,5 @@
 # USB Bluetooth only: no USB Audio kernel stack.
+busybox
 firewall4
 nftables
 kmod-nft-nat

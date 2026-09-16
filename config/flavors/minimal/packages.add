@@ -1,4 +1,5 @@
 # AudioWRT for constrained 8 MB devices.
+audiowrt-busybox
 audiowrt-core
 audiowrt-provisioning
 audiowrt-audio
