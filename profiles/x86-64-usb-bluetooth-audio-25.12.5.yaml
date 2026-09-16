@@ -5,5 +5,8 @@ openwrt_profile: generic
 target: x86
 subtarget: 64
 squashfs_block_size: default
+package_groups:
+  - usb-audio
+  - usb-bluetooth
 packages_add: []
 packages_remove: []
