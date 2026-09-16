@@ -20,15 +20,37 @@ done
 
 test ! -e "$repo_root/config/flavors"
 
-# Global policy belongs to common and common is automatic.
-grep -q '^  - audiowrt-branding$' "$groups/common.yaml"
-grep -q '^  - audiowrt-udhcpd$' "$groups/common.yaml"
-grep -q '^  - dnsmasq$' "$groups/common.yaml"
-grep -q '^  - busybox$' "$groups/common.yaml"
+# Global AudioWRT policy belongs to common and common is automatic.
+for package in \
+    audiowrt-branding \
+    audiowrt-udhcpd \
+    luci-base \
+    luci-mod-status \
+    luci-mod-system \
+    luci-app-package-manager; do
+    grep -q "^  - $package$" "$groups/common.yaml"
+done
+for package in \
+    busybox \
+    dnsmasq \
+    firewall4 \
+    ppp \
+    ppp-mod-pppoe \
+    luci \
+    luci-light \
+    luci-mod-admin-full \
+    luci-mod-network \
+    luci-app-firewall \
+    luci-proto-ppp; do
+    grep -q "^  - $package$" "$groups/common.yaml"
+done
 
-# Minimal policy is shared by every minimal capability group.
+# Minimal policy is shared by every constrained capability group. The custom
+# ALSA and Mbed TLS providers replace the official packages and must not coexist.
 grep -q '^  - audiowrt-minimal-alsa$' "$groups/minimal.yaml"
 grep -q '^  - audiowrt-minimal-mbedtls$' "$groups/minimal.yaml"
+grep -q '^  - alsa-lib$' "$groups/minimal.yaml"
+grep -q '^  - libmbedtls21$' "$groups/minimal.yaml"
 for group in minimal-usb-audio minimal-usb-bluetooth minimal-usb-audio-bluetooth; do
     grep -A1 '^include:$' "$groups/$group.yaml" | grep -q '^  - minimal$'
 done
@@ -46,7 +68,8 @@ assert data["openwrt_source"] in {"release", "snapshot"}
 assert not set(data["packages_add"]) & set(data["packages_remove"])
 assert "audiowrt-branding" in data["packages_add"]
 assert "audiowrt-udhcpd" in data["packages_add"]
-assert "dnsmasq" in data["packages_remove"]
+for package in ("dnsmasq", "ppp", "ppp-mod-pppoe", "luci-proto-ppp", "luci-app-firewall", "luci-mod-network"):
+    assert package in data["packages_remove"]
 ' "$profile" <<< "$resolved"
 done
 
@@ -60,7 +83,8 @@ assert data["squashfs_block_size"] == "1024"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "kmod-audiowrt-bluetooth"} <= added
-assert {"alsa-lib", "dnsmasq", "kmod-bluetooth", "kmod-usb-audio"} <= removed
+assert {"alsa-lib", "libmbedtls21", "dnsmasq", "kmod-bluetooth", "kmod-usb-audio"} <= removed
+assert "alsa-lib" not in added and "libmbedtls21" not in added
 ' <<< "$wdr_bt"
 
 wdr_audio="$(python3 "$resolver" "$repo_root/profiles" "$groups" tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5)"
@@ -72,7 +96,8 @@ assert data["openwrt_profile"] == "tplink_tl-wdr4300-v1"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-usb-audio", "kmod-usb-audio"} <= added
-assert {"dnsmasq", "kmod-bluetooth", "kmod-audiowrt-bluetooth"} <= removed
+assert {"alsa-lib", "libmbedtls21", "dnsmasq", "kmod-bluetooth", "kmod-audiowrt-bluetooth"} <= removed
+assert "alsa-lib" not in added and "libmbedtls21" not in added
 ' <<< "$wdr_audio"
 
 # Package groups may include reusable groups; current group entries apply last.
