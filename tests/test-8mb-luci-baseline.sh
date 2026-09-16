@@ -5,7 +5,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 resolved="$(python3 "$repo_root/scripts/resolve-audiowrt-profile.py" \
     "$repo_root/profiles" \
-    "$repo_root/config/flavors" \
+    "$repo_root/config/package-groups" \
     tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)"
 
 python3 -c '
@@ -24,8 +24,16 @@ required = {
     "luci-app-audiowrt-core",
 }
 assert required <= packages
-assert "luci-mod-network" not in packages
-assert "luci-mod-network" in removed
+for package in {
+    "luci",
+    "luci-light",
+    "luci-mod-admin-full",
+    "luci-mod-network",
+    "luci-app-firewall",
+    "luci-proto-ppp",
+}:
+    assert package not in packages
+    assert package in removed
 ' <<< "$resolved"
 
 echo 'AudioWRT LuCI network ownership tests passed.'
