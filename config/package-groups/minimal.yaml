@@ -5,5 +5,6 @@ packages_add:
 packages_remove:
   - odhcp6c
   - umdns
+  - alsa-lib
   - libmbedtls21
   - kmod-media-controller
