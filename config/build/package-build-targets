@@ -5,10 +5,6 @@
 # OpenWrt runtime dependencies remain official release binaries. Packages listed
 # separately in config/build/source-build-packages genuinely compile/link upstream
 # source and may traverse the SDK build dependency graph when selected.
-#
-# `openwrt-derived` targets are generated under package/audiowrt-derived from the
-# canonical package recipe/files/patches of the selected OpenWrt release. See
-# config/build/package-provenance.
 
 audiowrt-branding|package/feeds/audiowrt/audiowrt-branding/compile
 audiowrt-core|package/feeds/audiowrt/audiowrt-core/compile
@@ -18,14 +14,14 @@ luci-app-audiowrt-core|package/feeds/audiowrt/luci-app-audiowrt-core/compile
 audiowrt-storage-luci|package/feeds/audiowrt/luci-app-audiowrt-storage/compile
 kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
 
-audiowrt-busybox|package/audiowrt-derived/audiowrt-busybox/compile
+audiowrt-busybox|package/feeds/audiowrt/audiowrt-busybox/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
-audiowrt-minimal-alsa|package/audiowrt-derived/audiowrt-minimal-alsa/compile
-audiowrt-minimal-mbedtls|package/audiowrt-derived/audiowrt-minimal-mbedtls/compile
-audiowrt-dropbear|package/audiowrt-derived/audiowrt-dropbear/compile
+audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
+audiowrt-minimal-mbedtls|package/feeds/audiowrt/audiowrt-minimal-mbedtls/compile
+audiowrt-dropbear|package/feeds/audiowrt/audiowrt-dropbear/compile
 audiowrt-wpa-supplicant|package/feeds/audiowrt/audiowrt-wpa-supplicant/compile
-audiowrt-minidlna|package/audiowrt-derived/audiowrt-minidlna/compile
-audiowrt-umdns|package/audiowrt-derived/audiowrt-umdns/compile
+audiowrt-minidlna|package/feeds/audiowrt/audiowrt-minidlna/compile
+audiowrt-umdns|package/feeds/audiowrt/audiowrt-umdns/compile
 audiowrt-usb-audio|package/feeds/audiowrt/audiowrt-usb-audio/compile
 audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
 audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
@@ -33,9 +29,9 @@ audiowrt-udhcpd|package/feeds/audiowrt/audiowrt-udhcpd/compile
 audiowrt-mpd|package/feeds/audiowrt/audiowrt-mpd/compile
 audiowrt-airplay|package/feeds/audiowrt/audiowrt-airplay/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
-audiowrt-sbc|package/audiowrt-derived/audiowrt-sbc/compile
-audiowrt-bluez-libs|package/audiowrt-derived/audiowrt-bluez/compile
-audiowrt-bluez|package/audiowrt-derived/audiowrt-bluez/compile
+audiowrt-sbc|package/feeds/audiowrt/audiowrt-sbc/compile
+audiowrt-bluez-libs|package/feeds/audiowrt/audiowrt-bluez/compile
+audiowrt-bluez|package/feeds/audiowrt/audiowrt-bluez/compile
 audiowrt-btctl|package/feeds/audiowrt/audiowrt-btctl/compile
 bluez-alsa|package/feeds/audiowrt/bluez-alsa/compile
 audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-bluetooth/compile
