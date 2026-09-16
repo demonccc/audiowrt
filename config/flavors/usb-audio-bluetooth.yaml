@@ -1,0 +1,13 @@
+schema_version: 1
+include:
+  - usb-audio
+  - usb-bluetooth
+packages_add:
+  - audiowrt-bluetooth
+  - kmod-bluetooth
+  - kmod-btusb
+  - kmod-sound-core
+  - kmod-sound-midi2
+  - kmod-sound-midi2-usb
+  - kmod-usb-audio
+packages_remove: []
