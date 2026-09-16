@@ -36,7 +36,7 @@ ImageBuilder's final image-size check is authoritative.
 | Flavor | Base capability | Estimated compressed rootfs | Practical flash target |
 |---|---|---:|---:|
 | `usb-audio` | USB Audio, Wi-Fi and UI; no Bluetooth | ~3.6–4.0 MiB | 8 MB |
-| `minimal-usb-bluetooth` | Minimal Bluetooth A2DP, Wi-Fi, SSH and UI; no dnsmasq or umdns | ~4.3–4.9 MiB | 8 MB, tight |
+| `minimal-usb-bluetooth` | Minimal Bluetooth A2DP, Wi-Fi, SSH, UI and odhcpd DHCP | ~4.4–5.0 MiB | 8 MB, tight |
 | `minimal-usb-bluetooth-audio` | Minimal Bluetooth plus standard USB Audio | ~4.9–5.3 MiB | 16 MB |
 | `usb-bluetooth` | Standard OpenWrt Bluetooth plus Wi-Fi and UI | ~5.5–6.0 MiB | 16 MB |
 | `usb-bluetooth-audio` | Standard Bluetooth plus standard USB Audio | ~5.8–6.4 MiB | 16 MB |
@@ -65,13 +65,13 @@ its 8 MB flash requires that choice.
 ### `usb-audio`
 
 Uses OpenWrt's standard USB Audio and ALSA kernel packages. Bluetooth packages
-are excluded. Dropbear, dnsmasq and umdns are included as standard services.
+are excluded. Dropbear, odhcpd and umdns are included as standard services.
 
 ### `minimal-usb-bluetooth`
 
 Uses AudioWRT's minimized Bluetooth runtime and generic USB Bluetooth kernel
-drivers. It excludes USB Audio, dnsmasq and umdns to fit constrained
-devices. It retains `luci-mod-status`, `luci-mod-system` and
+drivers. It excludes USB Audio and umdns to fit constrained devices, while
+retaining odhcpd for provisioning. It retains `luci-mod-status`, `luci-mod-system` and
 `luci-app-package-manager`, so the system can be inspected, reconfigured and
 extended from LuCI.
 
@@ -81,7 +81,7 @@ deployment may add a required firmware package for a particular dongle.
 ### `usb-bluetooth`
 
 Uses the standard OpenWrt Bluetooth packages and kernel drivers. It keeps
-Dropbear, dnsmasq and umdns and is intended for devices with more flash.
+Dropbear, odhcpd and umdns and is intended for devices with more flash.
 
 ### `minimal-usb-bluetooth-audio`
 
