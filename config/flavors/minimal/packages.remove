@@ -1,5 +1,6 @@
 # Router services and capabilities outside the minimal audio appliance.
 busybox
+dnsmasq
 firewall4
 nftables
 kmod-nft-nat
