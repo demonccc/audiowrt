@@ -1,0 +1,6 @@
+schema_version: 1
+include:
+  - usb-audio
+  - usb-bluetooth
+packages_add: []
+packages_remove: []
