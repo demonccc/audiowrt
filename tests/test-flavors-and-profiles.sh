@@ -8,6 +8,7 @@ groups="$repo_root/config/package-groups"
 
 for group in \
     common \
+    minimal \
     minimal-usb-audio \
     minimal-usb-bluetooth \
     minimal-usb-audio-bluetooth \
@@ -17,7 +18,6 @@ for group in \
     test -s "$groups/$group.yaml"
 done
 
-test ! -e "$groups/minimal.yaml"
 test ! -e "$repo_root/config/flavors"
 
 # Global policy belongs to common and common is automatic.
@@ -25,6 +25,13 @@ grep -q '^  - audiowrt-branding$' "$groups/common.yaml"
 grep -q '^  - audiowrt-udhcpd$' "$groups/common.yaml"
 grep -q '^  - dnsmasq$' "$groups/common.yaml"
 grep -q '^  - busybox$' "$groups/common.yaml"
+
+# Minimal policy is shared by every minimal capability group.
+grep -q '^  - audiowrt-minimal-alsa$' "$groups/minimal.yaml"
+grep -q '^  - audiowrt-minimal-mbedtls$' "$groups/minimal.yaml"
+for group in minimal-usb-audio minimal-usb-bluetooth minimal-usb-audio-bluetooth; do
+    grep -A1 '^include:$' "$groups/$group.yaml" | grep -q '^  - minimal$'
+done
 
 for profile_file in "$repo_root"/profiles/*.yaml; do
     profile="$(basename "$profile_file" .yaml)"
@@ -68,7 +75,7 @@ assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-usb-audio
 assert {"dnsmasq", "kmod-bluetooth", "kmod-audiowrt-bluetooth"} <= removed
 ' <<< "$wdr_audio"
 
-# When a profile intentionally combines groups, later groups win add/remove conflicts.
+# Package groups may include reusable groups; current group entries apply last.
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/groups" "$tmp/profiles"
@@ -77,17 +84,21 @@ schema_version: 1
 packages_add: []
 packages_remove: []
 EOF
-cat > "$tmp/groups/add.yaml" <<'EOF'
+cat > "$tmp/groups/base.yaml" <<'EOF'
 schema_version: 1
 packages_add:
-  - conflict-package
+  - inherited-package
+  - overridden-package
 packages_remove: []
 EOF
-cat > "$tmp/groups/remove.yaml" <<'EOF'
+cat > "$tmp/groups/child.yaml" <<'EOF'
 schema_version: 1
-packages_add: []
+include:
+  - base
+packages_add:
+  - child-package
 packages_remove:
-  - conflict-package
+  - overridden-package
 EOF
 cat > "$tmp/profiles/example-device-test-25.12.5.yaml" <<'EOF'
 schema_version: 1
@@ -97,29 +108,40 @@ openwrt_profile: example
 target: example
 subtarget: generic
 package_groups:
-  - add
-  - remove
+  - child
 packages_add: []
 packages_remove: []
 EOF
 resolved="$(python3 "$resolver" "$tmp/profiles" "$tmp/groups" example-device-test-25.12.5)"
-python3 -c 'import json,sys; d=json.load(sys.stdin); assert "conflict-package" not in d["packages_add"]; assert "conflict-package" in d["packages_remove"]' <<< "$resolved"
+python3 -c '
+import json,sys
+d=json.load(sys.stdin)
+assert "inherited-package" in d["packages_add"]
+assert "child-package" in d["packages_add"]
+assert "overridden-package" not in d["packages_add"]
+assert "overridden-package" in d["packages_remove"]
+' <<< "$resolved"
 
-cat > "$tmp/profiles/example-device-test-25.12.5.yaml" <<'EOF'
+# Include cycles must fail explicitly.
+cat > "$tmp/groups/cycle-a.yaml" <<'EOF'
 schema_version: 1
-status: candidate
-maintainer_github: demonccc
-openwrt_profile: example
-target: example
-subtarget: generic
-package_groups:
-  - remove
-  - add
+include:
+  - cycle-b
 packages_add: []
 packages_remove: []
 EOF
-resolved="$(python3 "$resolver" "$tmp/profiles" "$tmp/groups" example-device-test-25.12.5)"
-python3 -c 'import json,sys; d=json.load(sys.stdin); assert "conflict-package" in d["packages_add"]; assert "conflict-package" not in d["packages_remove"]' <<< "$resolved"
+cat > "$tmp/groups/cycle-b.yaml" <<'EOF'
+schema_version: 1
+include:
+  - cycle-a
+packages_add: []
+packages_remove: []
+EOF
+sed -i 's/  - child/  - cycle-a/' "$tmp/profiles/example-device-test-25.12.5.yaml"
+if python3 "$resolver" "$tmp/profiles" "$tmp/groups" example-device-test-25.12.5 >/dev/null 2>&1; then
+    echo "ERROR: package group include cycle should have failed." >&2
+    exit 1
+fi
 
 grep -q 'AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5' "$repo_root/scripts/build.sh"
 grep -q 'CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=' "$repo_root/scripts/build.sh"
