@@ -27,7 +27,7 @@ with tempfile.TemporaryDirectory() as temp:
         original.replace('schema_version: 1', 'schema_version: 2'),
         original.replace('status: reference', 'status: []'),
         original.replace('package_groups:\n', ''),
-        original.replace('  - usb-bluetooth\n', '  - missing-group\n', 1),
+        original.replace('  - minimal-usb-bluetooth\n', '  - missing-group\n', 1),
         original.replace('packages_add:\n', 'packages_add:\n  - test\n  - test\n', 1),
         original.replace('packages_add:\n', 'packages_add:\n  - test\n', 1).replace('packages_remove: []', 'packages_remove:\n  - test'),
     ):
@@ -35,7 +35,7 @@ with tempfile.TemporaryDirectory() as temp:
         run('validate-profile-catalog.py', valid=False)
     profile.write_text(original)
 
-    # Profile names no longer encode package composition; only the generic ID/version format matters.
+    # Profile names do not define package composition; only the generic ID/version format matters.
     for name in ('bad.yaml', 'device-test-25.yaml', 'device--test-25.12.5.yaml', 'device-test-25.12.5.yml', 'notes.txt'):
         bad = root / 'profiles' / name
         bad.write_text(original)
