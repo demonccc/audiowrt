@@ -128,9 +128,14 @@ def require_string(value: object, field: str, pattern: re.Pattern[str] = IDENTIF
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("profiles_dir", type=Path)
+    # Kept positional for build-script compatibility; new callers should pass config/package-groups.
     parser.add_argument("groups_dir", type=Path)
     parser.add_argument("profile_id")
     args = parser.parse_args()
+
+    groups_dir = args.groups_dir
+    if groups_dir.name == "flavors":
+        groups_dir = groups_dir.parent / "package-groups"
 
     if not PROFILE_ID.fullmatch(args.profile_id):
         fail("profile ID must contain only lowercase letters, digits, dots and hyphens")
@@ -162,7 +167,7 @@ def main() -> int:
     resolved_add: list[str] = []
     resolved_remove: list[str] = []
     for group_name in ["common", *groups]:
-        group_add, group_remove = read_group(args.groups_dir / f"{group_name}.yaml")
+        group_add, group_remove = read_group(groups_dir / f"{group_name}.yaml")
         resolved_add, resolved_remove = apply_overlay(resolved_add, resolved_remove, group_add, group_remove)
 
     profile_add = identifier_list(data.get("packages_add"), "packages_add")
@@ -182,6 +187,8 @@ def main() -> int:
         "status": status,
         "maintainer_github": maintainer,
         "package_groups": groups,
+        # Temporary compatibility field for the current build log/output naming.
+        "flavor": "+".join(groups) if groups else "common",
         "openwrt_source": openwrt_source,
         "openwrt_version": openwrt_version,
         "openwrt_profile": require_string(data.get("openwrt_profile"), "openwrt_profile"),
