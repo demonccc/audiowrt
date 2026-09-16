@@ -1,5 +1,6 @@
 # Audio appliance policy; keep IPv6 and official runtime implementations.
 busybox
+dnsmasq
 firewall4
 nftables
 kmod-nft-nat
