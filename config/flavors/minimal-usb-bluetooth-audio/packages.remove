@@ -1,4 +1,5 @@
-# Minimal Bluetooth plus USB Audio; provisioning DHCP is provided by odhcpd.
+# Minimal Bluetooth plus USB Audio; provisioning DHCP uses audiowrt-udhcpd.
+busybox
 firewall4
 nftables
 kmod-nft-nat

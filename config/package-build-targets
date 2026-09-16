@@ -13,6 +13,7 @@ luci-app-audiowrt-core|package/feeds/audiowrt/luci-app-audiowrt-core/compile
 audiowrt-storage-luci|package/feeds/audiowrt/luci-app-audiowrt-storage/compile
 kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
 
+audiowrt-busybox|package/feeds/audiowrt/audiowrt-busybox/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
 audiowrt-minimal-mbedtls|package/feeds/audiowrt/audiowrt-minimal-mbedtls/compile
