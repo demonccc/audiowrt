@@ -5,7 +5,6 @@ packages_add:
   - audiowrt-bluetooth
   - kmod-audiowrt-bluetooth
 packages_remove:
-  - alsa-lib
   - kmod-bluetooth
   - kmod-btusb
   - kmod-btmtk
