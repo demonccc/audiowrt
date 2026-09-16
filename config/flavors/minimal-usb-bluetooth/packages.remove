@@ -1,5 +1,6 @@
-# Bluetooth minimal policy: keep the USB Bluetooth stack, odhcpd provisioning
-# and administrative SSH while removing optional router/audio capabilities.
+# Bluetooth minimal policy: keep the USB Bluetooth stack, BusyBox udhcpd
+# provisioning, AudioWRT LuCI apps, and administrative SSH while removing
+# optional router/audio capabilities and generic LuCI administration modules.
 busybox
 firewall4
 nftables
@@ -24,5 +25,8 @@ luci
 luci-light
 luci-mod-admin-full
 luci-mod-network
+luci-mod-status
+luci-mod-system
+luci-app-package-manager
 luci-app-firewall
 luci-proto-ppp
