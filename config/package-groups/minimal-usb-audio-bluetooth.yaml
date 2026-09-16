@@ -1,0 +1,13 @@
+schema_version: 1
+include:
+  - minimal-usb-audio
+  - minimal-usb-bluetooth
+packages_add:
+  - audiowrt-bluetooth
+  - kmod-audiowrt-bluetooth
+  - alsa-lib
+  - kmod-sound-core
+  - kmod-sound-midi2
+  - kmod-sound-midi2-usb
+  - kmod-usb-audio
+packages_remove: []
