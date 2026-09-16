@@ -26,7 +26,7 @@ assert {
     "audiowrt-dropbear",
     "audiowrt-wpa-supplicant",
     "audiowrt-minidlna",
-    "audiowrt-umdns",
+    "umdns",
     "kmod-audiowrt-bluetooth",
 } <= added
 assert {
@@ -34,12 +34,13 @@ assert {
     "libmbedtls21",
     "dropbear",
     "wpad-basic-mbedtls",
-    "minidlna",
-    "umdns",
     "kmod-sound-midi2",
     "kmod-sound-midi2-usb",
 } <= removed
-assert not ({"alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "minidlna", "umdns"} & added)
+assert not ({"alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls"} & added)
+assert "minidlna" not in removed
+assert "umdns" not in removed
+assert "audiowrt-umdns" not in added
 ' <<< "$resolved"
 
 for package in \
@@ -47,20 +48,21 @@ for package in \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
     audiowrt-wpa-supplicant \
-    audiowrt-minidlna \
-    audiowrt-umdns; do
+    audiowrt-minidlna; do
     grep -q "^${package}|package/feeds/audiowrt/${package}/compile$" "$targets"
 done
 
 grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile' "$targets"
 
-for package in audiowrt-minimal-alsa audiowrt-minimal-mbedtls audiowrt-dropbear audiowrt-minidlna audiowrt-umdns; do
+for package in audiowrt-minimal-alsa audiowrt-minimal-mbedtls audiowrt-dropbear; do
     grep -qx "$package" "$sources"
 done
-if grep -qx 'audiowrt-wpa-supplicant' "$sources"; then
-    echo 'ERROR: audiowrt-wpa-supplicant is a package-only selector and must not be classified as a source build.' >&2
-    exit 1
-fi
+for package in audiowrt-wpa-supplicant audiowrt-minidlna audiowrt-umdns; do
+    if grep -qx "$package" "$sources"; then
+        echo "ERROR: $package is not a compiled-source root and must use NO_DEPS=1/official runtime binaries." >&2
+        exit 1
+    fi
+done
 
 for keep in bluetooth.ko btmtk.ko btintel.ko btrtl.ko btusb.ko; do
     grep -Fq "$keep" "$build_script"
