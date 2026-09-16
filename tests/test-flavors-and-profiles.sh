@@ -6,10 +6,18 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 resolver="$repo_root/scripts/resolve-audiowrt-profile.py"
 groups="$repo_root/config/package-groups"
 
-for group in common minimal usb-audio usb-bluetooth; do
+for group in \
+    common \
+    minimal-usb-audio \
+    minimal-usb-bluetooth \
+    minimal-usb-audio-bluetooth \
+    usb-audio \
+    usb-bluetooth \
+    usb-audio-bluetooth; do
     test -s "$groups/$group.yaml"
 done
 
+test ! -e "$groups/minimal.yaml"
 test ! -e "$repo_root/config/flavors"
 
 # Global policy belongs to common and common is automatic.
@@ -26,6 +34,7 @@ import json, sys
 data = json.load(sys.stdin)
 assert data["id"] == sys.argv[1]
 assert isinstance(data["package_groups"], list)
+assert "flavor" not in data
 assert data["openwrt_source"] in {"release", "snapshot"}
 assert not set(data["packages_add"]) & set(data["packages_remove"])
 assert "audiowrt-branding" in data["packages_add"]
@@ -34,20 +43,32 @@ assert "dnsmasq" in data["packages_remove"]
 ' "$profile" <<< "$resolved"
 done
 
-wdr="$(python3 "$resolver" "$repo_root/profiles" "$groups" tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)"
+wdr_bt="$(python3 "$resolver" "$repo_root/profiles" "$groups" tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)"
 python3 -c '
 import json, sys
 data = json.load(sys.stdin)
-assert data["package_groups"] == ["usb-bluetooth", "minimal"]
+assert data["package_groups"] == ["minimal-usb-bluetooth"]
 assert data["openwrt_profile"] == "tplink_tl-wdr4300-v1"
 assert data["squashfs_block_size"] == "1024"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "kmod-audiowrt-bluetooth"} <= added
 assert {"alsa-lib", "dnsmasq", "kmod-bluetooth", "kmod-usb-audio"} <= removed
-' <<< "$wdr"
+' <<< "$wdr_bt"
 
-# Ordered overlay semantics: later groups win.
+wdr_audio="$(python3 "$resolver" "$repo_root/profiles" "$groups" tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5)"
+python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+assert data["package_groups"] == ["minimal-usb-audio"]
+assert data["openwrt_profile"] == "tplink_tl-wdr4300-v1"
+added = set(data["packages_add"])
+removed = set(data["packages_remove"])
+assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-usb-audio", "kmod-usb-audio"} <= added
+assert {"dnsmasq", "kmod-bluetooth", "kmod-audiowrt-bluetooth"} <= removed
+' <<< "$wdr_audio"
+
+# When a profile intentionally combines groups, later groups win add/remove conflicts.
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/groups" "$tmp/profiles"
@@ -102,5 +123,8 @@ python3 -c 'import json,sys; d=json.load(sys.stdin); assert "conflict-package" i
 
 grep -q 'AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5' "$repo_root/scripts/build.sh"
 grep -q 'CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=' "$repo_root/scripts/build.sh"
+grep -q 'config/build/package-build-targets' "$repo_root/scripts/build.sh"
+grep -q 'config/build/source-build-packages' "$repo_root/scripts/build.sh"
+! grep -q 'check-usb.py' "$repo_root/scripts/build.sh"
 
 echo 'AudioWRT package group and device profile tests passed.'
