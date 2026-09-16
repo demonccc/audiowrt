@@ -1,6 +1,6 @@
 # AudioWRT device profiles
 
-Each YAML file binds an OpenWrt device profile to an ordered set of AudioWRT package groups. The file name without `.yaml` is the value passed as `AUDIOWRT_PROFILE`.
+Each YAML file binds an OpenWrt device profile to one or more AudioWRT package groups. The file name without `.yaml` is the value passed as `AUDIOWRT_PROFILE`.
 
 ```yaml
 schema_version: 1
@@ -11,8 +11,7 @@ target: ath79
 subtarget: generic
 squashfs_block_size: default
 package_groups:
-  - usb-audio
-  - usb-bluetooth
+  - usb-audio-bluetooth
 packages_add:
   - device-specific-package
 packages_remove: []
@@ -20,23 +19,29 @@ packages_remove: []
 
 The profile ID must end in the OpenWrt version (`-25.12.5`) or `-snapshot`. Package capabilities are not inferred from the file name; `package_groups` is the canonical composition.
 
-`common` is applied automatically to every profile and must not be listed. Additional package groups are applied in the declared order, so later groups override earlier package add/remove decisions. Device-specific `packages_add` and `packages_remove` are applied last.
+`common` is applied automatically to every profile and must not be listed. Device-specific `packages_add` and `packages_remove` are applied last.
 
-For example, a constrained Bluetooth image can use:
+The selectable package groups are:
+
+- `minimal-usb-audio`
+- `minimal-usb-bluetooth`
+- `minimal-usb-audio-bluetooth`
+- `usb-audio`
+- `usb-bluetooth`
+- `usb-audio-bluetooth`
+
+For example, a constrained Bluetooth image uses:
 
 ```yaml
 package_groups:
-  - usb-bluetooth
-  - minimal
+  - minimal-usb-bluetooth
 ```
 
-A constrained Bluetooth image that also needs the normal USB Audio stack can use:
+A constrained image with both USB Audio and Bluetooth uses:
 
 ```yaml
 package_groups:
-  - usb-bluetooth
-  - minimal
-  - usb-audio
+  - minimal-usb-audio-bluetooth
 ```
 
 Shared composition belongs in `config/package-groups/`. Runtime files and package-specific configuration belong in packages under `audiowrt-packages`; device profiles remain data-only.
@@ -52,11 +57,15 @@ Status values are:
 
 `maintainer_github` is mandatory and contains one GitHub username without the leading `@`.
 
+## Hardware responsibility
+
+AudioWRT no longer rejects a profile just because USB-host capability cannot be inferred from OpenWrt package metadata. The profile maintainer is responsible for checking the hardware documentation and OpenWrt support and confirming that the device has a usable audio path for the selected package group, such as USB Audio or a USB Bluetooth adapter.
+
 ## Contributing a profile
 
 1. Confirm that the exact `openwrt_profile`, `target` and `subtarget` exist in the selected OpenWrt release.
-2. Confirm that the device has usable USB host support.
-3. Select the required `package_groups` in the order they should be overlaid.
+2. Confirm from the hardware/OpenWrt documentation that the device can expose the audio path required by the selected package group.
+3. Select the required `package_groups`.
 4. Use `packages_add` / `packages_remove` only for genuine device-specific exceptions.
 5. Run `python3 scripts/validate-profile-catalog.py` and `python3 tests/test-profile-catalog.py`.
 6. Build the new profile and include the device revision and basic runtime validation in the pull request.
