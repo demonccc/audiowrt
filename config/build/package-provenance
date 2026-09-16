@@ -1,0 +1,49 @@
+# package|strategy|origin|canonical_path|delta_directory
+#
+# Every package built by AudioWRT must declare where its implementation comes
+# from. `openwrt-derived` packages are materialized at build time from the
+# canonical package directory of the selected OpenWrt release/feed commit, then
+# receive only the AudioWRT delta stored in audiowrt-packages.
+#
+# Strategies:
+#   audiowrt-owned    package implementation is owned by AudioWRT
+#   third-party       AudioWRT owns the recipe because OpenWrt has no canonical package
+#   openwrt-selector  package only selects an official exact-release OpenWrt package
+#   openwrt-prebuilt  package repacks exact-release OpenWrt binary artifacts
+#   openwrt-derived   package inherits exact-release recipe, files and patches
+#
+# Origins for openwrt-derived/openwrt-selector:
+#   base      selected openwrt/openwrt source tree / SDK
+#   packages  official packages feed from the selected SDK feeds.conf.default
+
+audiowrt-branding|audiowrt-owned|||
+audiowrt-core|audiowrt-owned|||
+audiowrt-provisioning|audiowrt-owned|||
+audiowrt-storage|audiowrt-owned|||
+luci-app-audiowrt-core|audiowrt-owned|||
+audiowrt-storage-luci|audiowrt-owned|||
+kmod-audiowrt-bluetooth|openwrt-prebuilt|target-kmods||audiowrt-kmod-bluetooth
+audiowrt-busybox|openwrt-derived|base|package/utils/busybox|audiowrt-busybox
+audiowrt-audio|audiowrt-owned|||
+audiowrt-minimal-alsa|openwrt-derived|packages|libs/alsa-lib|audiowrt-minimal-alsa
+audiowrt-minimal-mbedtls|openwrt-derived|base|package/libs/mbedtls|audiowrt-minimal-mbedtls
+audiowrt-dropbear|openwrt-derived|base|package/network/services/dropbear|audiowrt-dropbear
+audiowrt-wpa-supplicant|openwrt-selector|base|package/network/services/hostapd|audiowrt-wpa-supplicant
+audiowrt-minidlna|openwrt-derived|packages|multimedia/minidlna|audiowrt-minidlna
+audiowrt-umdns|openwrt-derived|base|package/network/services/umdns|audiowrt-umdns
+audiowrt-usb-audio|audiowrt-owned|||
+audiowrt-extensions|audiowrt-owned|||
+audiowrt-wifi-client|audiowrt-owned|||
+audiowrt-udhcpd|audiowrt-owned|||
+audiowrt-mpd|audiowrt-owned|||
+audiowrt-airplay|audiowrt-owned|||
+audiowrt-spotify|audiowrt-owned|||
+audiowrt-sbc|openwrt-derived|packages|libs/sbc|audiowrt-sbc
+audiowrt-bluez-libs|openwrt-derived|packages|utils/bluez|audiowrt-bluez
+audiowrt-bluez|openwrt-derived|packages|utils/bluez|audiowrt-bluez
+audiowrt-btctl|audiowrt-owned|||
+bluez-alsa|third-party|||bluez-alsa
+audiowrt-bluetooth|audiowrt-owned|||
+luci-app-audiowrt|audiowrt-owned|||
+luci-app-audiowrt-wifi-client|audiowrt-owned|||
+librespot|third-party|||librespot
