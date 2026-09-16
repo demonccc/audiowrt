@@ -2,11 +2,23 @@
 
 AudioWRT firmware composition is based on package groups, not flavors.
 
-`common` is the mandatory AudioWRT baseline and is applied automatically to every profile. It is not selected explicitly.
+`common` is the mandatory AudioWRT baseline and is applied automatically to every profile. It is not selected explicitly. It contains only functionality that is identical in every AudioWRT image; implementation choices such as standard vs constrained SSH, Wi-Fi supplicant, DLNA and mDNS do not belong there.
 
-Reusable base groups:
+Reusable runtime groups:
 
-- `minimal`: shared constrained-device policy used by all `minimal-*` groups.
+- `minimal`: constrained-device runtime using AudioWRT-owned replacements where reducing flash usage matters.
+- `standard`: ordinary OpenWrt runtime packages for devices where flash pressure is not the primary constraint.
+
+Runtime mapping:
+
+| Function | Minimal | Standard |
+| --- | --- | --- |
+| ALSA | `audiowrt-minimal-alsa` | `alsa-lib` |
+| TLS | `audiowrt-minimal-mbedtls` | `libmbedtls21` |
+| SSH server | `audiowrt-dropbear` | `dropbear` |
+| Wi-Fi station | `audiowrt-wpa-supplicant` | `wpad-basic-mbedtls` |
+| DLNA server | `audiowrt-minidlna` | `minidlna` |
+| mDNS / `.local` | `audiowrt-umdns` | `umdns` |
 
 Selectable capability groups are:
 
@@ -19,7 +31,7 @@ Selectable capability groups are:
 
 Package groups may declare `include` entries to reuse another package group. Includes are resolved recursively before the current group's own `packages_add` / `packages_remove` entries are applied. Include cycles are rejected.
 
-The three `minimal-*` groups include `minimal`, so shared minimal packages and removals are defined once instead of duplicated.
+The three `minimal-*` groups include `minimal`. The three standard `usb-*` groups include `standard`. This keeps runtime implementation policy separate from USB audio/Bluetooth capability selection and avoids relying on include ordering to choose core implementations.
 
 A profile selects the package group or groups it needs through `package_groups`. Package groups define package selection only. Device-specific exceptions belong in the profile's `packages_add` / `packages_remove` overrides.
 
@@ -37,7 +49,7 @@ Resolution order is:
 3. each selected group's own package changes;
 4. device profile `packages_add` / `packages_remove` overrides.
 
-Runtime files and package-specific configuration do not belong in this repository. They must be owned by a package under `audiowrt-packages` (including metadata/configuration-only packages when appropriate).
+Runtime files and package-specific configuration do not belong in this repository. They must be owned by a package under `audiowrt-packages`.
 
 ## Hardware responsibility
 
