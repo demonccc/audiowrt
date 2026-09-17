@@ -17,11 +17,11 @@ Runtime mapping:
 | TLS | `audiowrt-minimal-mbedtls` | `libmbedtls21` |
 | SSH server | `audiowrt-dropbear` | `dropbear` |
 | Wi-Fi station | `audiowrt-wpa-supplicant` | `wpad-basic-mbedtls` |
-| MPD backend | `mpd-mini` | `mpd-mini` |
-| UPnP/DLNA renderer | `upmpdcli` + `audiowrt-minimal-upmpdcli` runtime profile | `upmpdcli` |
+| MPD backend | none | `mpd-mini` |
+| UPnP/DLNA renderer | `audiowrt-minimal-dlna-renderer` | `upmpdcli` |
 | mDNS / `.local` | `umdns` | `umdns` |
 
-The renderer is the public network-audio interface. MPD is an internal playback backend and is configured by `audiowrt-mpd` to listen on loopback. Minimal builds reuse the exact OpenWrt `mpd-mini` and `upmpdcli` binaries; `audiowrt-minimal-upmpdcli` is configuration-only, disables OpenHome and replaces the advertised renderer protocol list without rebuilding upstream source.
+The minimal renderer is a direct UPnP AV endpoint: it uses `libupnp` for discovery/control/HTTP, decodes only FLAC and MP3, and writes directly to the minimal ALSA provider. It deliberately excludes MPD and upmpdcli from constrained images. Standard builds keep the normal OpenWrt `upmpdcli -> mpd-mini -> alsa-lib` stack for broader functionality.
 
 Selectable capability groups are:
 
