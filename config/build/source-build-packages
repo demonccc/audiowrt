@@ -12,6 +12,7 @@ audiowrt-busybox
 audiowrt-minimal-alsa
 audiowrt-minimal-mbedtls
 audiowrt-dropbear
+audiowrt-minimal-dlna-renderer
 librespot
 audiowrt-sbc
 audiowrt-bluez-libs
