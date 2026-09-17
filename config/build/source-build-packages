@@ -12,6 +12,12 @@ audiowrt-busybox
 audiowrt-minimal-alsa
 audiowrt-minimal-mbedtls
 audiowrt-dropbear
+audiowrt-dlna
+audiowrt-player-core
+audiowrt-player-flac
+audiowrt-player-mp3
+audiowrt-player-aac
+audiowrt-player-wav
 librespot
 audiowrt-sbc
 audiowrt-bluez-libs
