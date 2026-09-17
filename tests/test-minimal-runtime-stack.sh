@@ -25,12 +25,11 @@ assert {
     "audiowrt-minimal-mbedtls",
     "audiowrt-dropbear",
     "audiowrt-wpa-supplicant",
-    "audiowrt-dlna",
+    "audiowrt-renderer",
     "audiowrt-player-core",
     "audiowrt-player-flac",
     "audiowrt-player-mp3",
-    "luci-app-audiowrt-dlna",
-    "umdns",
+    "luci-app-audiowrt-renderer",
     "kmod-audiowrt-bluetooth",
 } <= added
 assert {
@@ -44,15 +43,16 @@ assert {
     "audiowrt-minimal-upmpdcli",
     "audiowrt-mpd",
     "minidlna",
+    "umdns",
+    "audiowrt-umdns",
     "kmod-sound-midi2",
     "kmod-sound-midi2-usb",
 } <= removed
 assert not ({
     "mpd-mini", "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli",
-    "audiowrt-mpd", "minidlna", "audiowrt-player-aac", "audiowrt-player-wav"
+    "audiowrt-mpd", "minidlna", "umdns", "audiowrt-umdns",
+    "audiowrt-player-aac", "audiowrt-player-wav"
 } & added)
-assert "umdns" not in removed
-assert "audiowrt-umdns" not in added
 ' <<< "$minimal"
 
 standard="$(python3 "$resolver" \
@@ -66,16 +66,16 @@ data = json.load(sys.stdin)
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
-    "audiowrt-dlna",
+    "audiowrt-renderer",
     "audiowrt-player-core",
     "audiowrt-player-flac",
     "audiowrt-player-mp3",
     "audiowrt-player-aac",
     "audiowrt-player-wav",
-    "luci-app-audiowrt-dlna",
+    "luci-app-audiowrt-renderer",
 } <= added
-assert {"mpd-mini", "mpd-full", "upmpdcli", "audiowrt-mpd", "minidlna"} <= removed
-assert not ({"mpd-mini", "mpd-full", "upmpdcli", "audiowrt-mpd", "minidlna"} & added)
+assert {"mpd-mini", "mpd-full", "upmpdcli", "audiowrt-mpd", "minidlna", "umdns", "audiowrt-umdns"} <= removed
+assert not ({"mpd-mini", "mpd-full", "upmpdcli", "audiowrt-mpd", "minidlna", "umdns", "audiowrt-umdns"} & added)
 ' <<< "$standard"
 
 for package in \
@@ -83,13 +83,13 @@ for package in \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
     audiowrt-wpa-supplicant \
-    audiowrt-dlna \
+    audiowrt-renderer \
     audiowrt-player-core \
     audiowrt-player-flac \
     audiowrt-player-mp3 \
     audiowrt-player-aac \
     audiowrt-player-wav \
-    luci-app-audiowrt-dlna; do
+    luci-app-audiowrt-renderer; do
     grep -q "^${package}|package/feeds/audiowrt/" "$targets"
 done
 
@@ -99,7 +99,7 @@ for package in \
     audiowrt-minimal-alsa \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
-    audiowrt-dlna \
+    audiowrt-renderer \
     audiowrt-player-core \
     audiowrt-player-flac \
     audiowrt-player-mp3 \
@@ -108,7 +108,7 @@ for package in \
     grep -qx "$package" "$sources"
 done
 
-for package in audiowrt-wpa-supplicant audiowrt-minimal-upmpdcli audiowrt-mpd audiowrt-umdns mpd-mini upmpdcli luci-app-audiowrt-dlna; do
+for package in audiowrt-wpa-supplicant audiowrt-minimal-upmpdcli audiowrt-mpd audiowrt-umdns mpd-mini upmpdcli luci-app-audiowrt-renderer; do
     if grep -qx "$package" "$sources"; then
         echo "ERROR: $package must not be a source-build root." >&2
         exit 1
@@ -153,4 +153,4 @@ if python3 "$repo_root/scripts/verify-openwrt-checksum.py" \
     exit 1
 fi
 
-echo 'Native DLNA runtime stack distribution contracts passed.'
+echo 'Unified renderer runtime stack distribution contracts passed.'
