@@ -4,12 +4,11 @@ packages_add:
   - audiowrt-minimal-mbedtls
   - audiowrt-dropbear
   - audiowrt-wpa-supplicant
-  - audiowrt-dlna
+  - audiowrt-renderer
   - audiowrt-player-core
   - audiowrt-player-flac
   - audiowrt-player-mp3
-  - luci-app-audiowrt-dlna
-  - umdns
+  - luci-app-audiowrt-renderer
 packages_remove:
   - odhcp6c
   - alsa-lib
@@ -24,4 +23,6 @@ packages_remove:
   - audiowrt-minimal-upmpdcli
   - audiowrt-mpd
   - minidlna
+  - umdns
+  - audiowrt-umdns
   - kmod-media-controller
