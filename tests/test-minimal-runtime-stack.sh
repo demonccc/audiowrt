@@ -25,7 +25,8 @@ assert {
     "audiowrt-minimal-mbedtls",
     "audiowrt-dropbear",
     "audiowrt-wpa-supplicant",
-    "audiowrt-minimal-mpd",
+    "mpd-mini",
+    "upmpdcli",
     "audiowrt-minimal-upmpdcli",
     "audiowrt-mpd",
     "umdns",
@@ -36,16 +37,17 @@ assert {
     "libmbedtls21",
     "dropbear",
     "wpad-basic-mbedtls",
-    "mpd-mini",
     "mpd-full",
-    "upmpdcli",
     "minidlna",
     "kmod-sound-midi2",
     "kmod-sound-midi2-usb",
 } <= removed
-assert not ({"alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "mpd-mini", "mpd-full", "upmpdcli", "minidlna"} & added)
+assert not ({"alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "mpd-full", "minidlna"} & added)
+assert "mpd-mini" not in removed
+assert "upmpdcli" not in removed
 assert "umdns" not in removed
 assert "audiowrt-umdns" not in added
+assert "audiowrt-minimal-mpd" not in added
 ' <<< "$resolved"
 
 for package in \
@@ -53,24 +55,23 @@ for package in \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
     audiowrt-wpa-supplicant \
-    audiowrt-minimal-mpd \
     audiowrt-minimal-upmpdcli; do
     grep -q "^${package}|package/feeds/audiowrt/${package}/compile$" "$targets"
 done
 
+if grep -q '^audiowrt-minimal-mpd|' "$targets"; then
+    echo 'ERROR: removed custom MPD source package is still registered as an SDK target.' >&2
+    exit 1
+fi
+
 grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile' "$targets"
 
-for package in \
-    audiowrt-minimal-alsa \
-    audiowrt-minimal-mbedtls \
-    audiowrt-dropbear \
-    audiowrt-minimal-mpd \
-    audiowrt-minimal-upmpdcli; do
+for package in audiowrt-minimal-alsa audiowrt-minimal-mbedtls audiowrt-dropbear; do
     grep -qx "$package" "$sources"
 done
-for package in audiowrt-wpa-supplicant audiowrt-umdns; do
+for package in audiowrt-wpa-supplicant audiowrt-minimal-upmpdcli audiowrt-minimal-mpd audiowrt-umdns mpd-mini upmpdcli; do
     if grep -qx "$package" "$sources"; then
-        echo "ERROR: $package is not a compiled-source root and must use NO_DEPS=1/official runtime binaries." >&2
+        echo "ERROR: $package must reuse official runtime binaries or NO_DEPS=1 and must not be a source-build root." >&2
         exit 1
     fi
 done

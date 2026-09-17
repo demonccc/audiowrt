@@ -6,7 +6,7 @@ AudioWRT firmware composition is based on package groups, not flavors.
 
 Reusable runtime groups:
 
-- `minimal`: constrained-device runtime using AudioWRT-owned replacements where reducing flash usage matters.
+- `minimal`: constrained-device runtime using AudioWRT-owned replacements only where a compiled binary really needs to differ.
 - `standard`: ordinary OpenWrt runtime packages for devices where flash pressure is not the primary constraint.
 
 Runtime mapping:
@@ -17,11 +17,11 @@ Runtime mapping:
 | TLS | `audiowrt-minimal-mbedtls` | `libmbedtls21` |
 | SSH server | `audiowrt-dropbear` | `dropbear` |
 | Wi-Fi station | `audiowrt-wpa-supplicant` | `wpad-basic-mbedtls` |
-| MPD backend | `audiowrt-minimal-mpd` | `mpd-mini` |
-| UPnP/DLNA renderer | `audiowrt-minimal-upmpdcli` | `upmpdcli` |
+| MPD backend | `mpd-mini` | `mpd-mini` |
+| UPnP/DLNA renderer | `upmpdcli` + `audiowrt-minimal-upmpdcli` runtime profile | `upmpdcli` |
 | mDNS / `.local` | `umdns` | `umdns` |
 
-The renderer is the public network-audio interface. MPD is an internal playback backend and is configured by `audiowrt-mpd` to listen on loopback. Minimal builds advertise and decode FLAC + MP3; standard builds use the codec support provided by the official OpenWrt MPD/upmpdcli packages.
+The renderer is the public network-audio interface. MPD is an internal playback backend and is configured by `audiowrt-mpd` to listen on loopback. Minimal builds reuse the exact OpenWrt `mpd-mini` and `upmpdcli` binaries; `audiowrt-minimal-upmpdcli` is configuration-only, disables OpenHome and replaces the advertised renderer protocol list without rebuilding upstream source.
 
 Selectable capability groups are:
 
