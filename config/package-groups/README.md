@@ -2,7 +2,7 @@
 
 AudioWRT firmware composition is based on package groups, not flavors.
 
-`common` is the mandatory AudioWRT baseline and is applied automatically to every profile. It is not selected explicitly. It contains only functionality that is identical in every AudioWRT image; implementation choices such as standard vs constrained SSH, Wi-Fi supplicant, DLNA and mDNS do not belong there.
+`common` is the mandatory AudioWRT baseline and is applied automatically to every profile. It is not selected explicitly. It contains only functionality that is identical in every AudioWRT image; implementation choices such as standard vs constrained SSH, Wi-Fi supplicant, UPnP/DLNA rendering and mDNS do not belong there.
 
 Reusable runtime groups:
 
@@ -17,8 +17,11 @@ Runtime mapping:
 | TLS | `audiowrt-minimal-mbedtls` | `libmbedtls21` |
 | SSH server | `audiowrt-dropbear` | `dropbear` |
 | Wi-Fi station | `audiowrt-wpa-supplicant` | `wpad-basic-mbedtls` |
-| DLNA server | `audiowrt-minidlna` | `minidlna` |
-| mDNS / `.local` | `audiowrt-umdns` | `umdns` |
+| MPD backend | `audiowrt-minimal-mpd` | `mpd-mini` |
+| UPnP/DLNA renderer | `audiowrt-minimal-upmpdcli` | `upmpdcli` |
+| mDNS / `.local` | `umdns` | `umdns` |
+
+The renderer is the public network-audio interface. MPD is an internal playback backend and is configured by `audiowrt-mpd` to listen on loopback. Minimal builds advertise and decode FLAC + MP3; standard builds use the codec support provided by the official OpenWrt MPD/upmpdcli packages.
 
 Selectable capability groups are:
 

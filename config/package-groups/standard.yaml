@@ -4,12 +4,16 @@ packages_add:
   - libmbedtls21
   - dropbear
   - wpad-basic-mbedtls
-  - minidlna
+  - mpd-mini
+  - upmpdcli
+  - audiowrt-mpd
   - umdns
 packages_remove:
   - audiowrt-minimal-alsa
   - audiowrt-minimal-mbedtls
   - audiowrt-dropbear
   - audiowrt-wpa-supplicant
-  - audiowrt-minidlna
+  - audiowrt-minimal-mpd
+  - audiowrt-minimal-upmpdcli
+  - minidlna
   - audiowrt-umdns

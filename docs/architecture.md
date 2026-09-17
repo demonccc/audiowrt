@@ -50,13 +50,15 @@ selected OpenWrt release/SDK
 AudioWRT derived APK for the selected release + architecture
 ```
 
-This is the rule for **all** actual source-derived packages, including the Bluetooth stack. The current source-derived set is:
+This is the rule for **all** actual source-derived packages, including the constrained audio renderer and Bluetooth stack. The current source-derived set includes:
 
 - `audiowrt-busybox` -> OpenWrt `busybox`;
 - `audiowrt-minimal-mbedtls` -> OpenWrt `mbedtls`;
 - `audiowrt-dropbear` -> OpenWrt `dropbear`;
 - `audiowrt-umdns` -> OpenWrt `umdns` when that package is explicitly selected as a custom source build;
 - `audiowrt-minimal-alsa` -> packages feed `alsa-lib`;
+- `audiowrt-minimal-mpd` -> packages feed `mpd`;
+- `audiowrt-minimal-upmpdcli` -> packages feed `upmpdcli`;
 - `audiowrt-sbc` -> packages feed `sbc`;
 - `audiowrt-bluez` -> packages feed `bluez`.
 
@@ -75,7 +77,7 @@ A package must **not** become a source build merely because AudioWRT changes its
 Current examples:
 
 - `audiowrt-wpa-supplicant` selects the exact `wpa-supplicant-mbedtls` package from the selected release instead of carrying a hostapd/wpa source fork;
-- `audiowrt-minidlna` is an AudioWRT audio-only runtime profile around the exact official `minidlna` package. It does not rebuild MiniDLNA or FFmpeg because AudioWRT currently has no compiled MiniDLNA delta;
+- the `standard` audio runtime uses the exact official OpenWrt `mpd-mini` and `upmpdcli` packages rather than rebuilding them;
 - minimal currently uses the official `umdns` package because `.local`/mDNS does not justify rebuilding the daemon;
 - `audiowrt-kmod-bluetooth`, `kmod-audiowrt-sound-core` and `kmod-audiowrt-usb-audio` repackage modules from the exact release/target instead of rebuilding the kernel.
 
@@ -86,6 +88,30 @@ The kmod strategy preserves the selected kernel ABI, architecture and OpenWrt ta
 If there is no canonical package in the supported OpenWrt `base` or `packages` feed, AudioWRT owns the recipe. Examples currently include `bluez-alsa` and `librespot`.
 
 These packages may pin their upstream source because there is no OpenWrt recipe to inherit, but they still compile using the SDK/toolchain/target selected by the profile. If OpenWrt later gains a canonical recipe, the package should be migrated to the derived model.
+
+## Network audio renderer
+
+AudioWRT exposes UPnP AV/DLNA as its network-facing renderer protocol. MPD is an internal playback backend, not the public discovery/control interface.
+
+```text
+UPnP/DLNA controller
+        |
+        v
+     upmpdcli
+        |
+  localhost:6600
+        |
+        v
+       MPD
+        |
+       ALSA
+      /    \
+ USB Audio  BlueALSA
+```
+
+The constrained runtime uses `audiowrt-minimal-upmpdcli` with OpenHome disabled and a static sink capability list containing only FLAC and MP3. `audiowrt-minimal-mpd` matches that capability list by compiling only the network/playback features required for HTTP input, FLAC + MP3 decoding and ALSA output. The standard runtime uses the official OpenWrt `upmpdcli` and `mpd-mini` packages.
+
+`audiowrt-mpd` is a small shared runtime configuration layer. It binds MPD to `127.0.0.1:6600`, so UPnP/DLNA remains the externally visible renderer interface while the selected MPD provider stays internal.
 
 ## Relationship to openwrt-builder
 
@@ -159,11 +185,11 @@ This is what makes the package model portable across 24.10, 25.12, snapshots and
 
 `config/build/package-build-targets` maps AudioWRT binary packages to SDK make targets. `config/build/source-build-packages` is a strict opt-in list containing only packages that genuinely compile/link a different binary.
 
-Package-only wrappers remain behind `NO_DEPS=1`, so runtime dependencies such as LuCI, uhttpd, MiniDLNA, umdns and unrelated OpenWrt packages remain official binaries.
+Package-only wrappers remain behind `NO_DEPS=1`, so unchanged runtime dependencies such as LuCI, uhttpd, umdns and the standard OpenWrt MPD/upmpdcli packages remain official binaries.
 
 A package may enter `source-build-packages` only if AudioWRT has a real compiled-source delta. Adding it means explicitly accepting compilation of the build/link dependency closure required to produce that binary. A wrapper, selector or runtime-profile package must never be added simply because it references an upstream project.
 
-In particular, `audiowrt-minidlna` is intentionally **not** a source-build package. Its current AudioWRT delta is runtime configuration only; rebuilding it would pull the full FFmpeg dependency graph into a constrained SDK build without producing a truly smaller binary. If AudioWRT later carries a genuine audio-only MiniDLNA source patch that removes those link dependencies, it may be promoted back into the source-build set.
+The constrained renderer is an intentional source-build exception: `audiowrt-minimal-mpd` removes codecs and subsystems from the compiled MPD binary, while `audiowrt-minimal-upmpdcli` packages the exact-release renderer around the constrained runtime and advertises only the formats the backend can decode. Standard builds keep the official OpenWrt binaries.
 
 ## Firmware composition
 
