@@ -25,7 +25,9 @@ assert {
     "audiowrt-minimal-mbedtls",
     "audiowrt-dropbear",
     "audiowrt-wpa-supplicant",
-    "audiowrt-minidlna",
+    "audiowrt-minimal-mpd",
+    "audiowrt-minimal-upmpdcli",
+    "audiowrt-mpd",
     "umdns",
     "kmod-audiowrt-bluetooth",
 } <= added
@@ -34,11 +36,14 @@ assert {
     "libmbedtls21",
     "dropbear",
     "wpad-basic-mbedtls",
+    "mpd-mini",
+    "mpd-full",
+    "upmpdcli",
+    "minidlna",
     "kmod-sound-midi2",
     "kmod-sound-midi2-usb",
 } <= removed
-assert not ({"alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls"} & added)
-assert "minidlna" not in removed
+assert not ({"alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "mpd-mini", "mpd-full", "upmpdcli", "minidlna"} & added)
 assert "umdns" not in removed
 assert "audiowrt-umdns" not in added
 ' <<< "$resolved"
@@ -48,16 +53,22 @@ for package in \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
     audiowrt-wpa-supplicant \
-    audiowrt-minidlna; do
+    audiowrt-minimal-mpd \
+    audiowrt-minimal-upmpdcli; do
     grep -q "^${package}|package/feeds/audiowrt/${package}/compile$" "$targets"
 done
 
 grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile' "$targets"
 
-for package in audiowrt-minimal-alsa audiowrt-minimal-mbedtls audiowrt-dropbear; do
+for package in \
+    audiowrt-minimal-alsa \
+    audiowrt-minimal-mbedtls \
+    audiowrt-dropbear \
+    audiowrt-minimal-mpd \
+    audiowrt-minimal-upmpdcli; do
     grep -qx "$package" "$sources"
 done
-for package in audiowrt-wpa-supplicant audiowrt-minidlna audiowrt-umdns; do
+for package in audiowrt-wpa-supplicant audiowrt-umdns; do
     if grep -qx "$package" "$sources"; then
         echo "ERROR: $package is not a compiled-source root and must use NO_DEPS=1/official runtime binaries." >&2
         exit 1
