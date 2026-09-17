@@ -25,10 +25,7 @@ assert {
     "audiowrt-minimal-mbedtls",
     "audiowrt-dropbear",
     "audiowrt-wpa-supplicant",
-    "mpd-mini",
-    "upmpdcli",
-    "audiowrt-minimal-upmpdcli",
-    "audiowrt-mpd",
+    "audiowrt-minimal-dlna-renderer",
     "umdns",
     "kmod-audiowrt-bluetooth",
 } <= added
@@ -37,16 +34,18 @@ assert {
     "libmbedtls21",
     "dropbear",
     "wpad-basic-mbedtls",
+    "mpd-mini",
     "mpd-full",
+    "upmpdcli",
     "minidlna",
     "kmod-sound-midi2",
     "kmod-sound-midi2-usb",
 } <= removed
-assert not ({"alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "mpd-full", "minidlna"} & added)
-assert "mpd-mini" not in removed
-assert "upmpdcli" not in removed
+assert not ({"alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "mpd-mini", "mpd-full", "upmpdcli", "minidlna"} & added)
 assert "umdns" not in removed
 assert "audiowrt-umdns" not in added
+assert "audiowrt-mpd" not in added
+assert "audiowrt-minimal-upmpdcli" not in added
 assert "audiowrt-minimal-mpd" not in added
 ' <<< "$resolved"
 
@@ -55,23 +54,25 @@ for package in \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
     audiowrt-wpa-supplicant \
-    audiowrt-minimal-upmpdcli; do
+    audiowrt-minimal-dlna-renderer; do
     grep -q "^${package}|package/feeds/audiowrt/${package}/compile$" "$targets"
 done
 
-if grep -q '^audiowrt-minimal-mpd|' "$targets"; then
-    echo 'ERROR: removed custom MPD source package is still registered as an SDK target.' >&2
-    exit 1
-fi
+for removed_target in audiowrt-minimal-mpd audiowrt-minimal-upmpdcli; do
+    if grep -q "^${removed_target}|" "$targets"; then
+        echo "ERROR: obsolete renderer package is still registered as an SDK target: $removed_target" >&2
+        exit 1
+    fi
+done
 
 grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile' "$targets"
 
-for package in audiowrt-minimal-alsa audiowrt-minimal-mbedtls audiowrt-dropbear; do
+for package in audiowrt-minimal-alsa audiowrt-minimal-mbedtls audiowrt-dropbear audiowrt-minimal-dlna-renderer; do
     grep -qx "$package" "$sources"
 done
 for package in audiowrt-wpa-supplicant audiowrt-minimal-upmpdcli audiowrt-minimal-mpd audiowrt-umdns mpd-mini upmpdcli; do
     if grep -qx "$package" "$sources"; then
-        echo "ERROR: $package must reuse official runtime binaries or NO_DEPS=1 and must not be a source-build root." >&2
+        echo "ERROR: $package must not be a source-build root." >&2
         exit 1
     fi
 done
