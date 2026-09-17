@@ -4,7 +4,8 @@ packages_add:
   - audiowrt-minimal-mbedtls
   - audiowrt-dropbear
   - audiowrt-wpa-supplicant
-  - audiowrt-minimal-mpd
+  - mpd-mini
+  - upmpdcli
   - audiowrt-minimal-upmpdcli
   - audiowrt-mpd
   - umdns
@@ -16,8 +17,6 @@ packages_remove:
   - wpad-basic-mbedtls
   - wpad-basic
   - wpad
-  - mpd-mini
   - mpd-full
-  - upmpdcli
   - minidlna
   - kmod-media-controller
