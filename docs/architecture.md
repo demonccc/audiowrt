@@ -29,7 +29,7 @@ AudioWRT packages fall into three provenance classes.
 
 ### 1. OpenWrt-derived source packages
 
-If OpenWrt already owns a canonical recipe for a package, AudioWRT does not pin a parallel upstream version or copy the OpenWrt patch set. The AudioWRT package derives from the canonical recipe exposed by the selected SDK/feed checkout and stores only the AudioWRT delta.
+If OpenWrt already owns a canonical recipe for a package and AudioWRT really changes the compiled binary, AudioWRT does not pin a parallel upstream version or copy the OpenWrt patch set. The AudioWRT package derives from the canonical recipe exposed by the selected SDK/feed checkout and stores only the AudioWRT delta.
 
 ```text
 selected OpenWrt release/SDK
@@ -41,7 +41,7 @@ selected OpenWrt release/SDK
         |      - canonical files
         |      - complete OpenWrt patch set
         |
-        +--> AudioWRT delta
+        +--> AudioWRT compiled-binary delta
                - feature removals/additions
                - packaging changes
                - optional 9xx AudioWRT source patches
@@ -50,28 +50,33 @@ selected OpenWrt release/SDK
 AudioWRT derived APK for the selected release + architecture
 ```
 
-This is the rule for **all** derived packages, including the Bluetooth stack. The current derived set is:
+This is the rule for **all** actual source-derived packages, including the Bluetooth stack. The current source-derived set is:
 
-- `audiowrt-busybox` -> `base/utils/busybox`;
-- `audiowrt-minimal-mbedtls` -> `base/libs/mbedtls`;
-- `audiowrt-dropbear` -> `base/network/services/dropbear`;
-- `audiowrt-umdns` -> `base/network/services/umdns`;
-- `audiowrt-minimal-alsa` -> `packages/libs/alsa-lib`;
-- `audiowrt-minidlna` -> `packages/multimedia/minidlna`;
-- `audiowrt-sbc` -> `packages/libs/sbc`;
-- `audiowrt-bluez` -> `packages/utils/bluez`.
+- `audiowrt-busybox` -> OpenWrt `busybox`;
+- `audiowrt-minimal-mbedtls` -> OpenWrt `mbedtls`;
+- `audiowrt-dropbear` -> OpenWrt `dropbear`;
+- `audiowrt-umdns` -> OpenWrt `umdns` when that package is explicitly selected as a custom source build;
+- `audiowrt-minimal-alsa` -> packages feed `alsa-lib`;
+- `audiowrt-sbc` -> packages feed `sbc`;
+- `audiowrt-bluez` -> packages feed `bluez`.
 
 The implementation lives in `demonccc/audiowrt-packages` through `include/audiowrt-openwrt-derived.mk` and `scripts/prepare-openwrt-derived.py`. The helper inherits the canonical recipe preamble, files and patch set from the exact selected OpenWrt context. AudioWRT-owned source patches use the `9xx-*` namespace so they cannot silently replace an OpenWrt-owned patch.
+
+Core OpenWrt recipes are resolved from the `package/` tree already present in the selected OpenWrt SDK/source checkout. The helper must never run `scripts/feeds update base` to create a second core source tree. Duplicating that tree produces duplicate Kconfig symbols and can accidentally broaden a selective build.
 
 A release-family-specific compatibility delta may exist under `releases/<major.minor>/` when OpenWrt changes a configure option or source interface between releases. Those fragments contain only the AudioWRT delta; they do not duplicate OpenWrt version/hash/patch metadata.
 
 Therefore a 24.10 build and a 25.12 build may compile different upstream versions and different OpenWrt patch sets while using the same AudioWRT package name and feature intent.
 
-### 2. Exact-release selectors and prebuilt kmod replacements
+### 2. Exact-release selectors, runtime profiles and prebuilt replacements
 
-Some AudioWRT packages do not rebuild an OpenWrt userspace source tree:
+A package must **not** become a source build merely because AudioWRT changes its runtime configuration. If the compiled upstream binary is unchanged, AudioWRT reuses the exact official release binary.
+
+Current examples:
 
 - `audiowrt-wpa-supplicant` selects the exact `wpa-supplicant-mbedtls` package from the selected release instead of carrying a hostapd/wpa source fork;
+- `audiowrt-minidlna` is an AudioWRT audio-only runtime profile around the exact official `minidlna` package. It does not rebuild MiniDLNA or FFmpeg because AudioWRT currently has no compiled MiniDLNA delta;
+- minimal currently uses the official `umdns` package because `.local`/mDNS does not justify rebuilding the daemon;
 - `audiowrt-kmod-bluetooth`, `kmod-audiowrt-sound-core` and `kmod-audiowrt-usb-audio` repackage modules from the exact release/target instead of rebuilding the kernel.
 
 The kmod strategy preserves the selected kernel ABI, architecture and OpenWrt target patches automatically. A package for `ath79/generic` can never reuse modules from another target or OpenWrt release.
@@ -116,22 +121,25 @@ The image is the build environment only; AudioWRT scripts come from the mounted 
 5. Extract the official SDK and preserve its feeds.conf.default
 6. Append only the AudioWRT feed
 7. Update the SDK-pinned packages feed + AudioWRT feed
-8. Derived package helper resolves the SDK-pinned base feed when a base recipe is needed
-9. Register only selected AudioWRT source directories in the SDK package tree
-10. Resolve selected AudioWRT package closure
-11. Split targets into:
-    - package-only wrappers/config/LuCI -> NO_DEPS=1
-    - source packages -> explicit source dependency path
-12. For OpenWrt-derived source packages:
+8. Register only selected AudioWRT source directories in the SDK package tree
+9. Resolve selected AudioWRT package closure
+10. Split targets into:
+    - package-only wrappers/selectors/config/LuCI -> NO_DEPS=1
+    - real compiled-source packages -> explicit source dependency path
+11. For OpenWrt-derived source packages:
+    - resolve core recipes from the SDK/source `package/` tree
     - inherit canonical recipe preamble
     - inherit canonical files
     - inherit all canonical OpenWrt patches
     - apply only the AudioWRT delta
+12. For binary-reuse/runtime-profile packages:
+    - keep the official release binary as runtime dependency
+    - build only the AudioWRT policy/config layer with NO_DEPS=1
 13. For prebuilt kmod replacements:
     - download exact release/target APKs
     - verify OpenWrt checksums
     - extract only the required modules
-14. Build local AudioWRT APKs with the selected SDK/toolchain
+14. Build only the required local AudioWRT APKs with the selected SDK/toolchain
 15. Prepare the official ImageBuilder for the same release/target
 16. Inject local AudioWRT APKs and resolved package add/remove policy
 17. Build firmware and write provenance metadata
@@ -143,17 +151,19 @@ The official SDK's `feeds.conf.default` is authoritative. AudioWRT never replace
 
 For an official release SDK, its feed entries identify the matching OpenWrt source/feed revisions. `feeds.buildinfo` is downloaded separately and retained as provenance.
 
-The `packages` feed is updated because AudioWRT uses package recipes/build helpers from it. The `base` feed is resolved when a derived package needs a canonical core recipe. Neither feed is replaced with an AudioWRT-selected branch or version.
+The `packages` feed is updated because AudioWRT uses package recipes/build helpers from it. Core recipes used by source-derived AudioWRT packages are taken from the core package tree already present in the selected build context; the package derivation helper does not materialize a second `base` package tree.
 
 This is what makes the package model portable across 24.10, 25.12, snapshots and future releases: **the profile selects OpenWrt; OpenWrt selects the package versions and patches; AudioWRT supplies only its delta.**
 
 ## Package compilation scope
 
-`config/build/package-build-targets` maps AudioWRT binary packages to SDK make targets. `config/build/source-build-packages` identifies packages that genuinely compile/link source.
+`config/build/package-build-targets` maps AudioWRT binary packages to SDK make targets. `config/build/source-build-packages` is a strict opt-in list containing only packages that genuinely compile/link a different binary.
 
-Package-only wrappers remain behind `NO_DEPS=1`, so runtime dependencies such as LuCI, uhttpd, ubus and unrelated OpenWrt packages remain official binaries.
+Package-only wrappers remain behind `NO_DEPS=1`, so runtime dependencies such as LuCI, uhttpd, MiniDLNA, umdns and unrelated OpenWrt packages remain official binaries.
 
-Source builds are allowed only for selected AudioWRT roots and their explicit build dependencies. This includes OpenWrt-derived minimal replacements such as BusyBox, ALSA, mbedTLS, BlueZ/SBC, Dropbear, MiniDLNA and umdns, plus AudioWRT-owned upstream packages such as BlueALSA/librespot when selected.
+A package may enter `source-build-packages` only if AudioWRT has a real compiled-source delta. Adding it means explicitly accepting compilation of the build/link dependency closure required to produce that binary. A wrapper, selector or runtime-profile package must never be added simply because it references an upstream project.
+
+In particular, `audiowrt-minidlna` is intentionally **not** a source-build package. Its current AudioWRT delta is runtime configuration only; rebuilding it would pull the full FFmpeg dependency graph into a constrained SDK build without producing a truly smaller binary. If AudioWRT later carries a genuine audio-only MiniDLNA source patch that removes those link dependencies, it may be promoted back into the source-build set.
 
 ## Firmware composition
 
@@ -166,7 +176,7 @@ common
   + profile-specific overrides
 ```
 
-`common` contains implementation-neutral AudioWRT product policy. `minimal` selects constrained providers; `standard` selects the normal OpenWrt providers. Capability groups describe the required audio hardware/runtime path and inherit one of those runtime layers.
+`common` contains implementation-neutral AudioWRT product policy. `minimal` selects constrained providers where AudioWRT has a real minimal implementation; otherwise it reuses the exact official release package. `standard` selects the normal OpenWrt providers. Capability groups describe the required audio hardware/runtime path and inherit one of those runtime layers.
 
 The official ImageBuilder remains responsible for dependency solving, device image layout and image-size enforcement.
 

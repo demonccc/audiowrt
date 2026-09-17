@@ -1,16 +1,17 @@
-# AudioWRT-owned packages that compile/link upstream source code.
+# AudioWRT-owned packages that genuinely compile/link upstream source code.
 #
-# These are allowed to traverse the OpenWrt SDK build dependency graph because
-# they need headers/libraries/tooling to produce their AudioWRT APK. Every other
-# package in config/build/package-build-targets is package-only and must be built
-# with NO_DEPS=1 so OpenWrt runtime dependencies remain official release binaries.
+# Only packages in this file may traverse the OpenWrt SDK build dependency graph.
+# Runtime-profile/meta packages must stay out of this list and are built with
+# NO_DEPS=1 so unchanged OpenWrt packages remain official release binaries.
+#
+# IMPORTANT: adding a package here is an explicit opt-in to source dependency
+# compilation. Do not add wrappers/selectors merely because they reference an
+# upstream project.
 
 audiowrt-busybox
 audiowrt-minimal-alsa
 audiowrt-minimal-mbedtls
 audiowrt-dropbear
-audiowrt-minidlna
-audiowrt-umdns
 librespot
 audiowrt-sbc
 audiowrt-bluez-libs
