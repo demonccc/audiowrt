@@ -13,7 +13,6 @@ packages_remove:
   - audiowrt-minimal-mbedtls
   - audiowrt-dropbear
   - audiowrt-wpa-supplicant
-  - audiowrt-minimal-mpd
   - audiowrt-minimal-upmpdcli
   - minidlna
   - audiowrt-umdns
