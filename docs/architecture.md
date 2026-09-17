@@ -50,15 +50,13 @@ selected OpenWrt release/SDK
 AudioWRT derived APK for the selected release + architecture
 ```
 
-This is the rule for **all** actual source-derived packages, including the constrained audio renderer and Bluetooth stack. The current source-derived set includes:
+This is the rule for **all** actual source-derived packages, including the constrained Bluetooth stack. The current source-derived set includes:
 
 - `audiowrt-busybox` -> OpenWrt `busybox`;
 - `audiowrt-minimal-mbedtls` -> OpenWrt `mbedtls`;
 - `audiowrt-dropbear` -> OpenWrt `dropbear`;
 - `audiowrt-umdns` -> OpenWrt `umdns` when that package is explicitly selected as a custom source build;
 - `audiowrt-minimal-alsa` -> packages feed `alsa-lib`;
-- `audiowrt-minimal-mpd` -> packages feed `mpd`;
-- `audiowrt-minimal-upmpdcli` -> packages feed `upmpdcli`;
 - `audiowrt-sbc` -> packages feed `sbc`;
 - `audiowrt-bluez` -> packages feed `bluez`.
 
@@ -77,7 +75,8 @@ A package must **not** become a source build merely because AudioWRT changes its
 Current examples:
 
 - `audiowrt-wpa-supplicant` selects the exact `wpa-supplicant-mbedtls` package from the selected release instead of carrying a hostapd/wpa source fork;
-- the `standard` audio runtime uses the exact official OpenWrt `mpd-mini` and `upmpdcli` packages rather than rebuilding them;
+- both minimal and standard audio runtimes use the exact official OpenWrt `mpd-mini` and `upmpdcli` binaries rather than rebuilding them;
+- `audiowrt-minimal-upmpdcli` is a file-only runtime profile over those release binaries and is built with `NO_DEPS=1`;
 - minimal currently uses the official `umdns` package because `.local`/mDNS does not justify rebuilding the daemon;
 - `audiowrt-kmod-bluetooth`, `kmod-audiowrt-sound-core` and `kmod-audiowrt-usb-audio` repackage modules from the exact release/target instead of rebuilding the kernel.
 
@@ -109,7 +108,7 @@ UPnP/DLNA controller
  USB Audio  BlueALSA
 ```
 
-The constrained runtime uses `audiowrt-minimal-upmpdcli` with OpenHome disabled and a static sink capability list containing only FLAC and MP3. `audiowrt-minimal-mpd` matches that capability list by compiling only the network/playback features required for HTTP input, FLAC + MP3 decoding and ALSA output. The standard runtime uses the official OpenWrt `upmpdcli` and `mpd-mini` packages.
+The constrained runtime uses the exact OpenWrt `upmpdcli` and `mpd-mini` release binaries. `audiowrt-minimal-upmpdcli` only applies runtime policy: OpenHome is disabled, MPD stays on loopback, and the renderer advertises the constrained FLAC + MP3 sink profile. Standard builds use the same official OpenWrt binaries without the constrained renderer profile.
 
 `audiowrt-mpd` is a small shared runtime configuration layer. It binds MPD to `127.0.0.1:6600`, so UPnP/DLNA remains the externally visible renderer interface while the selected MPD provider stays internal.
 
@@ -185,11 +184,11 @@ This is what makes the package model portable across 24.10, 25.12, snapshots and
 
 `config/build/package-build-targets` maps AudioWRT binary packages to SDK make targets. `config/build/source-build-packages` is a strict opt-in list containing only packages that genuinely compile/link a different binary.
 
-Package-only wrappers remain behind `NO_DEPS=1`, so unchanged runtime dependencies such as LuCI, uhttpd, umdns and the standard OpenWrt MPD/upmpdcli packages remain official binaries.
+Package-only wrappers remain behind `NO_DEPS=1`, so unchanged runtime dependencies such as LuCI, uhttpd, umdns, `mpd-mini` and `upmpdcli` remain official binaries.
 
 A package may enter `source-build-packages` only if AudioWRT has a real compiled-source delta. Adding it means explicitly accepting compilation of the build/link dependency closure required to produce that binary. A wrapper, selector or runtime-profile package must never be added simply because it references an upstream project.
 
-The constrained renderer is an intentional source-build exception: `audiowrt-minimal-mpd` removes codecs and subsystems from the compiled MPD binary, while `audiowrt-minimal-upmpdcli` packages the exact-release renderer around the constrained runtime and advertises only the formats the backend can decode. Standard builds keep the official OpenWrt binaries.
+In particular, `audiowrt-minimal-upmpdcli` is configuration-only and must stay out of `source-build-packages`. Rebuilding it would recursively compile `libupnpp`, MPD-related libraries and their transitive dependencies even though AudioWRT does not change the upstream executable. The constrained firmware therefore installs the official `mpd-mini` and `upmpdcli` release binaries through ImageBuilder and builds only the small AudioWRT runtime profile with `NO_DEPS=1`.
 
 ## Firmware composition
 
