@@ -9,6 +9,9 @@ packages_add:
   - audiowrt-wifi-client
   - audiowrt-renderer
   - luci-base
+  - luci-mod-status
+  - luci-mod-system
+  - luci-app-package-manager
   - luci-theme-bootstrap
   - luci-app-audiowrt
   - luci-app-audiowrt-wifi-client
