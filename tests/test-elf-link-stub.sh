@@ -40,4 +40,31 @@ EOF
 cc -o "$tmp/consumer" "$tmp/consumer.c" \
     -L"$tmp" -Wl,--no-as-needed -laudiowrt-fixture
 
+# OpenWrt's stripped MIPS shared libraries expose _init/_fini in .dynsym.
+# Those names are supplied by the target CRT (crti.o) during stub linking and
+# must not be mirrored into the generated C source.
+cat > "$tmp/fake-readelf" <<'EOF'
+#!/usr/bin/env sh
+cat <<'DYN'
+Symbol table for image contains 5 entries:
+   Num:    Value  Size Type    Bind   Vis      Ndx Name
+     1: 00000000     0 FUNC    GLOBAL DEFAULT    8 _init
+     2: 00000000     0 FUNC    GLOBAL DEFAULT    8 _fini
+     3: 00000000     4 OBJECT  GLOBAL DEFAULT   10 audiowrt_fixture_value
+     4: 00000000    16 FUNC    GLOBAL DEFAULT    8 audiowrt_fixture_function
+DYN
+EOF
+chmod +x "$tmp/fake-readelf"
+
+python3 "$repo_root/scripts/create-elf-link-stub.py" \
+    "$tmp/fake-readelf" cc "$tmp/runtime.so" \
+    "$tmp/libaudiowrt-filtered.so" libaudiowrt-filtered.so.1
+
+if nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' (_init|_fini); then
+    echo 'ERROR: CRT-owned _init/_fini leaked into generated link stub.' >&2
+    exit 1
+fi
+nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' audiowrt_fixture_function
+nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' audiowrt_fixture_value
+
 echo 'Dynamic ELF link-stub generator tests passed.'
