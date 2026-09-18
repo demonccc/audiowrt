@@ -1,4 +1,4 @@
-name: Native Renderer Smoke Build
+name: Native Renderer Package Smoke
 
 on:
   pull_request:
@@ -8,16 +8,18 @@ permissions:
   contents: read
 
 jobs:
-  build-wdr4300-minimal:
+  compile-native-renderer-packages:
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - name: Build WDR4300 minimal native renderer image
+      - name: Compile native renderer package set
         run: |
           make build \
             AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5 \
             AUDIOWRT_PACKAGES_REF=fix/renderer-no-libuci \
+            AUDIOWRT_PACKAGE_SMOKE=1 \
+            AUDIOWRT_PACKAGE_SMOKE_PACKAGES="audiowrt-minimal-alsa audiowrt-renderer audiowrt-player-core audiowrt-player-flac audiowrt-player-mp3" \
             JOBS=4 \
             VERBOSITY=normal \
             CACHE_DIR=.cache/audiowrt
