@@ -397,8 +397,8 @@ stage_official_runtime_library() {
 }
 
 prepare_native_player_sdk() {
-    local -a target_staging_matches=()
-    local target_staging libubox_src uclient_src ustream_src flac_src
+    local -a target_staging_matches=() ustream_headers=()
+    local target_staging libubox_src uclient_src ustream_header flac_src
 
     mapfile -t target_staging_matches < <(
         find "$sdk_dir/staging_dir" -mindepth 1 -maxdepth 1 -type d -name 'target-*' -print
@@ -418,13 +418,23 @@ prepare_native_player_sdk() {
 
     libubox_src="$(prepared_source_dir libubox)"
     uclient_src="$(prepared_source_dir uclient)"
-    ustream_src="$(prepared_source_dir ustream-ssl 1)"
     flac_src="$(prepared_source_dir flac)"
+    mapfile -t ustream_headers < <(
+        find "$sdk_dir/build_dir" -type f -name 'ustream-ssl.h' \
+            -path '*/ustream-ssl-*/*' -print 2>/dev/null | sort
+    )
+    [[ "${#ustream_headers[@]}" -gt 0 ]] || {
+        echo "ERROR: no prepared ustream-ssl public header found." >&2
+        exit 5
+    }
+    # All ustream-ssl build variants come from the same source revision and
+    # expose the same public header. Use one deterministic copy.
+    ustream_header="${ustream_headers[0]}"
 
     mkdir -p "$target_staging/usr/include/libubox" "$target_staging/usr/include/FLAC"
     find "$libubox_src" -maxdepth 1 -type f -name '*.h' -exec cp -f {} "$target_staging/usr/include/libubox/" \;
     find "$uclient_src" -maxdepth 1 -type f -name '*.h' -exec cp -f {} "$target_staging/usr/include/libubox/" \;
-    find "$ustream_src" -maxdepth 1 -type f -name '*.h' -exec cp -f {} "$target_staging/usr/include/libubox/" \;
+    cp -f "$ustream_header" "$target_staging/usr/include/libubox/ustream-ssl.h"
     cp -f "$flac_src"/include/FLAC/*.h "$target_staging/usr/include/FLAC/"
 
     [[ -f "$target_staging/usr/include/libubox/uloop.h" ]] || {
