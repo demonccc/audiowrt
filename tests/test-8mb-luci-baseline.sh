@@ -22,6 +22,7 @@ required = {
     "luci-app-audiowrt",
     "luci-app-audiowrt-wifi-client",
     "luci-app-audiowrt-core",
+    "luci-app-audiowrt-renderer",
 }
 assert required <= packages
 for package in {

@@ -2,7 +2,7 @@
 
 AudioWRT firmware composition is based on package groups, not flavors.
 
-`common` is the mandatory AudioWRT baseline and is applied automatically to every profile. It is not selected explicitly. It contains only functionality that is identical in every AudioWRT image; implementation choices such as standard vs constrained SSH, Wi-Fi supplicant, UPnP/DLNA rendering and mDNS do not belong there.
+`common` is the mandatory AudioWRT baseline and is applied automatically to every profile. It is not selected explicitly. It contains only functionality that is identical in every AudioWRT image; implementation choices such as standard vs constrained SSH, Wi-Fi supplicant, codec sets and network rendering do not belong there.
 
 Reusable runtime groups:
 
@@ -17,11 +17,15 @@ Runtime mapping:
 | TLS | `audiowrt-minimal-mbedtls` | `libmbedtls21` |
 | SSH server | `audiowrt-dropbear` | `dropbear` |
 | Wi-Fi station | `audiowrt-wpa-supplicant` | `wpad-basic-mbedtls` |
-| MPD backend | `mpd-mini` | `mpd-mini` |
-| UPnP/DLNA renderer | `upmpdcli` + `audiowrt-minimal-upmpdcli` runtime profile | `upmpdcli` |
-| mDNS / `.local` | `umdns` | `umdns` |
+| Renderer + discovery | `audiowrt-renderer` | `audiowrt-renderer` |
+| Native codec players | FLAC + MP3 | FLAC + MP3 + AAC + WAV |
+| Renderer configuration | `luci-app-audiowrt-renderer` | `luci-app-audiowrt-renderer` |
 
-The renderer is the public network-audio interface. MPD is an internal playback backend and is configured by `audiowrt-mpd` to listen on loopback. Minimal builds reuse the exact OpenWrt `mpd-mini` and `upmpdcli` binaries; `audiowrt-minimal-upmpdcli` is configuration-only, disables OpenHome and replaces the advertised renderer protocol list without rebuilding upstream source.
+`audiowrt-renderer` is the public network-audio service. One small daemon owns SSDP/DLNA, the UPnP MediaRenderer control services, minimal authoritative mDNS/DNS-SD for the AudioWRT hostname and LuCI service, codec/player autodetection, custom player overrides and playback status. A separate `umdns` daemon is not part of the default runtime.
+
+The renderer discovers installed `audiowrt-player-*` packages at runtime and advertises only codecs that are actually available. Official players use `libuclient` in-process for HTTP/HTTPS streaming, decode directly with their codec library and write PCM through ALSA.
+
+MPD and `upmpdcli` are no longer part of the default AudioWRT renderer stack. MPD remains installable as an optional external player and can be associated with a codec through the renderer LuCI custom-player override. A custom mapping takes precedence while the autodetected AudioWRT player remains registered as the fallback.
 
 Selectable capability groups are:
 

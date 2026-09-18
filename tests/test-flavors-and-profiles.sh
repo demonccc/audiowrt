@@ -22,8 +22,8 @@ done
 test ! -e "$repo_root/config/flavors"
 
 # Global AudioWRT policy belongs to common and common is automatic. Runtime
-# implementations such as SSH, Wi-Fi supplicant and the UPnP renderer belong to
-# minimal or standard instead of being fixed here.
+# implementations such as SSH, Wi-Fi supplicant and the network renderer belong
+# to minimal or standard instead of being fixed here.
 for package in \
     audiowrt-branding \
     audiowrt-udhcpd \
@@ -33,7 +33,7 @@ for package in \
     luci-app-package-manager; do
     grep -q "^  - $package$" "$groups/common.yaml"
 done
-for package in dropbear wpad-basic-mbedtls mpd-mini upmpdcli umdns; do
+for package in dropbear wpad-basic-mbedtls audiowrt-renderer mpd-mini upmpdcli umdns; do
     ! grep -q "^  - $package$" "$groups/common.yaml"
 done
 for package in \
@@ -51,33 +51,57 @@ for package in \
     grep -q "^  - $package$" "$groups/common.yaml"
 done
 
-# Minimal runtime keeps AudioWRT's constrained ALSA/TLS/SSH implementations,
-# but reuses the exact-release OpenWrt mpd-mini and upmpdcli binaries. The
-# AudioWRT upmpdcli package is configuration-only and must not rebuild upstream.
+# Minimal runtime uses the AudioWRT native renderer/discovery daemon plus only
+# FLAC and MP3 official players. MPD/upmpdcli and a separate mDNS daemon must
+# remain absent from the constrained image.
 for package in \
     audiowrt-minimal-alsa \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
     audiowrt-wpa-supplicant \
+    audiowrt-renderer \
+    audiowrt-player-core \
+    audiowrt-player-flac \
+    audiowrt-player-mp3 \
+    luci-app-audiowrt-renderer; do
+    grep -q "^  - $package$" "$groups/minimal.yaml"
+done
+for package in \
+    alsa-lib \
+    libmbedtls21 \
+    dropbear \
+    wpad-basic-mbedtls \
     mpd-mini \
+    mpd-full \
     upmpdcli \
     audiowrt-minimal-upmpdcli \
     audiowrt-mpd \
-    umdns; do
+    minidlna \
+    umdns \
+    audiowrt-umdns; do
     grep -q "^  - $package$" "$groups/minimal.yaml"
 done
-for package in alsa-lib libmbedtls21 dropbear wpad-basic-mbedtls mpd-full minidlna; do
-    grep -q "^  - $package$" "$groups/minimal.yaml"
+for package in audiowrt-player-aac audiowrt-player-wav; do
+    ! grep -q "^  - $package$" "$groups/minimal.yaml"
 done
-! grep -q '^  - audiowrt-minimal-mpd$' "$groups/minimal.yaml"
-! grep -q '^  - audiowrt-umdns$' "$groups/minimal.yaml"
 for group in minimal-usb-audio minimal-usb-bluetooth minimal-usb-audio-bluetooth; do
     grep -A1 '^include:$' "$groups/$group.yaml" | grep -q '^  - minimal$'
 done
 
-# Standard runtime uses the ordinary OpenWrt MPD/upmpdcli implementations while
-# sharing the AudioWRT MPD runtime configuration.
-for package in alsa-lib libmbedtls21 dropbear wpad-basic-mbedtls mpd-mini upmpdcli audiowrt-mpd umdns; do
+# Standard runtime uses the same renderer/discovery core but installs all four
+# official AudioWRT codec players.
+for package in \
+    alsa-lib \
+    libmbedtls21 \
+    dropbear \
+    wpad-basic-mbedtls \
+    audiowrt-renderer \
+    audiowrt-player-core \
+    audiowrt-player-flac \
+    audiowrt-player-mp3 \
+    audiowrt-player-aac \
+    audiowrt-player-wav \
+    luci-app-audiowrt-renderer; do
     grep -q "^  - $package$" "$groups/standard.yaml"
 done
 for package in \
@@ -86,11 +110,15 @@ for package in \
     audiowrt-dropbear \
     audiowrt-wpa-supplicant \
     audiowrt-minimal-upmpdcli \
+    mpd-mini \
+    mpd-full \
+    upmpdcli \
+    audiowrt-mpd \
     minidlna \
+    umdns \
     audiowrt-umdns; do
     grep -q "^  - $package$" "$groups/standard.yaml"
 done
-! grep -q '^  - audiowrt-minimal-mpd$' "$groups/standard.yaml"
 for group in usb-audio usb-bluetooth usb-audio-bluetooth; do
     grep -A1 '^include:$' "$groups/$group.yaml" | grep -q '^  - standard$'
 done
@@ -122,13 +150,19 @@ assert data["openwrt_profile"] == "tplink_tl-wdr4300-v1"
 assert data["squashfs_block_size"] == "1024"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
-assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-dropbear", "audiowrt-wpa-supplicant", "mpd-mini", "upmpdcli", "audiowrt-minimal-upmpdcli", "audiowrt-mpd", "umdns", "kmod-audiowrt-bluetooth"} <= added
-assert {"alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "mpd-full", "minidlna", "dnsmasq", "kmod-bluetooth", "kmod-usb-audio"} <= removed
-assert "mpd-mini" not in removed
-assert "upmpdcli" not in removed
-assert "audiowrt-minimal-mpd" not in added
-assert "umdns" not in removed
-assert "audiowrt-umdns" not in added
+assert {
+    "audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-dropbear",
+    "audiowrt-wpa-supplicant", "audiowrt-renderer", "audiowrt-player-core",
+    "audiowrt-player-flac", "audiowrt-player-mp3", "luci-app-audiowrt-renderer",
+    "kmod-audiowrt-bluetooth"
+} <= added
+assert {
+    "alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "mpd-mini",
+    "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli", "audiowrt-mpd",
+    "minidlna", "umdns", "audiowrt-umdns", "dnsmasq", "kmod-bluetooth",
+    "kmod-usb-audio"
+} <= removed
+assert not ({"audiowrt-player-aac", "audiowrt-player-wav", "mpd-mini", "upmpdcli", "umdns"} & added)
 ' <<< "$wdr_bt"
 
 wdr_audio="$(python3 "$resolver" "$repo_root/profiles" "$groups" tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5)"
@@ -139,13 +173,19 @@ assert data["package_groups"] == ["minimal-usb-audio"]
 assert data["openwrt_profile"] == "tplink_tl-wdr4300-v1"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
-assert {"audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-dropbear", "audiowrt-wpa-supplicant", "mpd-mini", "upmpdcli", "audiowrt-minimal-upmpdcli", "audiowrt-mpd", "umdns", "audiowrt-usb-audio", "kmod-usb-audio"} <= added
-assert {"alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "mpd-full", "minidlna", "dnsmasq", "kmod-bluetooth", "kmod-audiowrt-bluetooth"} <= removed
-assert "mpd-mini" not in removed
-assert "upmpdcli" not in removed
-assert "audiowrt-minimal-mpd" not in added
-assert "umdns" not in removed
-assert "audiowrt-umdns" not in added
+assert {
+    "audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-dropbear",
+    "audiowrt-wpa-supplicant", "audiowrt-renderer", "audiowrt-player-core",
+    "audiowrt-player-flac", "audiowrt-player-mp3", "luci-app-audiowrt-renderer",
+    "audiowrt-usb-audio", "kmod-usb-audio"
+} <= added
+assert {
+    "alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "mpd-mini",
+    "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli", "audiowrt-mpd",
+    "minidlna", "umdns", "audiowrt-umdns", "dnsmasq", "kmod-bluetooth",
+    "kmod-audiowrt-bluetooth"
+} <= removed
+assert not ({"audiowrt-player-aac", "audiowrt-player-wav", "mpd-mini", "upmpdcli", "umdns"} & added)
 ' <<< "$wdr_audio"
 
 # Package groups may include reusable groups; current group entries apply last.

@@ -10,7 +10,7 @@ build_script="$repo_root/scripts/build.sh"
 resolver="$repo_root/scripts/resolve-audiowrt-profile.py"
 groups="$repo_root/config/package-groups"
 
-resolved="$(python3 "$resolver" \
+minimal="$(python3 "$resolver" \
     "$repo_root/profiles" \
     "$groups" \
     tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)"
@@ -25,11 +25,11 @@ assert {
     "audiowrt-minimal-mbedtls",
     "audiowrt-dropbear",
     "audiowrt-wpa-supplicant",
-    "mpd-mini",
-    "upmpdcli",
-    "audiowrt-minimal-upmpdcli",
-    "audiowrt-mpd",
-    "umdns",
+    "audiowrt-renderer",
+    "audiowrt-player-core",
+    "audiowrt-player-flac",
+    "audiowrt-player-mp3",
+    "luci-app-audiowrt-renderer",
     "kmod-audiowrt-bluetooth",
 } <= added
 assert {
@@ -37,41 +37,80 @@ assert {
     "libmbedtls21",
     "dropbear",
     "wpad-basic-mbedtls",
+    "mpd-mini",
     "mpd-full",
+    "upmpdcli",
+    "audiowrt-minimal-upmpdcli",
+    "audiowrt-mpd",
     "minidlna",
+    "umdns",
+    "audiowrt-umdns",
     "kmod-sound-midi2",
     "kmod-sound-midi2-usb",
 } <= removed
-assert not ({"alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "mpd-full", "minidlna"} & added)
-assert "mpd-mini" not in removed
-assert "upmpdcli" not in removed
-assert "umdns" not in removed
-assert "audiowrt-umdns" not in added
-assert "audiowrt-minimal-mpd" not in added
-' <<< "$resolved"
+assert not ({
+    "mpd-mini", "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli",
+    "audiowrt-mpd", "minidlna", "umdns", "audiowrt-umdns",
+    "audiowrt-player-aac", "audiowrt-player-wav"
+} & added)
+' <<< "$minimal"
+
+standard="$(python3 "$resolver" \
+    "$repo_root/profiles" \
+    "$groups" \
+    x86-64-usb-bluetooth-audio-25.12.5)"
+
+python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+added = set(data["packages_add"])
+removed = set(data["packages_remove"])
+assert {
+    "audiowrt-renderer",
+    "audiowrt-player-core",
+    "audiowrt-player-flac",
+    "audiowrt-player-mp3",
+    "audiowrt-player-aac",
+    "audiowrt-player-wav",
+    "luci-app-audiowrt-renderer",
+} <= added
+assert {"mpd-mini", "mpd-full", "upmpdcli", "audiowrt-mpd", "minidlna", "umdns", "audiowrt-umdns"} <= removed
+assert not ({"mpd-mini", "mpd-full", "upmpdcli", "audiowrt-mpd", "minidlna", "umdns", "audiowrt-umdns"} & added)
+' <<< "$standard"
 
 for package in \
     audiowrt-minimal-alsa \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
     audiowrt-wpa-supplicant \
-    audiowrt-minimal-upmpdcli; do
-    grep -q "^${package}|package/feeds/audiowrt/${package}/compile$" "$targets"
+    audiowrt-renderer \
+    audiowrt-player-core \
+    audiowrt-player-flac \
+    audiowrt-player-mp3 \
+    audiowrt-player-aac \
+    audiowrt-player-wav \
+    luci-app-audiowrt-renderer; do
+    grep -q "^${package}|package/feeds/audiowrt/" "$targets"
 done
-
-if grep -q '^audiowrt-minimal-mpd|' "$targets"; then
-    echo 'ERROR: removed custom MPD source package is still registered as an SDK target.' >&2
-    exit 1
-fi
 
 grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile' "$targets"
 
-for package in audiowrt-minimal-alsa audiowrt-minimal-mbedtls audiowrt-dropbear; do
+for package in \
+    audiowrt-minimal-alsa \
+    audiowrt-minimal-mbedtls \
+    audiowrt-dropbear \
+    audiowrt-renderer \
+    audiowrt-player-core \
+    audiowrt-player-flac \
+    audiowrt-player-mp3 \
+    audiowrt-player-aac \
+    audiowrt-player-wav; do
     grep -qx "$package" "$sources"
 done
-for package in audiowrt-wpa-supplicant audiowrt-minimal-upmpdcli audiowrt-minimal-mpd audiowrt-umdns mpd-mini upmpdcli; do
+
+for package in audiowrt-wpa-supplicant audiowrt-minimal-upmpdcli audiowrt-mpd audiowrt-umdns mpd-mini upmpdcli luci-app-audiowrt-renderer; do
     if grep -qx "$package" "$sources"; then
-        echo "ERROR: $package must reuse official runtime binaries or NO_DEPS=1 and must not be a source-build root." >&2
+        echo "ERROR: $package must not be a source-build root." >&2
         exit 1
     fi
 done
@@ -114,4 +153,4 @@ if python3 "$repo_root/scripts/verify-openwrt-checksum.py" \
     exit 1
 fi
 
-echo 'Minimal runtime stack distribution contracts passed.'
+echo 'Unified renderer runtime stack distribution contracts passed.'
