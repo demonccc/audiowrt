@@ -21,11 +21,11 @@ python3 "$repo_root/scripts/create-elf-link-stub.py" \
     readelf cc "$tmp/runtime.so" "$tmp/libaudiowrt-fixture.so" \
     libaudiowrt-fixture.so.7
 
-readelf -d "$tmp/libaudiowrt-fixture.so" | grep -Fq 'libaudiowrt-fixture.so.7'
-nm -D --defined-only "$tmp/libaudiowrt-fixture.so" | grep -Eq ' audiowrt_fixture_function$'
-nm -D --defined-only "$tmp/libaudiowrt-fixture.so" | grep -Eq ' audiowrt_fixture_value$'
-if nm -D --defined-only "$tmp/libaudiowrt-fixture.so" | grep -q 'hidden_fixture'; then
-    echo 'ERROR: non-exported symbol leaked into generated link stub.' >&2
+readelf -d "$tmp/libaudiowrt-fixture.so" | grep -Fq "libaudiowrt-fixture.so.7"
+nm -D --defined-only "$tmp/libaudiowrt-fixture.so" | grep -Eq " audiowrt_fixture_function$"
+nm -D --defined-only "$tmp/libaudiowrt-fixture.so" | grep -Eq " audiowrt_fixture_value$"
+if nm -D --defined-only "$tmp/libaudiowrt-fixture.so" | grep -q "hidden_fixture"; then
+    echo "ERROR: non-exported symbol leaked into generated link stub." >&2
     exit 1
 fi
 
@@ -60,54 +60,11 @@ python3 "$repo_root/scripts/create-elf-link-stub.py" \
     "$tmp/fake-readelf" cc "$tmp/runtime.so" \
     "$tmp/libaudiowrt-filtered.so" libaudiowrt-filtered.so.1
 
-if nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' (_init|_fini)
-    echo 'ERROR: CRT-owned _init/_fini leaked into generated link stub.' >&2
+if nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq " (_init|_fini)$"; then
+    echo "ERROR: CRT-owned _init/_fini leaked into generated link stub." >&2
     exit 1
 fi
-nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' audiowrt_fixture_function
-nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' audiowrt_fixture_value
+nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq " audiowrt_fixture_function$"
+nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq " audiowrt_fixture_value$"
 
-echo 'Dynamic ELF link-stub generator tests passed.'
-; then
-    echo 'ERROR: CRT-owned _init/_fini leaked into generated link stub.' >&2
-    exit 1
-fi
-nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' audiowrt_fixture_function
-nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' audiowrt_fixture_value
-
-echo 'Dynamic ELF link-stub generator tests passed.'
-
-nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' audiowrt_fixture_value
-
-echo 'Dynamic ELF link-stub generator tests passed.'
-; then
-    echo 'ERROR: CRT-owned _init/_fini leaked into generated link stub.' >&2
-    exit 1
-fi
-nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' audiowrt_fixture_function
-nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' audiowrt_fixture_value
-
-echo 'Dynamic ELF link-stub generator tests passed.'
-
-
-echo 'Dynamic ELF link-stub generator tests passed.'
-; then
-    echo 'ERROR: CRT-owned _init/_fini leaked into generated link stub.' >&2
-    exit 1
-fi
-nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' audiowrt_fixture_function
-nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' audiowrt_fixture_value
-
-echo 'Dynamic ELF link-stub generator tests passed.'
-
-nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' audiowrt_fixture_value
-
-echo 'Dynamic ELF link-stub generator tests passed.'
-; then
-    echo 'ERROR: CRT-owned _init/_fini leaked into generated link stub.' >&2
-    exit 1
-fi
-nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' audiowrt_fixture_function
-nm -D --defined-only "$tmp/libaudiowrt-filtered.so" | grep -Eq ' audiowrt_fixture_value
-
-echo 'Dynamic ELF link-stub generator tests passed.'
+echo "Dynamic ELF link-stub generator tests passed."
