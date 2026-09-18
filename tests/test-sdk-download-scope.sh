@@ -26,7 +26,11 @@ grep -Fq 'make_run "$sdk_dir" "${package_only_download_targets[@]}" NO_DEPS=1 -j
     exit 1
 }
 
-grep -Fq 'make_run "$sdk_dir" "${package_only_targets[@]}" NO_DEPS=1 -j"$jobs"' "$build_script" || {
+grep -Fq 'for target_path in "${package_only_targets[@]}"; do' "$build_script" || {
+    echo "ERROR: package-only compile targets must preserve dependency order." >&2
+    exit 1
+}
+grep -Fq 'make_run "$sdk_dir" "$target_path" NO_DEPS=1 -j"$jobs"' "$build_script" || {
     echo "ERROR: package-only compile targets must use NO_DEPS=1." >&2
     exit 1
 }
