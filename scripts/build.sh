@@ -510,8 +510,15 @@ if [[ "${#source_download_targets[@]}" -gt 0 ]]; then
     make_run "$sdk_dir" "${source_targets[@]}" -j"$jobs"
 fi
 
+# Build package-only targets in the dependency order emitted by
+# resolve-package-build-targets.py. NO_DEPS=1 prevents OpenWrt dependency
+# traversal, while sequential target submission ensures AudioWRT Build/InstallDev
+# output (for example audiowrt-player-core) is staged before dependent packages
+# such as FLAC/MP3 are compiled.
 if [[ "${#package_only_targets[@]}" -gt 0 ]]; then
-    make_run "$sdk_dir" "${package_only_targets[@]}" NO_DEPS=1 -j"$jobs"
+    for target_path in "${package_only_targets[@]}"; do
+        make_run "$sdk_dir" "$target_path" NO_DEPS=1 -j"$jobs"
+    done
 fi
 
 rm -rf "$local_apks_dir"
