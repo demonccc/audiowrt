@@ -12,6 +12,8 @@ jobs="${JOBS:-}"
 verbosity="${VERBOSITY:-normal}"
 builder_image="demonccc/openwrt-builder:latest"
 cache_dir="${CACHE_DIR:-}"
+package_smoke="${AUDIOWRT_PACKAGE_SMOKE:-0}"
+package_smoke_packages="${AUDIOWRT_PACKAGE_SMOKE_PACKAGES:-}"
 
 [[ "${AUDIOWRT_IN_CONTAINER:-0}" == "1" ]] || {
     echo "ERROR: scripts/build.sh is an internal container entry point." >&2
@@ -21,6 +23,10 @@ cache_dir="${CACHE_DIR:-}"
 
 [[ -n "$jobs" ]] || jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)"
 [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { echo "ERROR: JOBS must be a positive integer." >&2; exit 2; }
+[[ "$package_smoke" == "0" || "$package_smoke" == "1" ]] || {
+    echo "ERROR: AUDIOWRT_PACKAGE_SMOKE must be 0 or 1." >&2
+    exit 2
+}
 
 case "$verbosity" in
     normal) make_verbosity=() ;;
@@ -238,6 +244,16 @@ make_run "$source_dir" -s prepare-tmpinfo
 python3 "$repo_root/scripts/resolve-platform.py" "$source_dir/tmp/.targetinfo" "$platform" > "$platform_metadata"
 
 mapfile -t firmware_packages < <(read_package_file "$packages_add_file")
+
+if [[ "$package_smoke" == "1" ]]; then
+    read -r -a smoke_roots <<< "$package_smoke_packages"
+    [[ "${#smoke_roots[@]}" -gt 0 ]] || {
+        echo "ERROR: AUDIOWRT_PACKAGE_SMOKE_PACKAGES is required in package smoke mode." >&2
+        exit 2
+    }
+    firmware_packages=("${smoke_roots[@]}")
+    printf '  Package smoke roots: %s\n' "${firmware_packages[*]}"
+fi
 
 target="$(json_field "$platform_metadata" target)"
 subtarget="$(json_field "$platform_metadata" subtarget)"
@@ -824,6 +840,16 @@ for package in "${build_packages[@]}"; do
         exit 6
     fi
 done
+
+if [[ "$package_smoke" == "1" ]]; then
+    mkdir -p "$output_dir/local-apks"
+    cp -f "$local_apks_dir"/*.apk "$output_dir/local-apks/"
+    cp "$build_plan" "$output_dir/package-build-plan.txt"
+    printf '\nAudioWRT package smoke complete.\n'
+    printf 'Built packages: %s\n' "${build_packages[*]}"
+    printf 'Artifacts: %s/local-apks\n' "$output_dir"
+    exit 0
+fi
 
 # Assemble the final firmware from the official ImageBuilder for the same exact
 # release. OpenWrt runtime dependencies are resolved from the official release
