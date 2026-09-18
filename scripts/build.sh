@@ -600,12 +600,22 @@ printf '\n# AudioWRT reusable packages\nsrc-git audiowrt %s\n' "$feed_source" >>
 audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
 
 native_player_sdk=0
+minimal_wpa_sdk=0
 if [[ " ${firmware_packages[*]} " == *" audiowrt-player-core "* ]]; then
     native_player_sdk=1
+fi
+if [[ " ${firmware_packages[*]} " == *" audiowrt-wpa-supplicant "* ]]; then
+    minimal_wpa_sdk=1
+fi
+
+if (( native_player_sdk || minimal_wpa_sdk )); then
     (
         cd "$sdk_dir"
         ./scripts/feeds update base
     )
+fi
+
+if (( native_player_sdk )); then
     register_official_sdk_source base libs/libubox
     register_official_sdk_source base libs/uclient
     register_official_sdk_source base libs/ustream-ssl
@@ -619,6 +629,14 @@ if [[ " ${firmware_packages[*]} " == *" audiowrt-player-core "* ]]; then
     if [[ " ${firmware_packages[*]} " == *" audiowrt-player-aac "* ]]; then
         register_official_sdk_source packages libs/faad2
     fi
+fi
+
+if (( minimal_wpa_sdk )); then
+    register_official_sdk_source base libs/libnl-tiny
+    register_official_sdk_source base libs/libubox
+    register_official_sdk_source base system/ubus
+    register_official_sdk_source base utils/ucode
+    register_official_sdk_source base libs/udebug
 fi
 
 if [[ " ${firmware_packages[*]} " == *" kmod-audiowrt-bluetooth "* ]]; then
