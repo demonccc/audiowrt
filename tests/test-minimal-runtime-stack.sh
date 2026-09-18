@@ -95,17 +95,14 @@ done
 
 grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile' "$targets"
 
+# The constrained runtime packages compile AudioWRT-owned source with
+# NO_DEPS=1. Runtime-only OpenWrt dependencies (including kernel modules) must
+# not turn into source-build roots.
 for package in \
     audiowrt-minimal-alsa \
     audiowrt-minimal-mbedtls \
-    audiowrt-dropbear; do
-    grep -qx "$package" "$sources"
-done
-
-# The native renderer and codec players compile AudioWRT-owned C code, but must
-# stay on the NO_DEPS package boundary. Their OpenWrt runtime libraries come
-# from the exact-release SDK / package repositories and must not be rebuilt.
-for package in \
+    audiowrt-dropbear \
+    audiowrt-busybox \
     audiowrt-renderer \
     audiowrt-player-core \
     audiowrt-player-flac \
