@@ -7,6 +7,7 @@ packages_add:
   - audiowrt-audio
   - audiowrt-extensions
   - audiowrt-wifi-client
+  - audiowrt-renderer
   - luci-base
   - luci-theme-bootstrap
   - luci-mod-status
@@ -15,6 +16,7 @@ packages_add:
   - luci-app-audiowrt
   - luci-app-audiowrt-wifi-client
   - luci-app-audiowrt-core
+  - luci-app-audiowrt-renderer
   - uhttpd
   - uhttpd-mod-ubus
   - audiowrt-udhcpd
@@ -34,3 +36,6 @@ packages_remove:
   - luci-mod-network
   - luci-app-firewall
   - luci-proto-ppp
+  - minidlna
+  - umdns
+  - audiowrt-umdns

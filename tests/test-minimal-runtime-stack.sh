@@ -104,6 +104,8 @@ for package in \
     audiowrt-dropbear \
     audiowrt-busybox \
     audiowrt-sbc \
+    audiowrt-bluez-libs \
+    audiowrt-btctl \
     audiowrt-renderer \
     audiowrt-player-core \
     audiowrt-player-flac \
@@ -121,6 +123,13 @@ for package in \
         echo "ERROR: $package must not be a source-build root." >&2
         exit 1
     fi
+done
+
+for package in audiowrt-bluez bluez-alsa; do
+    grep -qx "$package" "$sources" || {
+        echo "ERROR: $package must remain an explicit upstream source root." >&2
+        exit 1
+    }
 done
 
 for keep in bluetooth.ko btmtk.ko btintel.ko btrtl.ko btusb.ko; do
