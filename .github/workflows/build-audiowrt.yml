@@ -7,7 +7,7 @@ on:
       audiowrt_profile:
         description: "AudioWRT device + flavor + OpenWrt version (YAML file name without extension)"
         required: true
-        default: tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
+        default: tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5
         type: choice
         options:
           # BEGIN GENERATED PROFILE OPTIONS
