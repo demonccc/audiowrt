@@ -51,8 +51,8 @@ for package in \
     grep -q "^  - $package$" "$groups/common.yaml"
 done
 
-# Minimal runtime uses the AudioWRT native renderer/discovery daemon plus only
-# the FLAC official player. MP3/AAC/WAV, MPD/upmpdcli and a separate mDNS daemon
+# Minimal runtime uses the AudioWRT native renderer/discovery daemon plus FLAC
+# and MP3 official players. AAC/WAV, MPD/upmpdcli and a separate mDNS daemon
 # must remain absent from the constrained image.
 for package in \
     audiowrt-minimal-alsa \
@@ -62,6 +62,7 @@ for package in \
     audiowrt-renderer \
     audiowrt-player-core \
     audiowrt-player-flac \
+    audiowrt-player-mp3 \
     luci-app-audiowrt-renderer; do
     grep -q "^  - $package$" "$groups/minimal.yaml"
 done
@@ -80,7 +81,7 @@ for package in \
     audiowrt-umdns; do
     grep -q "^  - $package$" "$groups/minimal.yaml"
 done
-for package in audiowrt-player-mp3 audiowrt-player-aac audiowrt-player-wav; do
+for package in audiowrt-player-aac audiowrt-player-wav; do
     ! grep -q "^  - $package$" "$groups/minimal.yaml"
 done
 for group in minimal-usb-audio minimal-usb-bluetooth minimal-usb-audio-bluetooth; do
@@ -152,7 +153,7 @@ removed = set(data["packages_remove"])
 assert {
     "audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-dropbear",
     "audiowrt-wpa-supplicant", "audiowrt-renderer", "audiowrt-player-core",
-    "audiowrt-player-flac", "luci-app-audiowrt-renderer",
+    "audiowrt-player-flac", "audiowrt-player-mp3", "luci-app-audiowrt-renderer",
     "kmod-audiowrt-bluetooth"
 } <= added
 assert {
@@ -161,7 +162,7 @@ assert {
     "minidlna", "umdns", "audiowrt-umdns", "dnsmasq", "kmod-bluetooth",
     "kmod-usb-audio"
 } <= removed
-assert not ({"audiowrt-player-mp3", "audiowrt-player-aac", "audiowrt-player-wav", "mpd-mini", "upmpdcli", "umdns"} & added)
+assert not ({"audiowrt-player-aac", "audiowrt-player-wav", "mpd-mini", "upmpdcli", "umdns"} & added)
 ' <<< "$wdr_bt"
 
 wdr_audio="$(python3 "$resolver" "$repo_root/profiles" "$groups" tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5)"
