@@ -754,7 +754,8 @@ if [[ "${#source_packages[@]}" -gt 0 ]]; then
     python3 "$repo_root/scripts/resolve-source-build-dependencies.py" \
         "$repo_root/config/build/package-build-targets" \
         "$packageinfo" \
-        "${source_packages[@]}" > "$source_dependencies_file"
+        "${source_packages[@]}" \
+        --providers "${build_packages[@]}" > "$source_dependencies_file"
     mapfile -t source_dependencies < "$source_dependencies_file"
 
     if [[ "${#source_dependencies[@]}" -gt 0 ]]; then
@@ -779,38 +780,39 @@ if (( native_player_sdk )); then
     prepare_native_player_sdk
 fi
 
-# Download and compile package-only roots without traversing runtime dependency
-# prerequisites. This is the critical boundary that keeps hostapd,
-# uhttpd, kernel packages, libraries, etc. as official release binaries.
-package_only_download_targets=()
-for target_path in "${package_only_targets[@]}"; do
-    package_only_download_targets+=("${target_path%/compile}/download")
+# Download every selected AudioWRT target without traversing dependencies. Source
+# packages download their own upstream tarballs here; development dependencies
+# are staged separately below and runtime-only dependencies stay official.
+ordered_targets=()
+declare -A ordered_target_seen=()
+for spec in "${build_specs[@]}"; do
+    target_path="${spec#*|}"
+    if [[ -z "${ordered_target_seen[$target_path]+x}" ]]; then
+        ordered_targets+=("$target_path")
+        ordered_target_seen["$target_path"]=1
+    fi
 done
-if [[ "${#package_only_download_targets[@]}" -gt 0 ]]; then
-    make_run "$sdk_dir" "${package_only_download_targets[@]}" NO_DEPS=1 -j"$jobs"
+
+download_targets=()
+for target_path in "${ordered_targets[@]}"; do
+    download_targets+=("${target_path%/compile}/download")
+done
+if [[ "${#download_targets[@]}" -gt 0 ]]; then
+    make_run "$sdk_dir" "${download_targets[@]}" NO_DEPS=1 -j"$jobs"
 fi
 
-# AudioWRT source packages are the only targets allowed to traverse build
-# dependencies, because they genuinely compile/link upstream code.
-source_download_targets=()
-for target_path in "${source_targets[@]}"; do
-    source_download_targets+=("${target_path%/compile}/download")
-done
-if [[ "${#source_download_targets[@]}" -gt 0 ]]; then
-    make_run "$sdk_dir" "${source_download_targets[@]}" -j"$jobs"
-    make_run "$sdk_dir" "${source_targets[@]}" -j"$jobs"
-fi
-
-# Build package-only targets in the dependency order emitted by
-# resolve-package-build-targets.py. NO_DEPS=1 prevents OpenWrt dependency
-# traversal, while sequential target submission ensures AudioWRT Build/InstallDev
-# output (for example audiowrt-player-core) is staged before dependent packages
-# such as FLAC/MP3 are compiled.
-if [[ "${#package_only_targets[@]}" -gt 0 ]]; then
-    for target_path in "${package_only_targets[@]}"; do
+# Compile in the topological order emitted by resolve-package-build-targets.py.
+# Package-only AudioWRT targets stay behind NO_DEPS=1. Genuine upstream source
+# targets may use the explicitly registered development dependencies, but they
+# run only after earlier AudioWRT providers (for example minimal ALSA and SBC)
+# have installed their Build/InstallDev output into the SDK staging directory.
+for target_path in "${ordered_targets[@]}"; do
+    if [[ -n "${source_target_seen[$target_path]+x}" ]]; then
+        make_run "$sdk_dir" "$target_path" -j"$jobs"
+    else
         make_run "$sdk_dir" "$target_path" NO_DEPS=1 -j"$jobs"
-    done
-fi
+    fi
+done
 
 rm -rf "$local_apks_dir"
 mkdir -p "$local_apks_dir"
