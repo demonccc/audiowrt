@@ -488,6 +488,12 @@ if [[ "${#source_packages[@]}" -gt 0 ]]; then
     fi
 fi
 
+# The SDK ships the target toolchain itself, but package dependency checking
+# needs its libc/libgcc package metadata staged before NO_DEPS packages are
+# emitted. Build this metadata once instead of letting every AudioWRT package
+# traverse package/toolchain as a dependency.
+make_run "$sdk_dir" package/toolchain/compile NO_DEPS=1 -j"$jobs"
+
 # Download and compile package-only roots without traversing runtime dependency
 # prerequisites. This is the critical boundary that keeps hostapd,
 # uhttpd, kernel packages, libraries, etc. as official release binaries.
