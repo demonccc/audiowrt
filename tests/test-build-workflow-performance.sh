@@ -14,5 +14,10 @@ grep -Fq "if: \${{ !endsWith(inputs.audiowrt_profile, '-snapshot') }}" "$workflo
 grep -Fq 'path: .cache/audiowrt' "$workflow"
 grep -Fq "CACHE_DIR='.cache/audiowrt'" "$workflow"
 
+grep -Fq 'default: tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5' "$workflow" || {
+    echo "ERROR: manual AudioWRT builds must default to the WDR4300 USB-audio baseline, not Bluetooth." >&2
+    exit 1
+}
+
 
 echo "Build workflow performance safeguards passed."

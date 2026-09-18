@@ -9,7 +9,6 @@
 # dependencies or host tooling (for example Rust/GLib/DBus stacks).
 
 librespot
-audiowrt-sbc
 audiowrt-bluez-libs
 audiowrt-bluez
 audiowrt-btctl
