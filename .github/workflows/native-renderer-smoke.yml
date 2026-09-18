@@ -17,7 +17,7 @@ jobs:
         run: |
           make build \
             AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5 \
-            AUDIOWRT_PACKAGES_REF=feature/native-dlna-players \
+            AUDIOWRT_PACKAGES_REF=main \
             JOBS=4 \
             VERBOSITY=normal \
             CACHE_DIR=.cache/audiowrt
