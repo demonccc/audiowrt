@@ -10,6 +10,7 @@ trap 'rm -rf "$tmp"' EXIT
 cat > "$tmp/targets" <<'EOF'
 audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
 audiowrt-minimal-mbedtls|package/feeds/audiowrt/audiowrt-minimal-mbedtls/compile
+audiowrt-wpa-supplicant|package/feeds/audiowrt/audiowrt-wpa-supplicant/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
 librespot|package/feeds/audiowrt/librespot/compile
 audiowrt-sbc|package/feeds/audiowrt/audiowrt-sbc/compile
@@ -30,6 +31,8 @@ Provides: alsa-lib
 Package: audiowrt-minimal-mbedtls
 Depends: +libc
 Provides: libmbedtls libmbedtls21
+Package: audiowrt-wpa-supplicant
+Depends: +libnl-tiny +hostapd-common +libubus +libblobmsg-json +libudebug +libmbedtls
 Package: audiowrt-spotify
 Depends: +librespot
 Package: audiowrt-sbc
@@ -59,6 +62,52 @@ fi
 if grep -Eq '^(libc|audiowrt-spotify|audiowrt-minimal-alsa|audiowrt-minimal-mbedtls|kernel|kmod-)' "$tmp/librespot"; then
     echo "ERROR: toolchain or AudioWRT-owned dependencies leaked into source dependency roots." >&2
     cat "$tmp/librespot" >&2
+    exit 1
+fi
+
+python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" audiowrt-wpa-supplicant \
+    --providers audiowrt-minimal-mbedtls audiowrt-wpa-supplicant > "$tmp/wpa"
+
+for package in libnl-tiny hostapd-common libubus libblobmsg-json libudebug; do
+    grep -qx "$package" "$tmp/wpa"
+done
+if grep -Eq '^(libmbedtls|libmbedtls21|audiowrt-minimal-mbedtls)python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
+    audiowrt-bluez bluez-alsa \
+    --providers audiowrt-minimal-alsa audiowrt-sbc audiowrt-bluez-libs \
+    audiowrt-bluez audiowrt-btctl bluez-alsa audiowrt-bluetooth > "$tmp/bluetooth"
+for package in glib2 dbus; do
+    grep -qx "$package" "$tmp/bluetooth"
+done
+if grep -qx 'alsa-lib' "$tmp/bluetooth"; then
+    echo 'ERROR: minimal ALSA provider leaked the official ALSA source dependency.' >&2
+    exit 1
+fi
+if grep -Eq '^(libc|audiowrt-sbc|audiowrt-bluez-libs|audiowrt-bluez|audiowrt-btctl|bluez-daemon|bluez-libs|sbc|libsndfile|libical|libreadline|libncurses)$' "$tmp/bluetooth"; then
+    echo "ERROR: generic or AudioWRT-owned dependencies leaked into Bluetooth source roots." >&2
+    cat "$tmp/bluetooth" >&2
+    exit 1
+fi
+
+# Runtime kernel packages must not trigger kernel source compilation while
+# staging userspace dependencies.
+if grep -Eq '^(kernel|kmod-)' "$tmp/bluetooth"; then
+    echo 'ERROR: runtime kernel packages leaked into userspace source dependencies.' >&2
+    cat "$tmp/bluetooth" >&2
+    exit 1
+fi
+
+# Standard/full profiles do not select the minimal provider, so the official
+# ALSA source dependency must be staged for AudioWRT source packages.
+python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
+    audiowrt-bluez bluez-alsa \
+    --providers audiowrt-sbc audiowrt-bluez-libs audiowrt-bluez audiowrt-btctl \
+    bluez-alsa audiowrt-bluetooth > "$tmp/official-bluetooth"
+grep -qx 'alsa-lib' "$tmp/official-bluetooth"
+
+printf 'Source build dependency tests passed.\n'
+ "$tmp/wpa"; then
+    echo 'ERROR: selected AudioWRT mbedTLS provider did not satisfy WPA build dependencies.' >&2
+    cat "$tmp/wpa" >&2
     exit 1
 fi
 
