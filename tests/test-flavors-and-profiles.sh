@@ -176,7 +176,7 @@ removed = set(data["packages_remove"])
 assert {
     "audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-dropbear",
     "audiowrt-wpa-supplicant", "audiowrt-renderer", "audiowrt-player-core",
-    "audiowrt-player-flac", "luci-app-audiowrt-renderer",
+    "audiowrt-player-flac", "audiowrt-player-mp3", "luci-app-audiowrt-renderer",
     "audiowrt-usb-audio", "kmod-usb-audio"
 } <= added
 assert {
@@ -185,7 +185,7 @@ assert {
     "minidlna", "umdns", "audiowrt-umdns", "dnsmasq", "kmod-bluetooth",
     "kmod-audiowrt-bluetooth"
 } <= removed
-assert not ({"audiowrt-player-mp3", "audiowrt-player-aac", "audiowrt-player-wav", "mpd-mini", "upmpdcli", "umdns"} & added)
+assert not ({"audiowrt-player-aac", "audiowrt-player-wav", "mpd-mini", "upmpdcli", "umdns"} & added)
 ' <<< "$wdr_audio"
 
 # Package groups may include reusable groups; current group entries apply last.
