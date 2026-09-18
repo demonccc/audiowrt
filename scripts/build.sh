@@ -406,37 +406,42 @@ stage_official_link_stub() {
     # Runtime APK libraries are aggressively stripped by OpenWrt and have no
     # section headers. They are valid runtime ELFs, but GNU ld cannot consume
     # them as development libraries. Build a tiny target-architecture link stub
-    # that exports only the symbols AudioWRT references and carries the exact
-    # runtime SONAME. The stub is used only inside the SDK; the firmware still
-    # installs the untouched official OpenWrt package.
-    stub_source="$package_stage/link-stub.c"
-    : > "$stub_source"
-    for symbol in "$@"; do
-        [[ "$symbol" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || {
-            echo "ERROR: invalid link-stub symbol for $package: $symbol" >&2
-            exit 5
-        }
-
-        # uloop exposes two pieces used by inline helpers in uloop.h rather than
-        # through ordinary function calls. They must exist in the link stub with
-        # the correct symbol kind or downstream AudioWRT players cannot resolve
-        # libaudiowrt-player.so.
-        case "$symbol" in
-            uloop_cancelled)
-                printf 'unsigned char uloop_cancelled;\n' >> "$stub_source"
-                ;;
-            uloop_run_timeout)
-                printf 'int uloop_run_timeout(int timeout) { (void)timeout; return 0; }\n' >> "$stub_source"
-                ;;
-            *)
-                printf 'void %s(void) {}\n' "$symbol" >> "$stub_source"
-                ;;
-        esac
-    done
-
+    # carrying the exact runtime SONAME. Callers may list the small set of
+    # symbols they reference, or request every exported dynamic symbol when a
+    # complex upstream package (such as wpa_supplicant) uses a wider API.
     mkdir -p "$target_staging/usr/lib" "$target_staging/pkginfo"
-    "$target_cc" -shared -fPIC -Wl,-soname,"$soname" \
-        -o "$target_staging/usr/lib/$linker_name" "$stub_source"
+    if [[ "${1:-}" == "--all-dynamic-symbols" ]]; then
+        python3 "$repo_root/scripts/create-elf-link-stub.py" \
+            "$readelf_bin" "$target_cc" "$library" \
+            "$target_staging/usr/lib/$linker_name" "$soname"
+    else
+        stub_source="$package_stage/link-stub.c"
+        : > "$stub_source"
+        for symbol in "$@"; do
+            [[ "$symbol" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || {
+                echo "ERROR: invalid link-stub symbol for $package: $symbol" >&2
+                exit 5
+            }
+
+            # uloop exposes two pieces used by inline helpers in uloop.h rather
+            # than through ordinary function calls. Keep their symbol kind
+            # compatible with the real library.
+            case "$symbol" in
+                uloop_cancelled)
+                    printf 'unsigned char uloop_cancelled;\n' >> "$stub_source"
+                    ;;
+                uloop_run_timeout)
+                    printf 'int uloop_run_timeout(int timeout) { (void)timeout; return 0; }\n' >> "$stub_source"
+                    ;;
+                *)
+                    printf 'void %s(void) {}\n' "$symbol" >> "$stub_source"
+                    ;;
+            esac
+        done
+
+        "$target_cc" -shared -fPIC -Wl,-soname,"$soname" \
+            -o "$target_staging/usr/lib/$linker_name" "$stub_source"
+    fi
 
     # Downstream AudioWRT libraries record the real runtime SONAME in DT_NEEDED.
     # Keep an SDK-only alias for that SONAME so GNU ld can resolve transitive
