@@ -51,9 +51,9 @@ for package in \
     grep -q "^  - $package$" "$groups/common.yaml"
 done
 
-# Minimal runtime uses the AudioWRT native renderer/discovery daemon plus only
-# FLAC and MP3 official players. MPD/upmpdcli and a separate mDNS daemon must
-# remain absent from the constrained image.
+# Minimal runtime uses the AudioWRT native renderer/discovery daemon plus FLAC
+# and MP3 official players. AAC/WAV, MPD/upmpdcli and a separate mDNS daemon
+# must remain absent from the constrained image.
 for package in \
     audiowrt-minimal-alsa \
     audiowrt-minimal-mbedtls \

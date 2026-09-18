@@ -9,6 +9,7 @@ trap 'rm -rf "$tmp_dir"' EXIT
 
 cat > "$tmp_dir/targetinfo" <<'EOF'
 Target: mediatek/filogic
+Target-Arch-Packages: aarch64_cortex-a53
 Default-Packages: base-files netifd
 @@
 Target-Profile: DEVICE_glinet_gl-mt6000
@@ -33,6 +34,7 @@ metadata = json.load(open(sys.argv[1], encoding="utf-8"))
 assert metadata["target"] == "mediatek"
 assert metadata["subtarget"] == "filogic"
 assert metadata["platform"] == "glinet_gl-mt6000"
+assert metadata["arch_packages"] == "aarch64_cortex-a53"
 assert "kmod-usb3" in metadata["profile_packages"]
 PY
 

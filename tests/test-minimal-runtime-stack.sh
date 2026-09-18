@@ -95,20 +95,27 @@ done
 
 grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile' "$targets"
 
+# The constrained runtime packages compile AudioWRT-owned source with
+# NO_DEPS=1. Runtime-only OpenWrt dependencies (including kernel modules) must
+# not turn into source-build roots.
 for package in \
     audiowrt-minimal-alsa \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
+    audiowrt-busybox \
     audiowrt-renderer \
     audiowrt-player-core \
     audiowrt-player-flac \
     audiowrt-player-mp3 \
     audiowrt-player-aac \
-    audiowrt-player-wav; do
-    grep -qx "$package" "$sources"
-done
-
-for package in audiowrt-wpa-supplicant audiowrt-minimal-upmpdcli audiowrt-mpd audiowrt-umdns mpd-mini upmpdcli luci-app-audiowrt-renderer; do
+    audiowrt-player-wav \
+    audiowrt-wpa-supplicant \
+    audiowrt-minimal-upmpdcli \
+    audiowrt-mpd \
+    audiowrt-umdns \
+    mpd-mini \
+    upmpdcli \
+    luci-app-audiowrt-renderer; do
     if grep -qx "$package" "$sources"; then
         echo "ERROR: $package must not be a source-build root." >&2
         exit 1

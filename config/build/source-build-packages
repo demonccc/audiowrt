@@ -1,23 +1,13 @@
-# AudioWRT-owned packages that genuinely compile/link upstream source code.
+# AudioWRT-owned packages that genuinely require OpenWrt source dependency traversal.
 #
-# Only packages in this file may traverse the OpenWrt SDK build dependency graph.
-# Runtime-profile/meta packages must stay out of this list and are built with
-# NO_DEPS=1 so unchanged OpenWrt packages remain official release binaries.
+# Packages NOT listed here are still compiled when they contain AudioWRT source
+# code, but they are built with NO_DEPS=1 against the exact-release SDK staging
+# area. Runtime-only OpenWrt dependencies must never be rebuilt just because an
+# AudioWRT package references them.
 #
-# IMPORTANT: adding a package here is an explicit opt-in to source dependency
-# compilation. Do not add wrappers/selectors merely because they reference an
-# upstream project.
+# Keep this list limited to packages whose build really needs external source
+# dependencies or host tooling (for example Rust/GLib/DBus stacks).
 
-audiowrt-busybox
-audiowrt-minimal-alsa
-audiowrt-minimal-mbedtls
-audiowrt-dropbear
-audiowrt-renderer
-audiowrt-player-core
-audiowrt-player-flac
-audiowrt-player-mp3
-audiowrt-player-aac
-audiowrt-player-wav
 librespot
 audiowrt-sbc
 audiowrt-bluez-libs
