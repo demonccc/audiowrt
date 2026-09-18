@@ -17,7 +17,7 @@ jobs:
         run: |
           make build \
             AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5 \
-            AUDIOWRT_PACKAGES_REF=main \
+            AUDIOWRT_PACKAGES_REF=fix/renderer-no-libuci \
             JOBS=4 \
             VERBOSITY=normal \
             CACHE_DIR=.cache/audiowrt
