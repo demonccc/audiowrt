@@ -104,6 +104,7 @@ for package in \
     audiowrt-minimal-alsa \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
+    audiowrt-wpa-supplicant \
     audiowrt-busybox \
     audiowrt-sbc \
     audiowrt-bluez-libs \
@@ -126,12 +127,24 @@ for package in \
     fi
 done
 
-for package in audiowrt-wpa-supplicant audiowrt-bluez bluez-alsa; do
+for package in audiowrt-bluez bluez-alsa; do
     grep -qx "$package" "$sources" || {
         echo "ERROR: $package must remain an explicit upstream source root." >&2
         exit 1
     }
 done
+
+# WPA compiles upstream hostap source behind NO_DEPS=1. Its build interfaces
+# are staged explicitly so hostapd-common/ubus/ucode never become source roots.
+grep -Fq 'prepare_minimal_wpa_sdk()' "$build_script"
+grep -Fq 'package/feeds/base/libnl-tiny/compile' "$build_script"
+for package in libubox ubus ucode udebug; do
+    grep -Fq "package/feeds/base/$package/prepare" "$build_script"
+done
+for package in libubox libblobmsg-json libubus libucode libudebug; do
+    grep -Fq "stage_official_link_stub $package base" "$build_script"
+done
+grep -Fq -- '--all-dynamic-symbols' "$build_script"
 
 for keep in bluetooth.ko btmtk.ko btintel.ko btrtl.ko btusb.ko; do
     grep -Fq "$keep" "$build_script"
