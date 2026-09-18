@@ -21,6 +21,11 @@ grep -Fq './scripts/feeds update packages audiowrt' "$build_script" || {
     exit 1
 }
 
+grep -Fq 'make_run "$sdk_dir" package/toolchain/compile NO_DEPS=1 -j"$jobs"' "$build_script" || {
+    echo "ERROR: SDK toolchain package metadata must be staged once before NO_DEPS builds." >&2
+    exit 1
+}
+
 grep -Fq 'make_run "$sdk_dir" "${package_only_download_targets[@]}" NO_DEPS=1 -j"$jobs"' "$build_script" || {
     echo "ERROR: package-only download targets must use NO_DEPS=1." >&2
     exit 1
