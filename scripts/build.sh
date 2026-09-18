@@ -321,6 +321,126 @@ for omitted in rfcomm.ko bnep.ko hidp.ko; do
 done
 }
 
+register_official_sdk_source() {
+    local feed="$1" source_rel="$2"
+    local source_path="$sdk_dir/feeds/$feed/$source_rel"
+    local destination="$sdk_dir/package/feeds/$feed/$(basename "$source_rel")"
+
+    [[ -d "$source_path" ]] || {
+        echo "ERROR: official OpenWrt source directory is missing: $source_path" >&2
+        exit 5
+    }
+    mkdir -p "$(dirname "$destination")"
+    if [[ ! -e "$destination" && ! -L "$destination" ]]; then
+        ln -s "$source_path" "$destination"
+    fi
+}
+
+prepared_source_dir() {
+    local source_name="$1"
+    local -a matches=()
+    mapfile -t matches < <(
+        find "$sdk_dir/build_dir" -mindepth 2 -maxdepth 2 -type d \
+            -name "$source_name-*" -print 2>/dev/null
+    )
+    [[ "${#matches[@]}" -eq 1 ]] || {
+        echo "ERROR: expected one prepared source tree for $source_name, found ${#matches[@]}." >&2
+        exit 5
+    }
+    printf '%s\n' "${matches[0]}"
+}
+
+stage_official_runtime_library() {
+    local package="$1" feed="$2" library_glob="$3" linker_name="$4"
+    local target_staging="$5" package_stage="$work_dir/prebuilt-sdk/$package"
+    local package_url package_apk library soname readelf_bin
+    local -a libraries=()
+
+    package_url="$(python3 "$repo_root/scripts/resolve-openwrt-package.py" \
+        "$release" "$arch_packages" "$feed" "$package")"
+    package_apk="$package_stage/$(basename "$package_url")"
+    rm -rf "$package_stage"
+    mkdir -p "$package_stage/extracted"
+    download_file "$package_url" "$package_apk"
+    "$sdk_dir/staging_dir/host/bin/apk" --allow-untrusted extract \
+        --destination "$package_stage/extracted" "$package_apk"
+
+    mapfile -t libraries < <(find "$package_stage/extracted" -type f -name "$library_glob" -print)
+    [[ "${#libraries[@]}" -eq 1 ]] || {
+        echo "ERROR: expected one $library_glob in official $package APK, found ${#libraries[@]}." >&2
+        exit 5
+    }
+    library="${libraries[0]}"
+
+    mkdir -p "$target_staging/usr/lib" "$target_staging/pkginfo"
+    cp -f "$library" "$target_staging/usr/lib/$(basename "$library")"
+    if [[ "$(basename "$library")" != "$linker_name" ]]; then
+        ln -sf "$(basename "$library")" "$target_staging/usr/lib/$linker_name"
+    fi
+
+    readelf_bin="$(find "$sdk_dir/staging_dir" -path '*/bin/*-readelf' -print -quit)"
+    [[ -x "$readelf_bin" ]] || {
+        echo "ERROR: target readelf is missing from SDK toolchain." >&2
+        exit 5
+    }
+    soname="$("$readelf_bin" -d "$library" 2>/dev/null | sed -n 's/.*SONAME.*\[\(.*\)\].*/\1/p' | head -n1)"
+    [[ -n "$soname" ]] || soname="$(basename "$library")"
+    printf '%s\n' "$soname" > "$target_staging/pkginfo/$package.provides"
+}
+
+prepare_native_player_sdk() {
+    local -a target_staging_matches=()
+    local target_staging libubox_src uclient_src ustream_src flac_src
+
+    mapfile -t target_staging_matches < <(
+        find "$sdk_dir/staging_dir" -mindepth 1 -maxdepth 1 -type d -name 'target-*' -print
+    )
+    [[ "${#target_staging_matches[@]}" -eq 1 ]] || {
+        echo "ERROR: expected one target staging directory, found ${#target_staging_matches[@]}." >&2
+        exit 5
+    }
+    target_staging="${target_staging_matches[0]}"
+
+    make_run "$sdk_dir" \
+        package/feeds/base/libubox/prepare \
+        package/feeds/base/uclient/prepare \
+        package/feeds/base/ustream-ssl/prepare \
+        package/feeds/packages/flac/prepare \
+        NO_DEPS=1 -j"$jobs"
+
+    libubox_src="$(prepared_source_dir libubox)"
+    uclient_src="$(prepared_source_dir uclient)"
+    ustream_src="$(prepared_source_dir ustream-ssl)"
+    flac_src="$(prepared_source_dir flac)"
+
+    mkdir -p "$target_staging/usr/include/libubox" "$target_staging/usr/include/FLAC"
+    find "$libubox_src" -maxdepth 1 -type f -name '*.h' -exec cp -f {} "$target_staging/usr/include/libubox/" \;
+    find "$uclient_src" -maxdepth 1 -type f -name '*.h' -exec cp -f {} "$target_staging/usr/include/libubox/" \;
+    find "$ustream_src" -maxdepth 1 -type f -name '*.h' -exec cp -f {} "$target_staging/usr/include/libubox/" \;
+    cp -f "$flac_src"/include/FLAC/*.h "$target_staging/usr/include/FLAC/"
+
+    [[ -f "$target_staging/usr/include/libubox/uloop.h" ]] || {
+        echo "ERROR: libubox headers were not staged." >&2
+        exit 5
+    }
+    [[ -f "$target_staging/usr/include/libubox/uclient.h" ]] || {
+        echo "ERROR: uclient headers were not staged." >&2
+        exit 5
+    }
+    [[ -f "$target_staging/usr/include/libubox/ustream-ssl.h" ]] || {
+        echo "ERROR: ustream-ssl headers were not staged." >&2
+        exit 5
+    }
+    [[ -f "$target_staging/usr/include/FLAC/stream_decoder.h" ]] || {
+        echo "ERROR: FLAC headers were not staged." >&2
+        exit 5
+    }
+
+    stage_official_runtime_library libubox base 'libubox.so.*' libubox.so "$target_staging"
+    stage_official_runtime_library libuclient base 'libuclient.so*' libuclient.so "$target_staging"
+    stage_official_runtime_library libflac packages 'libFLAC.so.*' libFLAC.so "$target_staging"
+}
+
 # Keep the SDK's official exact-release feed configuration intact. We only
 # update the feeds whose source trees are needed by AudioWRT package Makefiles:
 # packages (for shared build helpers such as rust-package.mk) and audiowrt.
