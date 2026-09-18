@@ -720,6 +720,21 @@ for spec in "${build_specs[@]}"; do
     fi
 done
 
+# A single SDK target can emit multiple AudioWRT packages. If any package from
+# that target is an explicit source root (for example audiowrt-bluez while
+# audiowrt-bluez-libs is another output of the same recipe), compile the target
+# exactly once through the source path and remove it from the NO_DEPS target set.
+if [[ "${#package_only_targets[@]}" -gt 0 && "${#source_targets[@]}" -gt 0 ]]; then
+    filtered_package_only_targets=()
+    for target_path in "${package_only_targets[@]}"; do
+        if [[ -n "${source_target_seen[$target_path]+x}" ]]; then
+            continue
+        fi
+        filtered_package_only_targets+=("$target_path")
+    done
+    package_only_targets=("${filtered_package_only_targets[@]}")
+fi
+
 printf '  AudioWRT SDK build packages:\n'
 printf '    %s\n' "${build_packages[@]}"
 printf '  Package-only AudioWRT packages (NO_DEPS=1):\n'
