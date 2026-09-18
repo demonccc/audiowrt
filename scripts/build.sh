@@ -518,11 +518,11 @@ prepare_native_player_sdk() {
 
     if [[ " ${firmware_packages[*]} " == *" audiowrt-player-mp3 "* ]]; then
         local mpg123_src
-        make_run "$sdk_dir" package/feeds/packages/mpg123/configure NO_DEPS=1 -j"$jobs"
+        make_run "$sdk_dir" package/feeds/packages/mpg123/prepare NO_DEPS=1 -j"$jobs"
         mpg123_src="$(prepared_source_dir mpg123)"
         mkdir -p "$target_staging/usr/include"
-        copy_single_header "$mpg123_src" mpg123.h "$target_staging/usr/include/mpg123.h"
-        copy_single_header "$mpg123_src" fmt123.h "$target_staging/usr/include/fmt123.h"
+        cp -f "$mpg123_src/src/include/mpg123.h" "$target_staging/usr/include/mpg123.h"
+        cp -f "$mpg123_src/src/include/fmt123.h" "$target_staging/usr/include/fmt123.h"
         stage_official_link_stub libmpg123 packages 'libmpg123.so.*' libmpg123.so "$target_staging" \
             mpg123_init mpg123_new mpg123_format_none mpg123_rates mpg123_format \
             mpg123_open_fd mpg123_read mpg123_getformat mpg123_close mpg123_delete mpg123_exit
