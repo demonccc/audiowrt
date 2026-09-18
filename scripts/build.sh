@@ -337,16 +337,24 @@ register_official_sdk_source() {
 }
 
 prepared_source_dir() {
-    local source_name="$1"
+    local source_name="$1" allow_variants="${2:-0}"
     local -a matches=()
     mapfile -t matches < <(
         find "$sdk_dir/build_dir" -mindepth 2 -maxdepth 2 -type d \
-            -name "$source_name-*" -print 2>/dev/null
+            -name "$source_name-*" -print 2>/dev/null | sort
     )
-    [[ "${#matches[@]}" -eq 1 ]] || {
-        echo "ERROR: expected one prepared source tree for $source_name, found ${#matches[@]}." >&2
+    [[ "${#matches[@]}" -gt 0 ]] || {
+        echo "ERROR: no prepared source tree found for $source_name." >&2
         exit 5
     }
+    if [[ "$allow_variants" != "1" && "${#matches[@]}" -ne 1 ]]; then
+        echo "ERROR: expected one prepared source tree for $source_name, found ${#matches[@]}." >&2
+        exit 5
+    fi
+    # OpenWrt may prepare several build variants from the same source tree
+    # (ustream-ssl: mbedTLS/OpenSSL/WolfSSL). Public source headers are common
+    # to those variants, so callers that explicitly allow variants may use the
+    # first deterministic prepared tree without compiling any variant.
     printf '%s\n' "${matches[0]}"
 }
 
@@ -410,7 +418,7 @@ prepare_native_player_sdk() {
 
     libubox_src="$(prepared_source_dir libubox)"
     uclient_src="$(prepared_source_dir uclient)"
-    ustream_src="$(prepared_source_dir ustream-ssl)"
+    ustream_src="$(prepared_source_dir ustream-ssl 1)"
     flac_src="$(prepared_source_dir flac)"
 
     mkdir -p "$target_staging/usr/include/libubox" "$target_staging/usr/include/FLAC"
