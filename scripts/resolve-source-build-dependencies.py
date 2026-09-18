@@ -86,12 +86,24 @@ def main() -> None:
     if len(sys.argv) < 4:
         fail(
             "usage: resolve-source-build-dependencies.py "
-            "<package-build-targets> <packageinfo> <source-package> [<source-package> ...]"
+            "<package-build-targets> <packageinfo> "
+            "<source-package> [<source-package> ...] "
+            "[--providers <selected-package> ...]"
         )
 
     targets_path = Path(sys.argv[1])
     packageinfo_path = Path(sys.argv[2])
-    selected = sys.argv[3:]
+    args = sys.argv[3:]
+    if "--providers" in args:
+        split = args.index("--providers")
+        selected = args[:split]
+        providers = args[split + 1 :]
+    else:
+        selected = args
+        providers = list(selected)
+
+    if not selected:
+        fail("at least one source package is required")
 
     if not targets_path.is_file():
         fail(f"package build target map not found: {targets_path}")
@@ -102,7 +114,7 @@ def main() -> None:
     metadata = load_metadata(packageinfo_path)
     selected_provides = {
         normalize_dependency(provided)
-        for package in selected
+        for package in providers
         for provided in metadata.get(package, {}).get("provides", [])
     }
     dependencies: list[str] = []
