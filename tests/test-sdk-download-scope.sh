@@ -49,6 +49,14 @@ grep -Fq 'Runtime APK libraries are aggressively stripped by OpenWrt' "$build_sc
     echo "ERROR: stripped runtime libraries must not be copied into the SDK linker path." >&2
     exit 1
 }
+grep -Fq 'ln -sf "$linker_name" "$target_staging/usr/lib/$soname"' "$build_script" || {
+    echo "ERROR: SDK link stubs must expose their runtime SONAME for transitive links." >&2
+    exit 1
+}
+grep -Fq 'uloop_cancelled uloop_init uloop_run_timeout uloop_done' "$build_script" || {
+    echo "ERROR: libubox stub must satisfy uloop inline-helper symbols." >&2
+    exit 1
+}
 if grep -Eq 'package/feeds/(base|packages)/(libubox|uclient|ustream-ssl|flac|mpg123|faad2)/compile' "$build_script"; then
     echo "ERROR: official native-player dependencies must not be compiled." >&2
     exit 1
