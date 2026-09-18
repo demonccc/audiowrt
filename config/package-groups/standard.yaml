@@ -4,9 +4,6 @@ packages_add:
   - libmbedtls21
   - dropbear
   - wpad-basic-mbedtls
-  - luci-mod-status
-  - luci-mod-system
-  - luci-app-package-manager
   - audiowrt-player-core
   - audiowrt-player-flac
   - audiowrt-player-mp3
