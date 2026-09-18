@@ -21,19 +21,21 @@ done
 
 test ! -e "$repo_root/config/flavors"
 
-# Global AudioWRT policy belongs to common and common is automatic. Runtime
-# implementations such as SSH, Wi-Fi supplicant and the network renderer belong
-# to minimal or standard instead of being fixed here.
+# Global AudioWRT policy belongs to common and common is automatic. The native
+# renderer/discovery service is part of every AudioWRT image; codec/player
+# choices remain in minimal/standard.
 for package in \
     audiowrt-branding \
     audiowrt-udhcpd \
+    audiowrt-renderer \
+    luci-app-audiowrt-renderer \
     luci-base \
     luci-mod-status \
     luci-mod-system \
     luci-app-package-manager; do
     grep -q "^  - $package$" "$groups/common.yaml"
 done
-for package in dropbear wpad-basic-mbedtls audiowrt-renderer mpd-mini upmpdcli umdns; do
+for package in dropbear wpad-basic-mbedtls mpd-mini upmpdcli; do
     ! grep -q "^  - $package$" "$groups/common.yaml"
 done
 for package in \
@@ -47,7 +49,10 @@ for package in \
     luci-mod-admin-full \
     luci-mod-network \
     luci-app-firewall \
-    luci-proto-ppp; do
+    luci-proto-ppp \
+    minidlna \
+    umdns \
+    audiowrt-umdns; do
     grep -q "^  - $package$" "$groups/common.yaml"
 done
 
@@ -59,11 +64,9 @@ for package in \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
     audiowrt-wpa-supplicant \
-    audiowrt-renderer \
     audiowrt-player-core \
     audiowrt-player-flac \
-    audiowrt-player-mp3 \
-    luci-app-audiowrt-renderer; do
+    audiowrt-player-mp3; do
     grep -q "^  - $package$" "$groups/minimal.yaml"
 done
 for package in \
@@ -75,10 +78,7 @@ for package in \
     mpd-full \
     upmpdcli \
     audiowrt-minimal-upmpdcli \
-    audiowrt-mpd \
-    minidlna \
-    umdns \
-    audiowrt-umdns; do
+    audiowrt-mpd; do
     grep -q "^  - $package$" "$groups/minimal.yaml"
 done
 for package in audiowrt-player-aac audiowrt-player-wav; do
@@ -95,13 +95,11 @@ for package in \
     libmbedtls21 \
     dropbear \
     wpad-basic-mbedtls \
-    audiowrt-renderer \
     audiowrt-player-core \
     audiowrt-player-flac \
     audiowrt-player-mp3 \
     audiowrt-player-aac \
-    audiowrt-player-wav \
-    luci-app-audiowrt-renderer; do
+    audiowrt-player-wav; do
     grep -q "^  - $package$" "$groups/standard.yaml"
 done
 for package in \
@@ -113,10 +111,7 @@ for package in \
     mpd-mini \
     mpd-full \
     upmpdcli \
-    audiowrt-mpd \
-    minidlna \
-    umdns \
-    audiowrt-umdns; do
+    audiowrt-mpd; do
     grep -q "^  - $package$" "$groups/standard.yaml"
 done
 for group in usb-audio usb-bluetooth usb-audio-bluetooth; do
@@ -136,7 +131,9 @@ assert data["openwrt_source"] in {"release", "snapshot"}
 assert not set(data["packages_add"]) & set(data["packages_remove"])
 assert "audiowrt-branding" in data["packages_add"]
 assert "audiowrt-udhcpd" in data["packages_add"]
-for package in ("dnsmasq", "ppp", "ppp-mod-pppoe", "luci-proto-ppp", "luci-app-firewall", "luci-mod-network"):
+assert "audiowrt-renderer" in data["packages_add"]
+assert "luci-app-audiowrt-renderer" in data["packages_add"]
+for package in ("dnsmasq", "ppp", "ppp-mod-pppoe", "luci-proto-ppp", "luci-app-firewall", "luci-mod-network", "minidlna", "umdns", "audiowrt-umdns"):
     assert package in data["packages_remove"]
 ' "$profile" <<< "$resolved"
 done
@@ -261,7 +258,7 @@ if python3 "$resolver" "$tmp/profiles" "$tmp/groups" example-device-test-25.12.5
     exit 1
 fi
 
-grep -q 'AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5' "$repo_root/scripts/build.sh"
+grep -q 'AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5' "$repo_root/scripts/build.sh"
 grep -q 'CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=' "$repo_root/scripts/build.sh"
 grep -q 'config/build/package-build-targets' "$repo_root/scripts/build.sh"
 grep -q 'config/build/source-build-packages' "$repo_root/scripts/build.sh"
