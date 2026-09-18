@@ -256,7 +256,7 @@ if python3 "$resolver" "$tmp/profiles" "$tmp/groups" example-device-test-25.12.5
     exit 1
 fi
 
-grep -q 'AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5' "$repo_root/scripts/build.sh"
+grep -q 'AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5' "$repo_root/scripts/build.sh"
 grep -q 'CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=' "$repo_root/scripts/build.sh"
 grep -q 'config/build/package-build-targets' "$repo_root/scripts/build.sh"
 grep -q 'config/build/source-build-packages' "$repo_root/scripts/build.sh"
