@@ -380,17 +380,24 @@ stage_official_runtime_library() {
     }
     library="${libraries[0]}"
 
+    readelf_bin="$(find "$sdk_dir/staging_dir" -path '*/bin/*-readelf' -print -quit)"
+    [[ -x "$readelf_bin" ]] || {
+        echo "ERROR: target readelf is missing from SDK toolchain." >&2
+        exit 5
+    }
+    printf 'Official %s runtime library: %s\n' "$package" "$library"
+    file "$library" || true
+    if ! "$readelf_bin" -h "$library"; then
+        echo "ERROR: official $package APK did not extract a valid target ELF library." >&2
+        exit 5
+    fi
+
     mkdir -p "$target_staging/usr/lib" "$target_staging/pkginfo"
     cp -f "$library" "$target_staging/usr/lib/$(basename "$library")"
     if [[ "$(basename "$library")" != "$linker_name" ]]; then
         ln -sf "$(basename "$library")" "$target_staging/usr/lib/$linker_name"
     fi
 
-    readelf_bin="$(find "$sdk_dir/staging_dir" -path '*/bin/*-readelf' -print -quit)"
-    [[ -x "$readelf_bin" ]] || {
-        echo "ERROR: target readelf is missing from SDK toolchain." >&2
-        exit 5
-    }
     soname="$("$readelf_bin" -d "$library" 2>/dev/null | sed -n 's/.*SONAME.*\[\(.*\)\].*/\1/p' | head -n1)"
     [[ -n "$soname" ]] || soname="$(basename "$library")"
     printf '%s\n' "$soname" > "$target_staging/pkginfo/$package.provides"
