@@ -29,13 +29,10 @@ for package in \
     audiowrt-udhcpd \
     audiowrt-renderer \
     luci-app-audiowrt-renderer \
-    luci-base \
-    luci-mod-status \
-    luci-mod-system \
-    luci-app-package-manager; do
+    luci-base; do
     grep -q "^  - $package$" "$groups/common.yaml"
 done
-for package in dropbear wpad-basic-mbedtls mpd-mini upmpdcli; do
+for package in dropbear wpad-basic-mbedtls mpd-mini upmpdcli luci-mod-status luci-mod-system luci-app-package-manager; do
     ! grep -q "^  - $package$" "$groups/common.yaml"
 done
 for package in \
@@ -98,7 +95,10 @@ for package in \
     audiowrt-player-flac \
     audiowrt-player-mp3 \
     audiowrt-player-aac \
-    audiowrt-player-wav; do
+    audiowrt-player-wav \
+    luci-mod-status \
+    luci-mod-system \
+    luci-app-package-manager; do
     grep -q "^  - $package$" "$groups/standard.yaml"
 done
 for package in \
