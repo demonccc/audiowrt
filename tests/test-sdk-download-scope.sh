@@ -67,22 +67,29 @@ grep -Fq 'make_run "$sdk_dir" package/toolchain/compile NO_DEPS=1 -j"$jobs"' "$b
     exit 1
 }
 
-grep -Fq 'make_run "$sdk_dir" "${package_only_download_targets[@]}" NO_DEPS=1 -j"$jobs"' "$build_script" || {
-    echo "ERROR: package-only download targets must use NO_DEPS=1." >&2
+grep -Fq 'make_run "$sdk_dir" "${download_targets[@]}" NO_DEPS=1 -j"$jobs"' "$build_script" || {
+    echo "ERROR: all selected package downloads must use NO_DEPS=1." >&2
     exit 1
 }
 
-grep -Fq 'for target_path in "${package_only_targets[@]}"; do' "$build_script" || {
-    echo "ERROR: package-only compile targets must preserve dependency order." >&2
+grep -Fq 'for target_path in "${ordered_targets[@]}"; do' "$build_script" || {
+    echo "ERROR: AudioWRT compile targets must preserve topological build-plan order." >&2
+    exit 1
+}
+grep -Fq 'if [[ -n "${source_target_seen[$target_path]+x}" ]]; then' "$build_script" || {
+    echo "ERROR: ordered builds must distinguish genuine source targets." >&2
     exit 1
 }
 grep -Fq 'make_run "$sdk_dir" "$target_path" NO_DEPS=1 -j"$jobs"' "$build_script" || {
     echo "ERROR: package-only compile targets must use NO_DEPS=1." >&2
     exit 1
 }
-
-grep -Fq 'make_run "$sdk_dir" "${source_targets[@]}" -j"$jobs"' "$build_script" || {
-    echo "ERROR: genuine AudioWRT source packages must keep normal dependency traversal." >&2
+grep -Fq 'make_run "$sdk_dir" "$target_path" -j"$jobs"' "$build_script" || {
+    echo "ERROR: genuine AudioWRT source packages must keep their explicit development dependency path." >&2
+    exit 1
+}
+grep -Fq -- '--providers "${build_packages[@]}"' "$build_script" || {
+    echo "ERROR: source dependency resolution must honor selected AudioWRT providers." >&2
     exit 1
 }
 

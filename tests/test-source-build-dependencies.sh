@@ -48,7 +48,8 @@ Depends: +audiowrt-bluez +audiowrt-btctl +bluez-alsa +kmod-btusb
 EOF
 
 resolver="$repo_root/scripts/resolve-source-build-dependencies.py"
-python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" audiowrt-minimal-alsa audiowrt-minimal-mbedtls librespot > "$tmp/librespot"
+python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" librespot \
+    --providers audiowrt-minimal-alsa audiowrt-minimal-mbedtls audiowrt-spotify librespot > "$tmp/librespot"
 
 grep -qx 'rust' "$tmp/librespot"
 if grep -qx 'alsa-lib' "$tmp/librespot"; then
@@ -62,7 +63,9 @@ if grep -Eq '^(libc|audiowrt-spotify|audiowrt-minimal-alsa|audiowrt-minimal-mbed
 fi
 
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-minimal-alsa audiowrt-sbc audiowrt-bluez-libs audiowrt-bluez audiowrt-btctl bluez-alsa > "$tmp/bluetooth"
+    audiowrt-bluez bluez-alsa \
+    --providers audiowrt-minimal-alsa audiowrt-sbc audiowrt-bluez-libs \
+    audiowrt-bluez audiowrt-btctl bluez-alsa audiowrt-bluetooth > "$tmp/bluetooth"
 for package in glib2 dbus; do
     grep -qx "$package" "$tmp/bluetooth"
 done
@@ -87,7 +90,9 @@ fi
 # Standard/full profiles do not select the minimal provider, so the official
 # ALSA source dependency must be staged for AudioWRT source packages.
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-sbc audiowrt-bluez-libs audiowrt-bluez audiowrt-btctl bluez-alsa > "$tmp/official-bluetooth"
+    audiowrt-bluez bluez-alsa \
+    --providers audiowrt-sbc audiowrt-bluez-libs audiowrt-bluez audiowrt-btctl \
+    bluez-alsa audiowrt-bluetooth > "$tmp/official-bluetooth"
 grep -qx 'alsa-lib' "$tmp/official-bluetooth"
 
 printf 'Source build dependency tests passed.\n'
