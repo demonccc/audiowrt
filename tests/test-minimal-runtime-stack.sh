@@ -145,6 +145,7 @@ for package in libubox libblobmsg-json libubus libucode libudebug; do
     grep -Fq "stage_official_link_stub $package base" "$build_script"
 done
 grep -Fq -- '--all-dynamic-symbols' "$build_script"
+grep -Fq "stage_official_link_stub libudebug base 'libudebug.so*' libudebug.so" "$build_script"
 
 for keep in bluetooth.ko btmtk.ko btintel.ko btrtl.ko btusb.ko; do
     grep -Fq "$keep" "$build_script"

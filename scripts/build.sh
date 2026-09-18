@@ -632,7 +632,7 @@ prepare_minimal_wpa_sdk() {
         "$target_staging" --all-dynamic-symbols
     stage_official_link_stub libucode base 'libucode.so.*' libucode.so \
         "$target_staging" --all-dynamic-symbols
-    stage_official_link_stub libudebug base 'libudebug.so.*' libudebug.so \
+    stage_official_link_stub libudebug base 'libudebug.so*' libudebug.so \
         "$target_staging" --all-dynamic-symbols
 }
 
