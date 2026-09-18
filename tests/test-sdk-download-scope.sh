@@ -96,4 +96,17 @@ grep -Fq 'config/build/source-build-packages' "$build_script" || {
     exit 1
 }
 
+grep -Fq 'AUDIOWRT_PACKAGE_SMOKE_PACKAGES' "$build_script" || {
+    echo "ERROR: build.sh must support package-only smoke roots." >&2
+    exit 1
+}
+grep -Fq 'if [[ "$package_smoke" == "1" ]]; then' "$build_script" || {
+    echo "ERROR: package smoke mode must be explicit." >&2
+    exit 1
+}
+grep -Fq 'AudioWRT package smoke complete.' "$build_script" || {
+    echo "ERROR: package smoke mode must exit before firmware assembly." >&2
+    exit 1
+}
+
 printf 'SDK package-only build boundary test passed.\n'
