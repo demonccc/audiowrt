@@ -358,10 +358,12 @@ prepared_source_dir() {
     printf '%s\n' "${matches[0]}"
 }
 
-stage_official_runtime_library() {
+stage_official_link_stub() {
     local package="$1" feed="$2" library_glob="$3" linker_name="$4"
-    local target_staging="$5" package_stage="$work_dir/prebuilt-sdk/$package"
-    local package_url package_apk library soname readelf_bin
+    local target_staging="$5"
+    shift 5
+    local package_stage="$work_dir/prebuilt-sdk/$package"
+    local package_url package_apk library soname readelf_bin target_cc stub_source runtime_pkg
     local -a libraries=()
 
     package_url="$(python3 "$repo_root/scripts/resolve-openwrt-package.py" \
@@ -385,6 +387,12 @@ stage_official_runtime_library() {
         echo "ERROR: target readelf is missing from SDK toolchain." >&2
         exit 5
     }
+    target_cc="${readelf_bin%readelf}gcc"
+    [[ -x "$target_cc" ]] || {
+        echo "ERROR: target compiler matching $readelf_bin is missing." >&2
+        exit 5
+    }
+
     printf 'Official %s runtime library: %s\n' "$package" "$library"
     file "$library" || true
     if ! "$readelf_bin" -h "$library"; then
@@ -392,20 +400,52 @@ stage_official_runtime_library() {
         exit 5
     fi
 
-    mkdir -p "$target_staging/usr/lib" "$target_staging/pkginfo"
-    cp -f "$library" "$target_staging/usr/lib/$(basename "$library")"
-    if [[ "$(basename "$library")" != "$linker_name" ]]; then
-        ln -sf "$(basename "$library")" "$target_staging/usr/lib/$linker_name"
-    fi
-
     soname="$("$readelf_bin" -d "$library" 2>/dev/null | sed -n 's/.*SONAME.*\[\(.*\)\].*/\1/p' | head -n1)"
     [[ -n "$soname" ]] || soname="$(basename "$library")"
+
+    # Runtime APK libraries are aggressively stripped by OpenWrt and have no
+    # section headers. They are valid runtime ELFs, but GNU ld cannot consume
+    # them as development libraries. Build a tiny target-architecture link stub
+    # that exports only the symbols AudioWRT references and carries the exact
+    # runtime SONAME. The stub is used only inside the SDK; the firmware still
+    # installs the untouched official OpenWrt package.
+    stub_source="$package_stage/link-stub.c"
+    : > "$stub_source"
+    for symbol in "$@"; do
+        [[ "$symbol" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || {
+            echo "ERROR: invalid link-stub symbol for $package: $symbol" >&2
+            exit 5
+        }
+        printf 'void %s(void) {}\n' "$symbol" >> "$stub_source"
+    done
+
+    mkdir -p "$target_staging/usr/lib" "$target_staging/pkginfo"
+    "$target_cc" -shared -fPIC -Wl,-soname,"$soname" \
+        -o "$target_staging/usr/lib/$linker_name" "$stub_source"
+
+    # OpenWrt dependency checking keys ABI-versioned packages by their concrete
+    # runtime package name. Record both the logical dependency name and the
+    # concrete APK package name so CheckDependencies can resolve the SONAME.
+    runtime_pkg="$(basename "$package_apk" .apk)"
+    runtime_pkg="${runtime_pkg%%-[0-9]*}"
     printf '%s\n' "$soname" > "$target_staging/pkginfo/$package.provides"
+    printf '%s\n' "$soname" > "$target_staging/pkginfo/$runtime_pkg.provides"
+}
+
+copy_single_header() {
+    local root="$1" name="$2" destination="$3"
+    local -a matches=()
+    mapfile -t matches < <(find "$root" -type f -name "$name" -print 2>/dev/null | sort)
+    [[ "${#matches[@]}" -eq 1 ]] || {
+        echo "ERROR: expected one $name under $root, found ${#matches[@]}." >&2
+        exit 5
+    }
+    cp -f "${matches[0]}" "$destination"
 }
 
 prepare_native_player_sdk() {
     local -a target_staging_matches=() ustream_headers=()
-    local target_staging libubox_src uclient_src ustream_header flac_src
+    local target_staging libubox_src uclient_src ustream_header
 
     mapfile -t target_staging_matches < <(
         find "$sdk_dir/staging_dir" -mindepth 1 -maxdepth 1 -type d -name 'target-*' -print
@@ -420,12 +460,10 @@ prepare_native_player_sdk() {
         package/feeds/base/libubox/prepare \
         package/feeds/base/uclient/prepare \
         package/feeds/base/ustream-ssl/prepare \
-        package/feeds/packages/flac/prepare \
         NO_DEPS=1 -j"$jobs"
 
     libubox_src="$(prepared_source_dir libubox)"
     uclient_src="$(prepared_source_dir uclient)"
-    flac_src="$(prepared_source_dir flac)"
     mapfile -t ustream_headers < <(
         find "$sdk_dir/build_dir" -type f -name 'ustream-ssl.h' \
             -path '*/ustream-ssl-*/*' -print 2>/dev/null | sort
@@ -434,15 +472,12 @@ prepare_native_player_sdk() {
         echo "ERROR: no prepared ustream-ssl public header found." >&2
         exit 5
     }
-    # All ustream-ssl build variants come from the same source revision and
-    # expose the same public header. Use one deterministic copy.
     ustream_header="${ustream_headers[0]}"
 
-    mkdir -p "$target_staging/usr/include/libubox" "$target_staging/usr/include/FLAC"
+    mkdir -p "$target_staging/usr/include/libubox"
     find "$libubox_src" -maxdepth 1 -type f -name '*.h' -exec cp -f {} "$target_staging/usr/include/libubox/" \;
     find "$uclient_src" -maxdepth 1 -type f -name '*.h' -exec cp -f {} "$target_staging/usr/include/libubox/" \;
     cp -f "$ustream_header" "$target_staging/usr/include/libubox/ustream-ssl.h"
-    cp -f "$flac_src"/include/FLAC/*.h "$target_staging/usr/include/FLAC/"
 
     [[ -f "$target_staging/usr/include/libubox/uloop.h" ]] || {
         echo "ERROR: libubox headers were not staged." >&2
@@ -456,14 +491,53 @@ prepare_native_player_sdk() {
         echo "ERROR: ustream-ssl headers were not staged." >&2
         exit 5
     }
-    [[ -f "$target_staging/usr/include/FLAC/stream_decoder.h" ]] || {
-        echo "ERROR: FLAC headers were not staged." >&2
-        exit 5
-    }
 
-    stage_official_runtime_library libubox base 'libubox.so.*' libubox.so "$target_staging"
-    stage_official_runtime_library libuclient base 'libuclient.so*' libuclient.so "$target_staging"
-    stage_official_runtime_library libflac packages 'libFLAC.so.*' libFLAC.so "$target_staging"
+    stage_official_link_stub libubox base 'libubox.so.*' libubox.so "$target_staging" \
+        uloop_init uloop_run uloop_end uloop_done
+    stage_official_link_stub libuclient base 'libuclient.so*' libuclient.so "$target_staging" \
+        uclient_disconnect uclient_http_status_redirect uclient_http_redirect \
+        uclient_read uclient_new uclient_set_timeout uclient_new_ssl_context \
+        uclient_http_set_ssl_ctx uclient_connect uclient_http_set_request_type \
+        uclient_http_reset_headers uclient_http_set_header uclient_request uclient_free
+
+    if [[ " ${firmware_packages[*]} " == *" audiowrt-player-flac "* ]]; then
+        local flac_src
+        make_run "$sdk_dir" package/feeds/packages/flac/prepare NO_DEPS=1 -j"$jobs"
+        flac_src="$(prepared_source_dir flac)"
+        mkdir -p "$target_staging/usr/include/FLAC"
+        cp -f "$flac_src"/include/FLAC/*.h "$target_staging/usr/include/FLAC/"
+        [[ -f "$target_staging/usr/include/FLAC/stream_decoder.h" ]] || {
+            echo "ERROR: FLAC headers were not staged." >&2
+            exit 5
+        }
+        stage_official_link_stub libflac packages 'libFLAC.so.*' libFLAC.so "$target_staging" \
+            FLAC__stream_decoder_new FLAC__stream_decoder_init_FILE \
+            FLAC__stream_decoder_process_until_end_of_stream \
+            FLAC__stream_decoder_finish FLAC__stream_decoder_delete
+    fi
+
+    if [[ " ${firmware_packages[*]} " == *" audiowrt-player-mp3 "* ]]; then
+        local mpg123_src
+        make_run "$sdk_dir" package/feeds/packages/mpg123/configure NO_DEPS=1 -j"$jobs"
+        mpg123_src="$(prepared_source_dir mpg123)"
+        mkdir -p "$target_staging/usr/include"
+        copy_single_header "$mpg123_src" mpg123.h "$target_staging/usr/include/mpg123.h"
+        copy_single_header "$mpg123_src" fmt123.h "$target_staging/usr/include/fmt123.h"
+        stage_official_link_stub libmpg123 packages 'libmpg123.so.*' libmpg123.so "$target_staging" \
+            mpg123_init mpg123_new mpg123_format_none mpg123_rates mpg123_format \
+            mpg123_open_fd mpg123_read mpg123_getformat mpg123_close mpg123_delete mpg123_exit
+    fi
+
+    if [[ " ${firmware_packages[*]} " == *" audiowrt-player-aac "* ]]; then
+        local faad_src
+        make_run "$sdk_dir" package/feeds/packages/faad2/prepare NO_DEPS=1 -j"$jobs"
+        faad_src="$(prepared_source_dir faad2)"
+        mkdir -p "$target_staging/usr/include"
+        copy_single_header "$faad_src" neaacdec.h "$target_staging/usr/include/neaacdec.h"
+        stage_official_link_stub libfaad2 packages 'libfaad.so.*' libfaad.so "$target_staging" \
+            NeAACDecOpen NeAACDecGetCurrentConfiguration NeAACDecSetConfiguration \
+            NeAACDecInit NeAACDecDecode NeAACDecClose
+    fi
 }
 
 # Keep the SDK's official exact-release feed configuration intact. We only
