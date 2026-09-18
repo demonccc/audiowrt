@@ -406,37 +406,42 @@ stage_official_link_stub() {
     # Runtime APK libraries are aggressively stripped by OpenWrt and have no
     # section headers. They are valid runtime ELFs, but GNU ld cannot consume
     # them as development libraries. Build a tiny target-architecture link stub
-    # that exports only the symbols AudioWRT references and carries the exact
-    # runtime SONAME. The stub is used only inside the SDK; the firmware still
-    # installs the untouched official OpenWrt package.
-    stub_source="$package_stage/link-stub.c"
-    : > "$stub_source"
-    for symbol in "$@"; do
-        [[ "$symbol" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || {
-            echo "ERROR: invalid link-stub symbol for $package: $symbol" >&2
-            exit 5
-        }
-
-        # uloop exposes two pieces used by inline helpers in uloop.h rather than
-        # through ordinary function calls. They must exist in the link stub with
-        # the correct symbol kind or downstream AudioWRT players cannot resolve
-        # libaudiowrt-player.so.
-        case "$symbol" in
-            uloop_cancelled)
-                printf 'unsigned char uloop_cancelled;\n' >> "$stub_source"
-                ;;
-            uloop_run_timeout)
-                printf 'int uloop_run_timeout(int timeout) { (void)timeout; return 0; }\n' >> "$stub_source"
-                ;;
-            *)
-                printf 'void %s(void) {}\n' "$symbol" >> "$stub_source"
-                ;;
-        esac
-    done
-
+    # carrying the exact runtime SONAME. Callers may list the small set of
+    # symbols they reference, or request every exported dynamic symbol when a
+    # complex upstream package (such as wpa_supplicant) uses a wider API.
     mkdir -p "$target_staging/usr/lib" "$target_staging/pkginfo"
-    "$target_cc" -shared -fPIC -Wl,-soname,"$soname" \
-        -o "$target_staging/usr/lib/$linker_name" "$stub_source"
+    if [[ "${1:-}" == "--all-dynamic-symbols" ]]; then
+        python3 "$repo_root/scripts/create-elf-link-stub.py" \
+            "$readelf_bin" "$target_cc" "$library" \
+            "$target_staging/usr/lib/$linker_name" "$soname"
+    else
+        stub_source="$package_stage/link-stub.c"
+        : > "$stub_source"
+        for symbol in "$@"; do
+            [[ "$symbol" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || {
+                echo "ERROR: invalid link-stub symbol for $package: $symbol" >&2
+                exit 5
+            }
+
+            # uloop exposes two pieces used by inline helpers in uloop.h rather
+            # than through ordinary function calls. Keep their symbol kind
+            # compatible with the real library.
+            case "$symbol" in
+                uloop_cancelled)
+                    printf 'unsigned char uloop_cancelled;\n' >> "$stub_source"
+                    ;;
+                uloop_run_timeout)
+                    printf 'int uloop_run_timeout(int timeout) { (void)timeout; return 0; }\n' >> "$stub_source"
+                    ;;
+                *)
+                    printf 'void %s(void) {}\n' "$symbol" >> "$stub_source"
+                    ;;
+            esac
+        done
+
+        "$target_cc" -shared -fPIC -Wl,-soname,"$soname" \
+            -o "$target_staging/usr/lib/$linker_name" "$stub_source"
+    fi
 
     # Downstream AudioWRT libraries record the real runtime SONAME in DT_NEEDED.
     # Keep an SDK-only alias for that SONAME so GNU ld can resolve transitive
@@ -563,6 +568,74 @@ prepare_native_player_sdk() {
     fi
 }
 
+prepare_minimal_wpa_sdk() {
+    local -a target_staging_matches=()
+    local target_staging libubox_src ubus_src ucode_src udebug_src
+
+    mapfile -t target_staging_matches < <(
+        find "$sdk_dir/staging_dir" -mindepth 1 -maxdepth 1 -type d -name 'target-*' -print
+    )
+    [[ "${#target_staging_matches[@]}" -eq 1 ]] || {
+        echo "ERROR: expected one target staging directory, found ${#target_staging_matches[@]}." >&2
+        exit 5
+    }
+    target_staging="${target_staging_matches[0]}"
+
+    # wpa_supplicant needs these development interfaces, but the firmware must
+    # keep the exact official OpenWrt runtime packages. Compile only libnl-tiny
+    # (which has no recursive userspace dependency graph) and prepare the other
+    # source trees for headers. Link against build-only stubs generated from
+    # the official release APKs instead of rebuilding ubus/ucode/udebug.
+    make_run "$sdk_dir" \
+        package/feeds/base/libnl-tiny/compile \
+        package/feeds/base/libubox/prepare \
+        package/feeds/base/ubus/prepare \
+        package/feeds/base/ucode/prepare \
+        package/feeds/base/udebug/prepare \
+        NO_DEPS=1 -j"$jobs"
+
+    libubox_src="$(prepared_source_dir libubox)"
+    ubus_src="$(prepared_source_dir ubus)"
+    ucode_src="$(prepared_source_dir ucode)"
+    udebug_src="$(prepared_source_dir udebug)"
+
+    mkdir -p \
+        "$target_staging/usr/include/libubox" \
+        "$target_staging/usr/include/ucode" \
+        "$target_staging/usr/include"
+
+    find "$libubox_src" -maxdepth 1 -type f -name '*.h' \
+        -exec cp -f {} "$target_staging/usr/include/libubox/" \;
+    find "$ubus_src" -maxdepth 1 -type f -name '*.h' \
+        -exec cp -f {} "$target_staging/usr/include/" \;
+    cp -f "$ucode_src"/include/ucode/*.h "$target_staging/usr/include/ucode/"
+    find "$udebug_src" -maxdepth 1 -type f -name '*.h' \
+        -exec cp -f {} "$target_staging/usr/include/" \;
+
+    for header in \
+        libubox/uloop.h \
+        libubox/blobmsg_json.h \
+        libubus.h \
+        ucode/lib.h \
+        udebug.h; do
+        [[ -f "$target_staging/usr/include/$header" ]] || {
+            echo "ERROR: WPA SDK header was not staged: $header" >&2
+            exit 5
+        }
+    done
+
+    stage_official_link_stub libubox base 'libubox.so.*' libubox.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libblobmsg-json base 'libblobmsg_json.so.*' \
+        libblobmsg_json.so "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libubus base 'libubus.so.*' libubus.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libucode base 'libucode.so.*' libucode.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libudebug base 'libudebug.so.*' libudebug.so \
+        "$target_staging" --all-dynamic-symbols
+}
+
 # Keep the SDK's official exact-release feed configuration intact. We only
 # update the feeds whose source trees are needed by AudioWRT package Makefiles:
 # packages (for shared build helpers such as rust-package.mk) and audiowrt.
@@ -595,12 +668,22 @@ printf '\n# AudioWRT reusable packages\nsrc-git audiowrt %s\n' "$feed_source" >>
 audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
 
 native_player_sdk=0
+minimal_wpa_sdk=0
 if [[ " ${firmware_packages[*]} " == *" audiowrt-player-core "* ]]; then
     native_player_sdk=1
+fi
+if [[ " ${firmware_packages[*]} " == *" audiowrt-wpa-supplicant "* ]]; then
+    minimal_wpa_sdk=1
+fi
+
+if (( native_player_sdk || minimal_wpa_sdk )); then
     (
         cd "$sdk_dir"
         ./scripts/feeds update base
     )
+fi
+
+if (( native_player_sdk )); then
     register_official_sdk_source base libs/libubox
     register_official_sdk_source base libs/uclient
     register_official_sdk_source base libs/ustream-ssl
@@ -614,6 +697,14 @@ if [[ " ${firmware_packages[*]} " == *" audiowrt-player-core "* ]]; then
     if [[ " ${firmware_packages[*]} " == *" audiowrt-player-aac "* ]]; then
         register_official_sdk_source packages libs/faad2
     fi
+fi
+
+if (( minimal_wpa_sdk )); then
+    register_official_sdk_source base libs/libnl-tiny
+    register_official_sdk_source base libs/libubox
+    register_official_sdk_source base system/ubus
+    register_official_sdk_source base utils/ucode
+    register_official_sdk_source base libs/udebug
 fi
 
 if [[ " ${firmware_packages[*]} " == *" kmod-audiowrt-bluetooth "* ]]; then
@@ -778,6 +869,9 @@ make_run "$sdk_dir" package/toolchain/compile NO_DEPS=1 -j"$jobs"
 
 if (( native_player_sdk )); then
     prepare_native_player_sdk
+fi
+if (( minimal_wpa_sdk )); then
+    prepare_minimal_wpa_sdk
 fi
 
 # Download every selected AudioWRT target without traversing dependencies. Source
