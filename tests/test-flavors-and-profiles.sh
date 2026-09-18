@@ -185,7 +185,11 @@ assert {
     "minidlna", "umdns", "audiowrt-umdns", "dnsmasq", "kmod-bluetooth",
     "kmod-audiowrt-bluetooth"
 } <= removed
-assert not ({"audiowrt-player-aac", "audiowrt-player-wav", "mpd-mini", "upmpdcli", "umdns"} & added)
+assert not ({
+    "audiowrt-player-aac", "audiowrt-player-wav", "mpd-mini", "upmpdcli", "umdns",
+    "audiowrt-bluetooth", "audiowrt-bluez", "audiowrt-bluez-libs",
+    "audiowrt-btctl", "audiowrt-sbc", "bluez-alsa"
+} & added)
 ' <<< "$wdr_audio"
 
 # Package groups may include reusable groups; current group entries apply last.
