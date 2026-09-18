@@ -241,6 +241,7 @@ mapfile -t firmware_packages < <(read_package_file "$packages_add_file")
 
 target="$(json_field "$platform_metadata" target)"
 subtarget="$(json_field "$platform_metadata" subtarget)"
+arch_packages="$(json_field "$platform_metadata" arch_packages)"
 if [[ "$target" != "$expected_target" || "$subtarget" != "$expected_subtarget" ]]; then
     echo "ERROR: profile $audiowrt_profile declares $expected_target/$expected_subtarget," >&2
     echo "but OpenWrt resolves $platform to $target/$subtarget." >&2
@@ -258,7 +259,7 @@ kmod_btmtk_url="$(json_field "$artifacts_metadata" kmod_btmtk_url)"
 kmod_btusb_url="$(json_field "$artifacts_metadata" kmod_btusb_url)"
 kmods_sha256sums_url="$(json_field "$artifacts_metadata" kmods_sha256sums_url)"
 
-printf '  Target: %s/%s\n' "$target" "$subtarget"
+printf '  Target: %s/%s (%s)\n' "$target" "$subtarget" "$arch_packages"
 printf '  SDK: %s\n' "$sdk_url"
 printf '  ImageBuilder: %s\n' "$imagebuilder_url"
 
