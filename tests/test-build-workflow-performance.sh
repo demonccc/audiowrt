@@ -14,4 +14,19 @@ grep -Fq "if: \${{ !endsWith(inputs.audiowrt_profile, '-snapshot') }}" "$workflo
 grep -Fq 'path: .cache/audiowrt' "$workflow"
 grep -Fq "CACHE_DIR='.cache/audiowrt'" "$workflow"
 
+
+renderer_smoke="$repo_root/.github/workflows/native-renderer-smoke.yml"
+grep -Fq 'AUDIOWRT_PACKAGE_SMOKE=1' "$renderer_smoke" || {
+    echo "ERROR: native renderer CI must use package-only smoke mode." >&2
+    exit 1
+}
+grep -Fq 'AUDIOWRT_PACKAGE_SMOKE_PACKAGES="audiowrt-minimal-alsa audiowrt-renderer audiowrt-player-core audiowrt-player-flac audiowrt-player-mp3"' "$renderer_smoke" || {
+    echo "ERROR: native renderer CI must compile only the renderer/player package set." >&2
+    exit 1
+}
+if grep -Fq 'Build WDR4300 minimal native renderer image' "$renderer_smoke"; then
+    echo "ERROR: native renderer smoke must not build a firmware image." >&2
+    exit 1
+fi
+
 echo "Build workflow performance safeguards passed."
