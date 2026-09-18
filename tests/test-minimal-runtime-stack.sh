@@ -28,7 +28,6 @@ assert {
     "audiowrt-renderer",
     "audiowrt-player-core",
     "audiowrt-player-flac",
-    "audiowrt-player-mp3",
     "luci-app-audiowrt-renderer",
     "kmod-audiowrt-bluetooth",
 } <= added
@@ -51,7 +50,7 @@ assert {
 assert not ({
     "mpd-mini", "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli",
     "audiowrt-mpd", "minidlna", "umdns", "audiowrt-umdns",
-    "audiowrt-player-aac", "audiowrt-player-wav"
+    "audiowrt-player-mp3", "audiowrt-player-aac", "audiowrt-player-wav"
 } & added)
 ' <<< "$minimal"
 
