@@ -98,17 +98,27 @@ grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth
 for package in \
     audiowrt-minimal-alsa \
     audiowrt-minimal-mbedtls \
-    audiowrt-dropbear \
+    audiowrt-dropbear; do
+    grep -qx "$package" "$sources"
+done
+
+# The native renderer and codec players compile AudioWRT-owned C code, but must
+# stay on the NO_DEPS package boundary. Their OpenWrt runtime libraries come
+# from the exact-release SDK / package repositories and must not be rebuilt.
+for package in \
     audiowrt-renderer \
     audiowrt-player-core \
     audiowrt-player-flac \
     audiowrt-player-mp3 \
     audiowrt-player-aac \
-    audiowrt-player-wav; do
-    grep -qx "$package" "$sources"
-done
-
-for package in audiowrt-wpa-supplicant audiowrt-minimal-upmpdcli audiowrt-mpd audiowrt-umdns mpd-mini upmpdcli luci-app-audiowrt-renderer; do
+    audiowrt-player-wav \
+    audiowrt-wpa-supplicant \
+    audiowrt-minimal-upmpdcli \
+    audiowrt-mpd \
+    audiowrt-umdns \
+    mpd-mini \
+    upmpdcli \
+    luci-app-audiowrt-renderer; do
     if grep -qx "$package" "$sources"; then
         echo "ERROR: $package must not be a source-build root." >&2
         exit 1
