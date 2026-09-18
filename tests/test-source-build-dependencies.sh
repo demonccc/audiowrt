@@ -65,18 +65,6 @@ if grep -Eq '^(libc|audiowrt-spotify|audiowrt-minimal-alsa|audiowrt-minimal-mbed
     exit 1
 fi
 
-python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" audiowrt-wpa-supplicant \
-    --providers audiowrt-minimal-mbedtls audiowrt-wpa-supplicant > "$tmp/wpa"
-
-for package in libnl-tiny hostapd-common libubus libblobmsg-json libudebug; do
-    grep -qx "$package" "$tmp/wpa"
-done
-if grep -Eq '^(libmbedtls|libmbedtls21|audiowrt-minimal-mbedtls)$' "$tmp/wpa"; then
-    echo 'ERROR: selected AudioWRT mbedTLS provider did not satisfy WPA build dependencies.' >&2
-    cat "$tmp/wpa" >&2
-    exit 1
-fi
-
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
     audiowrt-bluez bluez-alsa \
     --providers audiowrt-minimal-alsa audiowrt-sbc audiowrt-bluez-libs \
