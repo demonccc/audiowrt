@@ -188,7 +188,8 @@ assert {
 assert not ({
     "audiowrt-player-aac", "audiowrt-player-wav", "mpd-mini", "upmpdcli", "umdns",
     "audiowrt-bluetooth", "audiowrt-bluez", "audiowrt-bluez-libs",
-    "audiowrt-btctl", "audiowrt-sbc", "bluez-alsa"
+    "audiowrt-btctl", "audiowrt-sbc", "bluez-alsa",
+    "kmod-sound-midi2", "kmod-sound-midi2-usb"
 } & added)
 ' <<< "$wdr_audio"
 
