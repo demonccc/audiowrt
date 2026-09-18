@@ -23,6 +23,7 @@ def main() -> None:
         fail(f"OpenWrt target metadata not found: {metadata_path}")
 
     current_target = None
+    current_arch_packages = None
     current_default_packages = []
     current_profile = None
     current_profile_name = None
@@ -47,6 +48,7 @@ def main() -> None:
                         "target": target,
                         "subtarget": subtarget,
                         "target_id": current_target,
+                        "arch_packages": current_arch_packages,
                         "profile_packages": sorted(set(current_profile_packages)),
                         "default_packages": sorted(set(current_default_packages)),
                     }
@@ -61,7 +63,10 @@ def main() -> None:
         if line.startswith("Target: "):
             flush_profile()
             current_target = line.split(":", 1)[1].strip()
+            current_arch_packages = None
             current_default_packages = []
+        elif line.startswith("Target-Arch-Packages: "):
+            current_arch_packages = line.split(":", 1)[1].strip()
         elif line.startswith("Default-Packages: "):
             current_default_packages = line.split(":", 1)[1].strip().split()
         elif line.startswith("Target-Profile: "):
@@ -87,6 +92,9 @@ def main() -> None:
     if len(matches) > 1:
         locations = ", ".join(m["target_id"] for m in matches)
         fail(f"platform '{platform}' is ambiguous across OpenWrt targets: {locations}")
+
+    if not matches[0].get("arch_packages"):
+        fail(f"platform '{platform}' has no Target-Arch-Packages metadata")
 
     json.dump(matches[0], sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write("\n")
