@@ -29,15 +29,27 @@ grep -Fq 'register_official_sdk_source base libs/uclient' "$build_script" || {
     echo "ERROR: native player builds must register uclient headers without compiling uclient." >&2
     exit 1
 }
-grep -Fq 'stage_official_runtime_library libuclient base' "$build_script" || {
-    echo "ERROR: native player builds must stage the official libuclient APK." >&2
+grep -Fq 'stage_official_link_stub libuclient base' "$build_script" || {
+    echo "ERROR: native player builds must link against an SDK-only libuclient stub." >&2
     exit 1
 }
-grep -Fq 'stage_official_runtime_library libflac packages' "$build_script" || {
-    echo "ERROR: FLAC builds must stage the official libflac APK." >&2
+grep -Fq 'stage_official_link_stub libflac packages' "$build_script" || {
+    echo "ERROR: FLAC builds must link against an SDK-only libflac stub." >&2
     exit 1
 }
-if grep -Eq 'package/feeds/(base|packages)/(libubox|uclient|ustream-ssl|flac)/compile' "$build_script"; then
+grep -Fq 'stage_official_link_stub libmpg123 packages' "$build_script" || {
+    echo "ERROR: MP3 builds must link against an SDK-only libmpg123 stub." >&2
+    exit 1
+}
+grep -Fq 'stage_official_link_stub libfaad2 packages' "$build_script" || {
+    echo "ERROR: AAC builds must link against an SDK-only libfaad2 stub." >&2
+    exit 1
+}
+grep -Fq 'Runtime APK libraries are aggressively stripped by OpenWrt' "$build_script" || {
+    echo "ERROR: stripped runtime libraries must not be copied into the SDK linker path." >&2
+    exit 1
+}
+if grep -Eq 'package/feeds/(base|packages)/(libubox|uclient|ustream-ssl|flac|mpg123|faad2)/compile' "$build_script"; then
     echo "ERROR: official native-player dependencies must not be compiled." >&2
     exit 1
 fi
