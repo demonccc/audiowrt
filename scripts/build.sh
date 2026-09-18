@@ -870,6 +870,9 @@ make_run "$sdk_dir" package/toolchain/compile NO_DEPS=1 -j"$jobs"
 if (( native_player_sdk )); then
     prepare_native_player_sdk
 fi
+if (( minimal_wpa_sdk )); then
+    prepare_minimal_wpa_sdk
+fi
 
 # Download every selected AudioWRT target without traversing dependencies. Source
 # packages download their own upstream tarballs here; development dependencies
