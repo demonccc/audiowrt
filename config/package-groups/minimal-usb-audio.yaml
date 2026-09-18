@@ -4,8 +4,6 @@ include:
 packages_add:
   - audiowrt-usb-audio
   - kmod-sound-core
-  - kmod-sound-midi2
-  - kmod-sound-midi2-usb
   - kmod-usb-audio
 packages_remove:
   - audiowrt-bluetooth
