@@ -20,7 +20,4 @@ packages_remove:
   - audiowrt-minimal-upmpdcli
   - audiowrt-mpd
   - audiowrt-player-mp3
-  - luci-mod-status
-  - luci-mod-system
-  - luci-app-package-manager
   - kmod-media-controller
