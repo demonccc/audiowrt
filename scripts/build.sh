@@ -416,12 +416,35 @@ stage_official_link_stub() {
             echo "ERROR: invalid link-stub symbol for $package: $symbol" >&2
             exit 5
         }
-        printf 'void %s(void) {}\n' "$symbol" >> "$stub_source"
+
+        # uloop exposes two pieces used by inline helpers in uloop.h rather than
+        # through ordinary function calls. They must exist in the link stub with
+        # the correct symbol kind or downstream AudioWRT players cannot resolve
+        # libaudiowrt-player.so.
+        case "$symbol" in
+            uloop_cancelled)
+                printf 'unsigned char uloop_cancelled;\n' >> "$stub_source"
+                ;;
+            uloop_run_timeout)
+                printf 'int uloop_run_timeout(int timeout) { (void)timeout; return 0; }\n' >> "$stub_source"
+                ;;
+            *)
+                printf 'void %s(void) {}\n' "$symbol" >> "$stub_source"
+                ;;
+        esac
     done
 
     mkdir -p "$target_staging/usr/lib" "$target_staging/pkginfo"
     "$target_cc" -shared -fPIC -Wl,-soname,"$soname" \
         -o "$target_staging/usr/lib/$linker_name" "$stub_source"
+
+    # Downstream AudioWRT libraries record the real runtime SONAME in DT_NEEDED.
+    # Keep an SDK-only alias for that SONAME so GNU ld can resolve transitive
+    # dependencies while linking codec players. The alias points to the stub,
+    # never to the stripped runtime APK library.
+    if [[ "$soname" != "$linker_name" ]]; then
+        ln -sf "$linker_name" "$target_staging/usr/lib/$soname"
+    fi
 
     # OpenWrt dependency checking keys ABI-versioned packages by their concrete
     # runtime package name. Record both the logical dependency name and the
@@ -493,7 +516,7 @@ prepare_native_player_sdk() {
     }
 
     stage_official_link_stub libubox base 'libubox.so.*' libubox.so "$target_staging" \
-        uloop_init uloop_run uloop_end uloop_done
+        uloop_cancelled uloop_init uloop_run_timeout uloop_done
     stage_official_link_stub libuclient base 'libuclient.so*' libuclient.so "$target_staging" \
         uclient_disconnect uclient_http_status_redirect uclient_http_redirect \
         uclient_read uclient_new uclient_set_timeout uclient_new_ssl_context \
