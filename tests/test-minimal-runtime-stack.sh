@@ -28,7 +28,6 @@ assert {
     "audiowrt-renderer",
     "audiowrt-player-core",
     "audiowrt-player-flac",
-    "audiowrt-player-mp3",
     "luci-app-audiowrt-renderer",
     "kmod-audiowrt-bluetooth",
 } <= added
@@ -47,11 +46,14 @@ assert {
     "audiowrt-umdns",
     "kmod-sound-midi2",
     "kmod-sound-midi2-usb",
+    "audiowrt-player-mp3",
+    "libmpg123",
+    "libltdl",
 } <= removed
 assert not ({
     "mpd-mini", "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli",
     "audiowrt-mpd", "minidlna", "umdns", "audiowrt-umdns",
-    "audiowrt-player-aac", "audiowrt-player-wav"
+    "audiowrt-player-mp3", "audiowrt-player-aac", "audiowrt-player-wav"
 } & added)
 ' <<< "$minimal"
 
@@ -112,7 +114,6 @@ for package in \
     audiowrt-player-mp3 \
     audiowrt-player-aac \
     audiowrt-player-wav \
-    audiowrt-wpa-supplicant \
     audiowrt-minimal-upmpdcli \
     audiowrt-mpd \
     audiowrt-umdns \
@@ -125,7 +126,7 @@ for package in \
     fi
 done
 
-for package in audiowrt-bluez bluez-alsa; do
+for package in audiowrt-wpa-supplicant audiowrt-bluez bluez-alsa; do
     grep -qx "$package" "$sources" || {
         echo "ERROR: $package must remain an explicit upstream source root." >&2
         exit 1
