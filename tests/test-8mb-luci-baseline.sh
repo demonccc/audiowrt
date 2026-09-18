@@ -16,9 +16,6 @@ removed = set(data["packages_remove"])
 required = {
     "luci-base",
     "luci-theme-bootstrap",
-    "luci-mod-status",
-    "luci-mod-system",
-    "luci-app-package-manager",
     "luci-app-audiowrt",
     "luci-app-audiowrt-wifi-client",
     "luci-app-audiowrt-core",
@@ -32,6 +29,9 @@ for package in {
     "luci-mod-network",
     "luci-app-firewall",
     "luci-proto-ppp",
+    "luci-mod-status",
+    "luci-mod-system",
+    "luci-app-package-manager",
 }:
     assert package not in packages
     assert package in removed
