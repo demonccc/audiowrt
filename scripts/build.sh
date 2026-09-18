@@ -568,6 +568,74 @@ prepare_native_player_sdk() {
     fi
 }
 
+prepare_minimal_wpa_sdk() {
+    local -a target_staging_matches=()
+    local target_staging libubox_src ubus_src ucode_src udebug_src
+
+    mapfile -t target_staging_matches < <(
+        find "$sdk_dir/staging_dir" -mindepth 1 -maxdepth 1 -type d -name 'target-*' -print
+    )
+    [[ "${#target_staging_matches[@]}" -eq 1 ]] || {
+        echo "ERROR: expected one target staging directory, found ${#target_staging_matches[@]}." >&2
+        exit 5
+    }
+    target_staging="${target_staging_matches[0]}"
+
+    # wpa_supplicant needs these development interfaces, but the firmware must
+    # keep the exact official OpenWrt runtime packages. Compile only libnl-tiny
+    # (which has no recursive userspace dependency graph) and prepare the other
+    # source trees for headers. Link against build-only stubs generated from
+    # the official release APKs instead of rebuilding ubus/ucode/udebug.
+    make_run "$sdk_dir" \
+        package/feeds/base/libnl-tiny/compile \
+        package/feeds/base/libubox/prepare \
+        package/feeds/base/ubus/prepare \
+        package/feeds/base/ucode/prepare \
+        package/feeds/base/udebug/prepare \
+        NO_DEPS=1 -j"$jobs"
+
+    libubox_src="$(prepared_source_dir libubox)"
+    ubus_src="$(prepared_source_dir ubus)"
+    ucode_src="$(prepared_source_dir ucode)"
+    udebug_src="$(prepared_source_dir udebug)"
+
+    mkdir -p \
+        "$target_staging/usr/include/libubox" \
+        "$target_staging/usr/include/ucode" \
+        "$target_staging/usr/include"
+
+    find "$libubox_src" -maxdepth 1 -type f -name '*.h' \
+        -exec cp -f {} "$target_staging/usr/include/libubox/" \;
+    find "$ubus_src" -maxdepth 1 -type f -name '*.h' \
+        -exec cp -f {} "$target_staging/usr/include/" \;
+    cp -f "$ucode_src"/include/ucode/*.h "$target_staging/usr/include/ucode/"
+    find "$udebug_src" -maxdepth 1 -type f -name '*.h' \
+        -exec cp -f {} "$target_staging/usr/include/" \;
+
+    for header in \
+        libubox/uloop.h \
+        libubox/blobmsg_json.h \
+        libubus.h \
+        ucode/lib.h \
+        udebug.h; do
+        [[ -f "$target_staging/usr/include/$header" ]] || {
+            echo "ERROR: WPA SDK header was not staged: $header" >&2
+            exit 5
+        }
+    done
+
+    stage_official_link_stub libubox base 'libubox.so.*' libubox.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libblobmsg-json base 'libblobmsg_json.so.*' \
+        libblobmsg_json.so "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libubus base 'libubus.so.*' libubus.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libucode base 'libucode.so.*' libucode.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libudebug base 'libudebug.so.*' libudebug.so \
+        "$target_staging" --all-dynamic-symbols
+}
+
 # Keep the SDK's official exact-release feed configuration intact. We only
 # update the feeds whose source trees are needed by AudioWRT package Makefiles:
 # packages (for shared build helpers such as rust-package.mk) and audiowrt.
