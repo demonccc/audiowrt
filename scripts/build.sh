@@ -581,7 +581,16 @@ if [[ " ${firmware_packages[*]} " == *" audiowrt-player-core "* ]]; then
     register_official_sdk_source base libs/libubox
     register_official_sdk_source base libs/uclient
     register_official_sdk_source base libs/ustream-ssl
-    register_official_sdk_source packages libs/flac
+
+    if [[ " ${firmware_packages[*]} " == *" audiowrt-player-flac "* ]]; then
+        register_official_sdk_source packages libs/flac
+    fi
+    if [[ " ${firmware_packages[*]} " == *" audiowrt-player-mp3 "* ]]; then
+        register_official_sdk_source packages sound/mpg123
+    fi
+    if [[ " ${firmware_packages[*]} " == *" audiowrt-player-aac "* ]]; then
+        register_official_sdk_source packages libs/faad2
+    fi
 fi
 
 if [[ " ${firmware_packages[*]} " == *" kmod-audiowrt-bluetooth "* ]]; then
