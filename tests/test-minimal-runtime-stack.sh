@@ -103,6 +103,7 @@ for package in \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
     audiowrt-busybox \
+    audiowrt-sbc \
     audiowrt-renderer \
     audiowrt-player-core \
     audiowrt-player-flac \
