@@ -19,6 +19,7 @@ from pathlib import Path
 
 
 IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+CRT_PROVIDED_SYMBOLS = {"_init", "_fini"}
 
 
 def fail(message: str) -> None:
@@ -48,6 +49,7 @@ def dynamic_symbols(readelf: str, library: Path) -> list[tuple[str, str, int]]:
             sym_type not in {"FUNC", "OBJECT"}
             or bind not in {"GLOBAL", "WEAK"}
             or ndx == "UND"
+            or name in CRT_PROVIDED_SYMBOLS
             or not IDENT.fullmatch(name)
         ):
             continue
