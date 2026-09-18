@@ -583,11 +583,14 @@ prepare_minimal_wpa_sdk() {
 
     # wpa_supplicant needs these development interfaces, but the firmware must
     # keep the exact official OpenWrt runtime packages. Compile only libnl-tiny
-    # (which has no recursive userspace dependency graph) and prepare the other
-    # source trees for headers. Link against build-only stubs generated from
+    # and libjson-c with NO_DEPS=1: libjson-c supplies the public headers pulled
+    # in by libucode's headers, while the final image still resolves the official
+    # libjson-c runtime transitively through libucode. Prepare the remaining
+    # source trees for headers and link against build-only stubs generated from
     # the official release APKs instead of rebuilding ubus/ucode/udebug.
     make_run "$sdk_dir" \
         package/feeds/base/libnl-tiny/compile \
+        package/feeds/base/libjson-c/compile \
         package/feeds/base/libubox/prepare \
         package/feeds/base/ubus/prepare \
         package/feeds/base/ucode/prepare \
@@ -616,6 +619,7 @@ prepare_minimal_wpa_sdk() {
         libubox/uloop.h \
         libubox/blobmsg_json.h \
         libubus.h \
+        json-c/json.h \
         ucode/lib.h \
         udebug.h; do
         [[ -f "$target_staging/usr/include/$header" ]] || {
@@ -701,6 +705,7 @@ fi
 
 if (( minimal_wpa_sdk )); then
     register_official_sdk_source base libs/libnl-tiny
+    register_official_sdk_source base libs/libjson-c
     register_official_sdk_source base libs/libubox
     register_official_sdk_source base system/ubus
     register_official_sdk_source base utils/ucode

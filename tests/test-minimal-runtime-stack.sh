@@ -138,6 +138,9 @@ done
 # are staged explicitly so hostapd-common/ubus/ucode never become source roots.
 grep -Fq 'prepare_minimal_wpa_sdk()' "$build_script"
 grep -Fq 'package/feeds/base/libnl-tiny/compile' "$build_script"
+grep -Fq 'package/feeds/base/libjson-c/compile' "$build_script"
+grep -Fq 'register_official_sdk_source base libs/libjson-c' "$build_script"
+grep -Fq 'json-c/json.h' "$build_script"
 for package in libubox ubus ucode udebug; do
     grep -Fq "package/feeds/base/$package/prepare" "$build_script"
 done
