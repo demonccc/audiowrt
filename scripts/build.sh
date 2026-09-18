@@ -471,6 +471,20 @@ printf '\n# AudioWRT reusable packages\nsrc-git audiowrt %s\n' "$feed_source" >>
     ./scripts/feeds update packages audiowrt
 )
 audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
+
+native_player_sdk=0
+if [[ " ${firmware_packages[*]} " == *" audiowrt-player-core "* ]]; then
+    native_player_sdk=1
+    (
+        cd "$sdk_dir"
+        ./scripts/feeds update base
+    )
+    register_official_sdk_source base libs/libubox
+    register_official_sdk_source base libs/uclient
+    register_official_sdk_source base libs/ustream-ssl
+    register_official_sdk_source packages libs/flac
+fi
+
 if [[ " ${firmware_packages[*]} " == *" kmod-audiowrt-bluetooth "* ]]; then
     prepare_bluetooth_package
 fi
@@ -614,6 +628,10 @@ fi
 # emitted. Build this metadata once instead of letting every AudioWRT package
 # traverse package/toolchain as a dependency.
 make_run "$sdk_dir" package/toolchain/compile NO_DEPS=1 -j"$jobs"
+
+if (( native_player_sdk )); then
+    prepare_native_player_sdk
+fi
 
 # Download and compile package-only roots without traversing runtime dependency
 # prerequisites. This is the critical boundary that keeps hostapd,
