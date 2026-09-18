@@ -2,16 +2,12 @@
 #
 # Packages NOT listed here are still compiled when they contain AudioWRT source
 # code, but they are built with NO_DEPS=1 against the exact-release SDK staging
-# area. This keeps unchanged OpenWrt libraries as official release binaries
-# instead of recompiling their dependency trees.
+# area. Runtime-only OpenWrt dependencies must never be rebuilt just because an
+# AudioWRT package references them.
 #
-# Only packages that really need upstream source dependencies built/staged may
-# opt in here.
+# Keep this list limited to packages whose build really needs external source
+# dependencies or host tooling (for example Rust/GLib/DBus stacks).
 
-audiowrt-busybox
-audiowrt-minimal-alsa
-audiowrt-minimal-mbedtls
-audiowrt-dropbear
 librespot
 audiowrt-sbc
 audiowrt-bluez-libs
