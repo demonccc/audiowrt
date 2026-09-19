@@ -10,7 +10,7 @@ trap 'rm -rf "$tmp"' EXIT
 cat > "$tmp/targets" <<'EOF'
 audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
 audiowrt-minimal-mbedtls|package/feeds/audiowrt/audiowrt-minimal-mbedtls/compile
-audiowrt-wpa-supplicant|package/feeds/audiowrt/audiowrt-wpa-supplicant/compile
+audiowrt-wpad|package/feeds/audiowrt/audiowrt-wpad/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
 librespot|package/feeds/audiowrt/librespot/compile
 audiowrt-sbc|package/feeds/audiowrt/audiowrt-sbc/compile
@@ -31,8 +31,9 @@ Provides: alsa-lib
 Package: audiowrt-minimal-mbedtls
 Depends: +libc
 Provides: libmbedtls libmbedtls21
-Package: audiowrt-wpa-supplicant
+Package: audiowrt-wpad
 Depends: +libnl-tiny +hostapd-common +libubus +libblobmsg-json +libudebug +libmbedtls
+Provides: hostapd wpa-supplicant
 Package: audiowrt-spotify
 Depends: +librespot
 Package: audiowrt-sbc
