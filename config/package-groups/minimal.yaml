@@ -3,7 +3,7 @@ packages_add:
   - audiowrt-minimal-alsa
   - audiowrt-minimal-mbedtls
   - audiowrt-dropbear
-  - audiowrt-wpa-supplicant
+  - audiowrt-wpad
   - audiowrt-player-core
   - audiowrt-player-flac
 packages_remove:
