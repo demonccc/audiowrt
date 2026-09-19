@@ -24,7 +24,7 @@ assert {
     "audiowrt-minimal-alsa",
     "audiowrt-minimal-mbedtls",
     "audiowrt-dropbear",
-    "audiowrt-wpa-supplicant",
+    "audiowrt-wpad",
     "audiowrt-renderer",
     "audiowrt-player-core",
     "audiowrt-player-flac",
@@ -84,7 +84,7 @@ for package in \
     audiowrt-minimal-alsa \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
-    audiowrt-wpa-supplicant \
+    audiowrt-wpad \
     audiowrt-renderer \
     audiowrt-player-core \
     audiowrt-player-flac \
@@ -104,8 +104,8 @@ for package in \
     audiowrt-minimal-alsa \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
-    audiowrt-wpa-supplicant \
-    audiowrt-hostapd \
+    audiowrt-wpad \
+    audiowrt-wpad \
     audiowrt-busybox \
     audiowrt-sbc \
     audiowrt-bluez-libs \
@@ -135,11 +135,11 @@ for package in audiowrt-bluez bluez-alsa; do
     }
 done
 
-# AudioWRT's supplicant and provisioning AP both compile the exact upstream
-# hostap source behind NO_DEPS=1. Their build interfaces are staged once so
-# hostapd-common/ubus/ucode never become recursive source roots.
+# AudioWRT's multicall wpad compiles the exact upstream hostap source behind
+# NO_DEPS=1. Its build interfaces are staged once so hostapd-common/ubus/ucode
+# never become recursive source roots.
 grep -Fq 'prepare_hostap_sdk()' "$build_script"
-grep -Fq 'audiowrt-hostapd' "$build_script"
+grep -Fq 'audiowrt-wpad' "$build_script"
 grep -Fq 'package/feeds/base/libnl-tiny/compile' "$build_script"
 grep -Fq 'package/feeds/base/libjson-c/compile' "$build_script"
 grep -Fq 'register_official_sdk_source base libs/libjson-c' "$build_script"
