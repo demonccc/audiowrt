@@ -131,8 +131,9 @@ assert "audiowrt-branding" in data["packages_add"]
 assert "audiowrt-udhcpd" in data["packages_add"]
 assert "audiowrt-renderer" in data["packages_add"]
 assert "luci-app-audiowrt-renderer" in data["packages_add"]
-for package in ("dnsmasq", "ppp", "ppp-mod-pppoe", "luci-proto-ppp", "luci-app-firewall", "luci-mod-network", "minidlna", "umdns", "audiowrt-umdns"):
-    assert package in data["packages_remove"]
+required_removed = ("dnsmasq", "ppp", "ppp-mod-pppoe", "luci-proto-ppp", "luci-app-firewall", "luci-mod-network", "minidlna", "umdns", "audiowrt-umdns")
+missing_removed = [package for package in required_removed if package not in data["packages_remove"]]
+assert not missing_removed, f"{data['id']}: missing common removals: {missing_removed}"
 ' "$profile" <<< "$resolved"
 done
 
