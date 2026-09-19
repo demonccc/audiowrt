@@ -17,7 +17,6 @@ kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
 audiowrt-busybox|package/feeds/audiowrt/audiowrt-busybox/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
-audiowrt-dropbear|package/feeds/audiowrt/audiowrt-dropbear/compile
 audiowrt-wpad|package/feeds/audiowrt/audiowrt-wpad/compile
 audiowrt-minimal-upmpdcli|package/feeds/audiowrt/audiowrt-minimal-upmpdcli/compile
 audiowrt-umdns|package/feeds/audiowrt/audiowrt-umdns/compile
@@ -35,8 +34,6 @@ audiowrt-player-wav|package/feeds/audiowrt/audiowrt-player-wav/compile
 luci-app-audiowrt-renderer|package/feeds/audiowrt/luci-app-audiowrt-dlna/compile
 audiowrt-airplay|package/feeds/audiowrt/audiowrt-airplay/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
-audiowrt-sbc|package/feeds/audiowrt/audiowrt-sbc/compile
-audiowrt-bluez-libs|package/feeds/audiowrt/audiowrt-bluez/compile
 audiowrt-bluez|package/feeds/audiowrt/audiowrt-bluez/compile
 audiowrt-btctl|package/feeds/audiowrt/audiowrt-btctl/compile
 bluez-alsa|package/feeds/audiowrt/bluez-alsa/compile
