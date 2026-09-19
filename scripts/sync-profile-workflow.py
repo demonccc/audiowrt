@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keep GitHub Actions profile dropdowns in sync with profile YAML files."""
+"""Keep the GitHub Actions profile dropdown in sync with profile YAML files."""
 
 from __future__ import annotations
 
@@ -23,7 +23,6 @@ def main() -> int:
     root = Path(__file__).resolve().parents[1]
     workflows = [
         root / ".github/workflows/build-audiowrt.yml",
-        root / ".github/workflows/build-packages.yml",
     ]
     spec = importlib.util.spec_from_file_location("profile_catalog", root / "scripts/validate-profile-catalog.py")
     catalog = importlib.util.module_from_spec(spec)
@@ -60,10 +59,10 @@ def main() -> int:
             print(f"ERROR: GitHub Actions profile choices are stale: {names}.", file=sys.stderr)
             print("Run: python3 scripts/sync-profile-workflow.py", file=sys.stderr)
             return 1
-        print(f"GitHub Actions profile choices match {len(profiles)} YAML profiles in {len(workflows)} workflows.")
+        print(f"GitHub Actions profile choices match {len(profiles)} YAML profiles.")
         return 0
 
-    print(f"Updated {len(workflows)} GitHub Actions workflows with {len(profiles)} profile choices.")
+    print(f"Updated GitHub Actions with {len(profiles)} profile choices.")
     return 0
 
 
