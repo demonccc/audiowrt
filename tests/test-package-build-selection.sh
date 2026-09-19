@@ -11,7 +11,7 @@ cat > "$tmp/targets" <<'EOF'
 audiowrt-core|package/feeds/audiowrt/audiowrt-core/compile
 audiowrt-busybox|package/feeds/audiowrt/audiowrt-busybox/compile
 audiowrt-provisioning|package/feeds/audiowrt/audiowrt-provisioning/compile
-audiowrt-hostapd|package/feeds/audiowrt/audiowrt-hostapd/compile
+audiowrt-wpad|package/feeds/audiowrt/audiowrt-wpad/compile
 audiowrt-udhcpd|package/feeds/audiowrt/audiowrt-udhcpd/compile
 audiowrt-storage|package/feeds/audiowrt/audiowrt-storage/compile
 audiowrt-storage-luci|package/feeds/audiowrt/luci-app-audiowrt-storage/compile
@@ -43,9 +43,10 @@ Package: audiowrt-minimal-mbedtls
 Depends: +libc
 Provides: libmbedtls libmbedtls21
 Package: audiowrt-provisioning
-Depends: +audiowrt-core +audiowrt-wifi-client +audiowrt-hostapd +audiowrt-udhcpd
-Package: audiowrt-hostapd
-Depends: +libnl-tiny +hostapd-common +libubus +libucode
+Depends: +audiowrt-core +audiowrt-wifi-client +hostapd +audiowrt-udhcpd
+Package: audiowrt-wpad
+Depends: +libnl-tiny +hostapd-common +libubus +libucode +libmbedtls
+Provides: hostapd wpa-supplicant
 Package: audiowrt-udhcpd
 Depends: +audiowrt-busybox
 Package: audiowrt-storage
@@ -57,7 +58,7 @@ Depends: +uci
 Package: audiowrt-extensions
 Depends: +audiowrt-audio +apk-mbedtls
 Package: audiowrt-wifi-client
-Depends: +uci +ubus +rpcd-mod-iwinfo
+Depends: +uci +ubus +rpcd-mod-iwinfo +wpa-supplicant
 Package: luci-app-audiowrt-wifi-client
 Depends: +luci-base +audiowrt-wifi-client
 Package: audiowrt-spotify
@@ -90,12 +91,12 @@ EOF
 resolver="$repo_root/scripts/resolve-package-build-targets.py"
 
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-core audiowrt-provisioning audiowrt-minimal-mbedtls audiowrt-extensions luci-app-audiowrt-wifi-client > "$tmp/core"
+    audiowrt-core audiowrt-provisioning audiowrt-wpad audiowrt-minimal-mbedtls audiowrt-extensions luci-app-audiowrt-wifi-client > "$tmp/core"
 
 grep -q '^audiowrt-audio|' "$tmp/core"
 grep -q '^audiowrt-core|' "$tmp/core"
 grep -q '^audiowrt-provisioning|' "$tmp/core"
-grep -q '^audiowrt-hostapd|' "$tmp/core"
+grep -q '^audiowrt-wpad|' "$tmp/core"
 grep -q '^audiowrt-udhcpd|' "$tmp/core"
 grep -q '^audiowrt-busybox|' "$tmp/core"
 grep -q '^audiowrt-wifi-client|' "$tmp/core"
