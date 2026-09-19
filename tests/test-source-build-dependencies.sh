@@ -9,7 +9,6 @@ trap 'rm -rf "$tmp"' EXIT
 
 cat > "$tmp/targets" <<'EOF'
 audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
-audiowrt-minimal-mbedtls|package/feeds/audiowrt/audiowrt-minimal-mbedtls/compile
 audiowrt-wpad|package/feeds/audiowrt/audiowrt-wpad/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
 librespot|package/feeds/audiowrt/librespot/compile
@@ -28,9 +27,6 @@ Depends: +libc +alsa-lib +audiowrt-spotify +kmod-sound-core
 Package: audiowrt-minimal-alsa
 Depends: +kmod-sound-core +libpthread +librt
 Provides: alsa-lib
-Package: audiowrt-minimal-mbedtls
-Depends: +libc
-Provides: libmbedtls libmbedtls21
 Package: audiowrt-wpad
 Depends: +libnl-tiny +hostapd-common +libubus +libblobmsg-json +libudebug +libmbedtls
 Provides: hostapd wpa-supplicant
@@ -53,14 +49,14 @@ EOF
 
 resolver="$repo_root/scripts/resolve-source-build-dependencies.py"
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" librespot \
-    --providers audiowrt-minimal-alsa audiowrt-minimal-mbedtls audiowrt-spotify librespot > "$tmp/librespot"
+    --providers audiowrt-minimal-alsa audiowrt-spotify librespot > "$tmp/librespot"
 
 grep -qx 'rust' "$tmp/librespot"
 if grep -qx 'alsa-lib' "$tmp/librespot"; then
     echo 'ERROR: selected AudioWRT provider did not satisfy the alsa-lib build dependency.' >&2
     exit 1
 fi
-if grep -Eq '^(libc|audiowrt-spotify|audiowrt-minimal-alsa|audiowrt-minimal-mbedtls|kernel|kmod-)' "$tmp/librespot"; then
+if grep -Eq '^(libc|audiowrt-spotify|audiowrt-minimal-alsa|kernel|kmod-)' "$tmp/librespot"; then
     echo "ERROR: toolchain or AudioWRT-owned dependencies leaked into source dependency roots." >&2
     cat "$tmp/librespot" >&2
     exit 1
