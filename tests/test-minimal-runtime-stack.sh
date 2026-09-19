@@ -22,6 +22,7 @@ added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
     "audiowrt-minimal-alsa",
+    "libmbedtls21",
     "audiowrt-dropbear",
     "audiowrt-wpad",
     "audiowrt-renderer",
@@ -32,7 +33,6 @@ assert {
 } <= added
 assert {
     "alsa-lib",
-    "libmbedtls21",
     "dropbear",
     "wpad-basic-mbedtls",
     "mpd-mini",
