@@ -176,7 +176,7 @@ assert {
     "audiowrt-usb-audio", "kmod-usb-audio"
 } <= added
 assert {
-    "alsa-lib", "dropbear", "wpad-basic-mbedtls", "mpd-mini",
+    "alsa-lib", "wpad-basic-mbedtls", "mpd-mini",
     "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli", "audiowrt-mpd",
     "minidlna", "umdns", "audiowrt-umdns", "dnsmasq", "kmod-bluetooth",
     "kmod-audiowrt-bluetooth", "audiowrt-player-mp3", "libmpg123", "libltdl"
