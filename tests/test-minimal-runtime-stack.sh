@@ -105,6 +105,7 @@ for package in \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
     audiowrt-wpa-supplicant \
+    audiowrt-hostapd \
     audiowrt-busybox \
     audiowrt-sbc \
     audiowrt-bluez-libs \
@@ -134,9 +135,11 @@ for package in audiowrt-bluez bluez-alsa; do
     }
 done
 
-# WPA compiles upstream hostap source behind NO_DEPS=1. Its build interfaces
-# are staged explicitly so hostapd-common/ubus/ucode never become source roots.
-grep -Fq 'prepare_minimal_wpa_sdk()' "$build_script"
+# AudioWRT's supplicant and provisioning AP both compile the exact upstream
+# hostap source behind NO_DEPS=1. Their build interfaces are staged once so
+# hostapd-common/ubus/ucode never become recursive source roots.
+grep -Fq 'prepare_hostap_sdk()' "$build_script"
+grep -Fq 'audiowrt-hostapd' "$build_script"
 grep -Fq 'package/feeds/base/libnl-tiny/compile' "$build_script"
 grep -Fq 'package/feeds/base/libjson-c/compile' "$build_script"
 grep -Fq 'register_official_sdk_source base libs/libjson-c' "$build_script"
