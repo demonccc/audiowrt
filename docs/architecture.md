@@ -53,11 +53,9 @@ AudioWRT derived APK for the selected release + architecture
 This is the rule for **all** actual source-derived packages, including the constrained Bluetooth stack. The current source-derived set includes:
 
 - `audiowrt-busybox` -> OpenWrt `busybox`;
-- `audiowrt-dropbear` -> OpenWrt `dropbear`;
 - `audiowrt-wpad` -> OpenWrt `hostapd` source, linked as one multicall binary exposing both `hostapd` and `wpa_supplicant`;
 - `audiowrt-umdns` -> OpenWrt `umdns` when that package is explicitly selected as a custom source build;
 - `audiowrt-minimal-alsa` -> packages feed `alsa-lib`;
-- `audiowrt-sbc` -> packages feed `sbc`;
 - `audiowrt-bluez` -> packages feed `bluez`.
 
 The implementation lives in `demonccc/audiowrt-packages` through `include/audiowrt-openwrt-derived.mk` and `scripts/prepare-openwrt-derived.py`. The helper inherits the canonical recipe preamble, files and patch set from the exact selected OpenWrt context. AudioWRT-owned source patches use the `9xx-*` namespace so they cannot silently replace an OpenWrt-owned patch.
