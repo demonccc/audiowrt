@@ -1,15 +1,14 @@
 schema_version: 1
 packages_add:
   - audiowrt-minimal-alsa
-  - audiowrt-minimal-mbedtls
+  - libmbedtls21
   - audiowrt-dropbear
-  - audiowrt-wpa-supplicant
+  - audiowrt-wpad
   - audiowrt-player-core
   - audiowrt-player-flac
 packages_remove:
   - odhcp6c
   - alsa-lib
-  - libmbedtls21
   - dropbear
   - wpad-basic-mbedtls
   - wpad-basic

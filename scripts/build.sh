@@ -568,9 +568,9 @@ prepare_native_player_sdk() {
     fi
 }
 
-prepare_minimal_wpa_sdk() {
+prepare_hostap_sdk() {
     local -a target_staging_matches=()
-    local target_staging libubox_src ubus_src ucode_src udebug_src
+    local target_staging libubox_src ubus_src ucode_src udebug_src mbedtls_src
 
     mapfile -t target_staging_matches < <(
         find "$sdk_dir/staging_dir" -mindepth 1 -maxdepth 1 -type d -name 'target-*' -print
@@ -581,8 +581,9 @@ prepare_minimal_wpa_sdk() {
     }
     target_staging="${target_staging_matches[0]}"
 
-    # wpa_supplicant needs these development interfaces, but the firmware must
-    # keep the exact official OpenWrt runtime packages. Compile only libnl-tiny
+    # AudioWRT's multicall wpad needs these development interfaces, but the
+    # firmware must keep
+    # the exact official OpenWrt runtime packages. Compile only libnl-tiny
     # and libjson-c with NO_DEPS=1: libjson-c supplies the public headers pulled
     # in by libucode's headers, while the final image still resolves the official
     # libjson-c runtime transitively through libucode. Prepare the remaining
@@ -591,6 +592,7 @@ prepare_minimal_wpa_sdk() {
     make_run "$sdk_dir" \
         package/feeds/base/libnl-tiny/compile \
         package/feeds/base/libjson-c/compile \
+        package/feeds/base/mbedtls/configure \
         package/feeds/base/libubox/prepare \
         package/feeds/base/ubus/prepare \
         package/feeds/base/ucode/prepare \
@@ -601,10 +603,13 @@ prepare_minimal_wpa_sdk() {
     ubus_src="$(prepared_source_dir ubus)"
     ucode_src="$(prepared_source_dir ucode)"
     udebug_src="$(prepared_source_dir udebug)"
+    mbedtls_src="$(prepared_source_dir mbedtls)"
 
     mkdir -p \
         "$target_staging/usr/include/libubox" \
         "$target_staging/usr/include/ucode" \
+        "$target_staging/usr/include/mbedtls" \
+        "$target_staging/usr/include/psa" \
         "$target_staging/usr/include"
 
     find "$libubox_src" -maxdepth 1 -type f -name '*.h' \
@@ -614,6 +619,8 @@ prepare_minimal_wpa_sdk() {
     cp -f "$ucode_src"/include/ucode/*.h "$target_staging/usr/include/ucode/"
     find "$udebug_src" -maxdepth 1 -type f -name '*.h' \
         -exec cp -f {} "$target_staging/usr/include/" \;
+    cp -f "$mbedtls_src"/include/mbedtls/*.h "$target_staging/usr/include/mbedtls/"
+    cp -f "$mbedtls_src"/include/psa/*.h "$target_staging/usr/include/psa/"
 
     for header in \
         libubox/uloop.h \
@@ -621,7 +628,10 @@ prepare_minimal_wpa_sdk() {
         libubus.h \
         json-c/json.h \
         ucode/lib.h \
-        udebug.h; do
+        udebug.h \
+        mbedtls/ssl.h \
+        mbedtls/mbedtls_config.h \
+        psa/crypto.h; do
         [[ -f "$target_staging/usr/include/$header" ]] || {
             echo "ERROR: WPA SDK header was not staged: $header" >&2
             exit 5
@@ -637,6 +647,12 @@ prepare_minimal_wpa_sdk() {
     stage_official_link_stub libucode base 'libucode.so.*' libucode.so \
         "$target_staging" --all-dynamic-symbols
     stage_official_link_stub libudebug base 'libudebug.so*' libudebug.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libmbedtls21 base 'libmbedcrypto.so.*' libmbedcrypto.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libmbedtls21 base 'libmbedx509.so.*' libmbedx509.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libmbedtls21 base 'libmbedtls.so.*' libmbedtls.so \
         "$target_staging" --all-dynamic-symbols
 }
 
@@ -672,15 +688,18 @@ printf '\n# AudioWRT reusable packages\nsrc-git audiowrt %s\n' "$feed_source" >>
 audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
 
 native_player_sdk=0
-minimal_wpa_sdk=0
+hostap_sdk=0
 if [[ " ${firmware_packages[*]} " == *" audiowrt-player-core "* ]]; then
     native_player_sdk=1
 fi
-if [[ " ${firmware_packages[*]} " == *" audiowrt-wpa-supplicant "* ]]; then
-    minimal_wpa_sdk=1
+# The constrained AudioWRT Wi-Fi provider is one multicall wpad binary built
+# from the exact OpenWrt hostap source. Stage its development interfaces once
+# without turning OpenWrt runtime dependencies into source-build roots.
+if [[ " ${firmware_packages[*]} " == *" audiowrt-wpad "* ]]; then
+    hostap_sdk=1
 fi
 
-if (( native_player_sdk || minimal_wpa_sdk )); then
+if (( native_player_sdk || hostap_sdk )); then
     (
         cd "$sdk_dir"
         ./scripts/feeds update base
@@ -703,9 +722,10 @@ if (( native_player_sdk )); then
     fi
 fi
 
-if (( minimal_wpa_sdk )); then
+if (( hostap_sdk )); then
     register_official_sdk_source base libs/libnl-tiny
     register_official_sdk_source base libs/libjson-c
+    register_official_sdk_source base libs/mbedtls
     register_official_sdk_source base libs/libubox
     register_official_sdk_source base system/ubus
     register_official_sdk_source base utils/ucode
@@ -875,8 +895,8 @@ make_run "$sdk_dir" package/toolchain/compile NO_DEPS=1 -j"$jobs"
 if (( native_player_sdk )); then
     prepare_native_player_sdk
 fi
-if (( minimal_wpa_sdk )); then
-    prepare_minimal_wpa_sdk
+if (( hostap_sdk )); then
+    prepare_hostap_sdk
 fi
 
 # Download every selected AudioWRT target without traversing dependencies. Source

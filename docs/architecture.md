@@ -53,8 +53,8 @@ AudioWRT derived APK for the selected release + architecture
 This is the rule for **all** actual source-derived packages, including the constrained Bluetooth stack. The current source-derived set includes:
 
 - `audiowrt-busybox` -> OpenWrt `busybox`;
-- `audiowrt-minimal-mbedtls` -> OpenWrt `mbedtls`;
 - `audiowrt-dropbear` -> OpenWrt `dropbear`;
+- `audiowrt-wpad` -> OpenWrt `hostapd` source, linked as one multicall binary exposing both `hostapd` and `wpa_supplicant`;
 - `audiowrt-umdns` -> OpenWrt `umdns` when that package is explicitly selected as a custom source build;
 - `audiowrt-minimal-alsa` -> packages feed `alsa-lib`;
 - `audiowrt-sbc` -> packages feed `sbc`;
@@ -74,7 +74,6 @@ A package must **not** become a source build merely because AudioWRT changes its
 
 Current examples:
 
-- `audiowrt-wpa-supplicant` selects the exact `wpa-supplicant-mbedtls` package from the selected release instead of carrying a hostapd/wpa source fork;
 - both minimal and standard audio runtimes use the exact official OpenWrt `mpd-mini` and `upmpdcli` binaries rather than rebuilding them;
 - `audiowrt-minimal-upmpdcli` is a file-only runtime profile over those release binaries and is built with `NO_DEPS=1`;
 - minimal currently uses the official `umdns` package because `.local`/mDNS does not justify rebuilding the daemon;
@@ -184,7 +183,7 @@ This is what makes the package model portable across 24.10, 25.12, snapshots and
 
 `config/build/package-build-targets` maps AudioWRT binary packages to SDK make targets. `config/build/source-build-packages` is a strict opt-in list containing only packages that genuinely compile/link a different binary.
 
-Package-only wrappers remain behind `NO_DEPS=1`, so unchanged runtime dependencies such as LuCI, uhttpd, umdns, `mpd-mini` and `upmpdcli` remain official binaries.
+Package-only wrappers remain behind `NO_DEPS=1`, so unchanged runtime dependencies such as LuCI, uhttpd, umdns, `mpd-mini` and `upmpdcli` remain official binaries. TLS is also kept fully official: both minimal and standard images use OpenWrt's `libmbedtls21`; AudioWRT does not ship a replacement mbedTLS runtime. `audiowrt-wpad` is a special constrained source-derived package: it compiles upstream hostap code behind the same `NO_DEPS=1` boundary while the builder stages only the exact-release development interfaces it needs.
 
 A package may enter `source-build-packages` only if AudioWRT has a real compiled-source delta. Adding it means explicitly accepting compilation of the build/link dependency closure required to produce that binary. A wrapper, selector or runtime-profile package must never be added simply because it references an upstream project.
 

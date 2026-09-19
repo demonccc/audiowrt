@@ -9,7 +9,10 @@ trap 'rm -rf "$tmp"' EXIT
 
 cat > "$tmp/targets" <<'EOF'
 audiowrt-core|package/feeds/audiowrt/audiowrt-core/compile
+audiowrt-busybox|package/feeds/audiowrt/audiowrt-busybox/compile
 audiowrt-provisioning|package/feeds/audiowrt/audiowrt-provisioning/compile
+audiowrt-wpad|package/feeds/audiowrt/audiowrt-wpad/compile
+audiowrt-udhcpd|package/feeds/audiowrt/audiowrt-udhcpd/compile
 audiowrt-storage|package/feeds/audiowrt/audiowrt-storage/compile
 audiowrt-storage-luci|package/feeds/audiowrt/luci-app-audiowrt-storage/compile
 kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
@@ -17,7 +20,6 @@ kmod-audiowrt-sound-core|package/feeds/audiowrt/packages/audiowrt-kmod-sound-cor
 kmod-audiowrt-usb-audio|package/feeds/audiowrt/packages/audiowrt-kmod-usb-audio/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
-audiowrt-minimal-mbedtls|package/feeds/audiowrt/audiowrt-minimal-mbedtls/compile
 audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
 audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 luci-app-audiowrt-wifi-client|package/feeds/audiowrt/luci-app-audiowrt-wifi-client/compile
@@ -34,11 +36,15 @@ EOF
 cat > "$tmp/packageinfo" <<'EOF'
 Package: audiowrt-core
 Depends: +libc +audiowrt-audio
-Package: audiowrt-minimal-mbedtls
+Package: audiowrt-busybox
 Depends: +libc
-Provides: libmbedtls libmbedtls21
 Package: audiowrt-provisioning
-Depends: +audiowrt-core +audiowrt-wifi-client
+Depends: +audiowrt-core +audiowrt-wifi-client +hostapd +audiowrt-udhcpd
+Package: audiowrt-wpad
+Depends: +libnl-tiny +hostapd-common +libubus +libucode +libmbedtls
+Provides: hostapd wpa-supplicant
+Package: audiowrt-udhcpd
+Depends: +audiowrt-busybox
 Package: audiowrt-storage
 Depends: +audiowrt-core +block-mount +kmod-usb-storage +kmod-fs-ext4 +e2fsprogs
 Package: audiowrt-storage-luci
@@ -48,7 +54,7 @@ Depends: +uci
 Package: audiowrt-extensions
 Depends: +audiowrt-audio +apk-mbedtls
 Package: audiowrt-wifi-client
-Depends: +uci +ubus +rpcd-mod-iwinfo
+Depends: +uci +ubus +rpcd-mod-iwinfo +wpa-supplicant
 Package: luci-app-audiowrt-wifi-client
 Depends: +luci-base +audiowrt-wifi-client
 Package: audiowrt-spotify
@@ -81,15 +87,17 @@ EOF
 resolver="$repo_root/scripts/resolve-package-build-targets.py"
 
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-core audiowrt-provisioning audiowrt-minimal-mbedtls audiowrt-extensions luci-app-audiowrt-wifi-client > "$tmp/core"
+    audiowrt-core audiowrt-provisioning audiowrt-wpad audiowrt-extensions luci-app-audiowrt-wifi-client > "$tmp/core"
 
 grep -q '^audiowrt-audio|' "$tmp/core"
 grep -q '^audiowrt-core|' "$tmp/core"
 grep -q '^audiowrt-provisioning|' "$tmp/core"
+grep -q '^audiowrt-wpad|' "$tmp/core"
+grep -q '^audiowrt-udhcpd|' "$tmp/core"
+grep -q '^audiowrt-busybox|' "$tmp/core"
 grep -q '^audiowrt-wifi-client|' "$tmp/core"
 grep -q '^luci-app-audiowrt-wifi-client|' "$tmp/core"
 grep -q '^audiowrt-extensions|' "$tmp/core"
-grep -q '^audiowrt-minimal-mbedtls|' "$tmp/core"
 if grep -Eq '^(audiowrt-storage|audiowrt-storage-luci|audiowrt-spotify|librespot|audiowrt-bluetooth|bluez-alsa|audiowrt-bluez|audiowrt-bluez-libs|audiowrt-sbc|audiowrt-btctl)\|' "$tmp/core"; then
     echo "ERROR: non-Bluetooth core roots selected unrelated AudioWRT packages." >&2
     cat "$tmp/core" >&2
