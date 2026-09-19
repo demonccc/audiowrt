@@ -568,7 +568,7 @@ prepare_native_player_sdk() {
     fi
 }
 
-prepare_minimal_wpa_sdk() {
+prepare_hostap_sdk() {
     local -a target_staging_matches=()
     local target_staging libubox_src ubus_src ucode_src udebug_src
 
@@ -581,8 +581,9 @@ prepare_minimal_wpa_sdk() {
     }
     target_staging="${target_staging_matches[0]}"
 
-    # wpa_supplicant needs these development interfaces, but the firmware must
-    # keep the exact official OpenWrt runtime packages. Compile only libnl-tiny
+    # AudioWRT's hostap-derived binaries (wpa_supplicant and provisioning
+    # hostapd) need these development interfaces, but the firmware must keep
+    # the exact official OpenWrt runtime packages. Compile only libnl-tiny
     # and libjson-c with NO_DEPS=1: libjson-c supplies the public headers pulled
     # in by libucode's headers, while the final image still resolves the official
     # libjson-c runtime transitively through libucode. Prepare the remaining
@@ -672,15 +673,20 @@ printf '\n# AudioWRT reusable packages\nsrc-git audiowrt %s\n' "$feed_source" >>
 audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
 
 native_player_sdk=0
-minimal_wpa_sdk=0
+hostap_sdk=0
 if [[ " ${firmware_packages[*]} " == *" audiowrt-player-core "* ]]; then
     native_player_sdk=1
 fi
-if [[ " ${firmware_packages[*]} " == *" audiowrt-wpa-supplicant "* ]]; then
-    minimal_wpa_sdk=1
+# Provisioning depends on audiowrt-hostapd, while minimal images also select
+# audiowrt-wpa-supplicant directly. Both are compiled from the same exact
+# OpenWrt hostap source and share the same SDK-only development staging.
+if [[ " ${firmware_packages[*]} " == *" audiowrt-wpa-supplicant "* ]] ||
+   [[ " ${firmware_packages[*]} " == *" audiowrt-hostapd "* ]] ||
+   [[ " ${firmware_packages[*]} " == *" audiowrt-provisioning "* ]]; then
+    hostap_sdk=1
 fi
 
-if (( native_player_sdk || minimal_wpa_sdk )); then
+if (( native_player_sdk || hostap_sdk )); then
     (
         cd "$sdk_dir"
         ./scripts/feeds update base
@@ -703,7 +709,7 @@ if (( native_player_sdk )); then
     fi
 fi
 
-if (( minimal_wpa_sdk )); then
+if (( hostap_sdk )); then
     register_official_sdk_source base libs/libnl-tiny
     register_official_sdk_source base libs/libjson-c
     register_official_sdk_source base libs/libubox
@@ -875,8 +881,8 @@ make_run "$sdk_dir" package/toolchain/compile NO_DEPS=1 -j"$jobs"
 if (( native_player_sdk )); then
     prepare_native_player_sdk
 fi
-if (( minimal_wpa_sdk )); then
-    prepare_minimal_wpa_sdk
+if (( hostap_sdk )); then
+    prepare_hostap_sdk
 fi
 
 # Download every selected AudioWRT target without traversing dependencies. Source
