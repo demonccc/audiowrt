@@ -570,7 +570,7 @@ prepare_native_player_sdk() {
 
 prepare_hostap_sdk() {
     local -a target_staging_matches=()
-    local target_staging libubox_src ubus_src ucode_src udebug_src
+    local target_staging libubox_src ubus_src ucode_src udebug_src mbedtls_src
 
     mapfile -t target_staging_matches < <(
         find "$sdk_dir/staging_dir" -mindepth 1 -maxdepth 1 -type d -name 'target-*' -print
@@ -592,6 +592,7 @@ prepare_hostap_sdk() {
     make_run "$sdk_dir" \
         package/feeds/base/libnl-tiny/compile \
         package/feeds/base/libjson-c/compile \
+        package/feeds/base/mbedtls/configure \
         package/feeds/base/libubox/prepare \
         package/feeds/base/ubus/prepare \
         package/feeds/base/ucode/prepare \
@@ -602,10 +603,13 @@ prepare_hostap_sdk() {
     ubus_src="$(prepared_source_dir ubus)"
     ucode_src="$(prepared_source_dir ucode)"
     udebug_src="$(prepared_source_dir udebug)"
+    mbedtls_src="$(prepared_source_dir mbedtls)"
 
     mkdir -p \
         "$target_staging/usr/include/libubox" \
         "$target_staging/usr/include/ucode" \
+        "$target_staging/usr/include/mbedtls" \
+        "$target_staging/usr/include/psa" \
         "$target_staging/usr/include"
 
     find "$libubox_src" -maxdepth 1 -type f -name '*.h' \
@@ -615,6 +619,8 @@ prepare_hostap_sdk() {
     cp -f "$ucode_src"/include/ucode/*.h "$target_staging/usr/include/ucode/"
     find "$udebug_src" -maxdepth 1 -type f -name '*.h' \
         -exec cp -f {} "$target_staging/usr/include/" \;
+    cp -f "$mbedtls_src"/include/mbedtls/*.h "$target_staging/usr/include/mbedtls/"
+    cp -f "$mbedtls_src"/include/psa/*.h "$target_staging/usr/include/psa/"
 
     for header in \
         libubox/uloop.h \
@@ -622,7 +628,10 @@ prepare_hostap_sdk() {
         libubus.h \
         json-c/json.h \
         ucode/lib.h \
-        udebug.h; do
+        udebug.h \
+        mbedtls/ssl.h \
+        mbedtls/mbedtls_config.h \
+        psa/crypto.h; do
         [[ -f "$target_staging/usr/include/$header" ]] || {
             echo "ERROR: WPA SDK header was not staged: $header" >&2
             exit 5
@@ -638,6 +647,12 @@ prepare_hostap_sdk() {
     stage_official_link_stub libucode base 'libucode.so.*' libucode.so \
         "$target_staging" --all-dynamic-symbols
     stage_official_link_stub libudebug base 'libudebug.so*' libudebug.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libmbedtls21 base 'libmbedcrypto.so.*' libmbedcrypto.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libmbedtls21 base 'libmbedx509.so.*' libmbedx509.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libmbedtls21 base 'libmbedtls.so.*' libmbedtls.so \
         "$target_staging" --all-dynamic-symbols
 }
 
@@ -710,6 +725,7 @@ fi
 if (( hostap_sdk )); then
     register_official_sdk_source base libs/libnl-tiny
     register_official_sdk_source base libs/libjson-c
+    register_official_sdk_source base libs/mbedtls
     register_official_sdk_source base libs/libubox
     register_official_sdk_source base system/ubus
     register_official_sdk_source base utils/ucode
