@@ -72,6 +72,9 @@ jobs:
       - name: Test AudioWRT package build selection
         run: bash tests/test-package-build-selection.sh
 
+      - name: Test package-only build mode
+        run: bash tests/test-package-build-mode.sh
+
       - name: Test AudioWRT source dependency resolution
         run: bash tests/test-source-build-dependencies.sh
 
