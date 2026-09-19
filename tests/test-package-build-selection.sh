@@ -20,7 +20,6 @@ kmod-audiowrt-sound-core|package/feeds/audiowrt/packages/audiowrt-kmod-sound-cor
 kmod-audiowrt-usb-audio|package/feeds/audiowrt/packages/audiowrt-kmod-usb-audio/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
-audiowrt-minimal-mbedtls|package/feeds/audiowrt/audiowrt-minimal-mbedtls/compile
 audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
 audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 luci-app-audiowrt-wifi-client|package/feeds/audiowrt/luci-app-audiowrt-wifi-client/compile
@@ -39,9 +38,6 @@ Package: audiowrt-core
 Depends: +libc +audiowrt-audio
 Package: audiowrt-busybox
 Depends: +libc
-Package: audiowrt-minimal-mbedtls
-Depends: +libc
-Provides: libmbedtls libmbedtls21
 Package: audiowrt-provisioning
 Depends: +audiowrt-core +audiowrt-wifi-client +hostapd +audiowrt-udhcpd
 Package: audiowrt-wpad
@@ -91,7 +87,7 @@ EOF
 resolver="$repo_root/scripts/resolve-package-build-targets.py"
 
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-core audiowrt-provisioning audiowrt-wpad audiowrt-minimal-mbedtls audiowrt-extensions luci-app-audiowrt-wifi-client > "$tmp/core"
+    audiowrt-core audiowrt-provisioning audiowrt-wpad audiowrt-extensions luci-app-audiowrt-wifi-client > "$tmp/core"
 
 grep -q '^audiowrt-audio|' "$tmp/core"
 grep -q '^audiowrt-core|' "$tmp/core"
@@ -102,7 +98,6 @@ grep -q '^audiowrt-busybox|' "$tmp/core"
 grep -q '^audiowrt-wifi-client|' "$tmp/core"
 grep -q '^luci-app-audiowrt-wifi-client|' "$tmp/core"
 grep -q '^audiowrt-extensions|' "$tmp/core"
-grep -q '^audiowrt-minimal-mbedtls|' "$tmp/core"
 if grep -Eq '^(audiowrt-storage|audiowrt-storage-luci|audiowrt-spotify|librespot|audiowrt-bluetooth|bluez-alsa|audiowrt-bluez|audiowrt-bluez-libs|audiowrt-sbc|audiowrt-btctl)\|' "$tmp/core"; then
     echo "ERROR: non-Bluetooth core roots selected unrelated AudioWRT packages." >&2
     cat "$tmp/core" >&2
