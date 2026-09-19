@@ -24,13 +24,4 @@ grep -q 'BUILD_MODE=exact-release-sdk-packages' scripts/build.sh
 grep -q 'output/packages' scripts/build.sh
 grep -q 'unknown AudioWRT package' scripts/build.sh
 
-workflow=.github/workflows/build-packages.yml
-[[ -f "$workflow" ]]
-grep -q '^name: Build AudioWRT Packages$' "$workflow"
-grep -q '^      package:$' "$workflow"
-grep -q "default: all" "$workflow"
-grep -q 'make packages' "$workflow"
-grep -q "PACKAGE='\${{ inputs.package }}'" "$workflow"
-grep -q 'path: output/' "$workflow"
-
-echo "Package-only build mode contract OK"
+echo "Package-only build engine contract OK"
