@@ -41,6 +41,9 @@ jobs:
           echo
           echo '=== Local APK sizes ==='
           du -h output/tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5/local-apks/*.apk | sort -h
+          echo
+          echo '=== AudioWRT wpad APK ==='
+          find output/tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5/local-apks -name 'audiowrt-wpad*.apk' -exec ls -lh {} \;
 
       - name: Upload size artifacts
         if: always()
