@@ -20,8 +20,8 @@ grep -Fq 'prepare_hostap_sdk()' "$build_script" || {
     echo "ERROR: hostap-derived AudioWRT binaries must share one SDK staging path." >&2
     exit 1
 }
-grep -Fq 'audiowrt-hostapd' "$build_script" || {
-    echo "ERROR: provisioning hostapd must trigger hostap SDK staging." >&2
+grep -Fq 'audiowrt-wpad' "$build_script" || {
+    echo "ERROR: AudioWRT wpad must trigger hostap SDK staging." >&2
     exit 1
 }
 
