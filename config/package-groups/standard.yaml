@@ -13,7 +13,7 @@ packages_remove:
   - audiowrt-minimal-alsa
   - audiowrt-minimal-mbedtls
   - audiowrt-dropbear
-  - audiowrt-wpa-supplicant
+  - audiowrt-wpad
   - mpd-mini
   - mpd-full
   - upmpdcli
