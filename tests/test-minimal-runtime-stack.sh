@@ -23,7 +23,7 @@ removed = set(data["packages_remove"])
 assert {
     "audiowrt-minimal-alsa",
     "libmbedtls21",
-    "audiowrt-dropbear",
+    "dropbear",
     "audiowrt-wpad",
     "audiowrt-renderer",
     "audiowrt-player-core",
@@ -81,7 +81,7 @@ assert not ({"mpd-mini", "mpd-full", "upmpdcli", "audiowrt-mpd", "minidlna", "um
 
 for package in \
     audiowrt-minimal-alsa \
-    audiowrt-dropbear \
+    dropbear \
     audiowrt-wpad \
     audiowrt-renderer \
     audiowrt-player-core \
@@ -103,8 +103,6 @@ for package in \
     audiowrt-dropbear \
     audiowrt-wpad \
     audiowrt-busybox \
-    audiowrt-sbc \
-    audiowrt-bluez-libs \
     audiowrt-btctl \
     audiowrt-renderer \
     audiowrt-player-core \
