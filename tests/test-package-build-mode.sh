@@ -23,5 +23,7 @@ grep -q 'package_request="${AUDIOWRT_PACKAGE:-all}"' scripts/build.sh
 grep -q 'BUILD_MODE=exact-release-sdk-packages' scripts/build.sh
 grep -q 'output/packages' scripts/build.sh
 grep -q 'unknown AudioWRT package' scripts/build.sh
+grep -q 'profile_firmware_packages' scripts/build.sh
+grep -q -- '--providers "\${profile_firmware_packages\[@\]}"' scripts/build.sh
 
 echo "Package-only build engine contract OK"
