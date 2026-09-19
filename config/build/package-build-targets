@@ -19,8 +19,7 @@ audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
 audiowrt-minimal-mbedtls|package/feeds/audiowrt/audiowrt-minimal-mbedtls/compile
 audiowrt-dropbear|package/feeds/audiowrt/audiowrt-dropbear/compile
-audiowrt-wpa-supplicant|package/feeds/audiowrt/audiowrt-wpa-supplicant/compile
-audiowrt-hostapd|package/feeds/audiowrt/audiowrt-hostapd/compile
+audiowrt-wpad|package/feeds/audiowrt/audiowrt-wpad/compile
 audiowrt-minimal-upmpdcli|package/feeds/audiowrt/audiowrt-minimal-upmpdcli/compile
 audiowrt-umdns|package/feeds/audiowrt/audiowrt-umdns/compile
 audiowrt-usb-audio|package/feeds/audiowrt/audiowrt-usb-audio/compile
