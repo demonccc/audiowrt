@@ -257,7 +257,8 @@ fi
 make_run "$source_dir" -s prepare-tmpinfo
 python3 "$repo_root/scripts/resolve-platform.py" "$source_dir/tmp/.targetinfo" "$platform" > "$platform_metadata"
 
-mapfile -t firmware_packages < <(read_package_file "$packages_add_file")
+mapfile -t profile_firmware_packages < <(read_package_file "$packages_add_file")
+firmware_packages=("${profile_firmware_packages[@]}")
 if [[ "$build_mode" == "packages" && "$package_request" != "all" ]]; then
     if ! awk -F '|' -v package="$package_request" '$0 !~ /^[[:space:]]*#/ && $1 == package { found=1 } END { exit found ? 0 : 1 }'         "$repo_root/config/build/package-build-targets"; then
         echo "ERROR: unknown AudioWRT package: $package_request" >&2
@@ -821,7 +822,8 @@ packageinfo="$sdk_dir/tmp/.packageinfo"
 python3 "$repo_root/scripts/resolve-package-build-targets.py" \
     "$repo_root/config/build/package-build-targets" \
     "$packageinfo" \
-    "${firmware_packages[@]}" > "$build_plan"
+    "${firmware_packages[@]}" \
+    --providers "${profile_firmware_packages[@]}" > "$build_plan"
 
 mapfile -t build_specs < "$build_plan"
 [[ "${#build_specs[@]}" -gt 0 ]] || {
