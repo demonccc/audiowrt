@@ -9,7 +9,10 @@ trap 'rm -rf "$tmp"' EXIT
 
 cat > "$tmp/targets" <<'EOF'
 audiowrt-core|package/feeds/audiowrt/audiowrt-core/compile
+audiowrt-busybox|package/feeds/audiowrt/audiowrt-busybox/compile
 audiowrt-provisioning|package/feeds/audiowrt/audiowrt-provisioning/compile
+audiowrt-hostapd|package/feeds/audiowrt/audiowrt-hostapd/compile
+audiowrt-udhcpd|package/feeds/audiowrt/audiowrt-udhcpd/compile
 audiowrt-storage|package/feeds/audiowrt/audiowrt-storage/compile
 audiowrt-storage-luci|package/feeds/audiowrt/luci-app-audiowrt-storage/compile
 kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
@@ -34,11 +37,17 @@ EOF
 cat > "$tmp/packageinfo" <<'EOF'
 Package: audiowrt-core
 Depends: +libc +audiowrt-audio
+Package: audiowrt-busybox
+Depends: +libc
 Package: audiowrt-minimal-mbedtls
 Depends: +libc
 Provides: libmbedtls libmbedtls21
 Package: audiowrt-provisioning
-Depends: +audiowrt-core +audiowrt-wifi-client
+Depends: +audiowrt-core +audiowrt-wifi-client +audiowrt-hostapd +audiowrt-udhcpd
+Package: audiowrt-hostapd
+Depends: +libnl-tiny +hostapd-common +libubus +libucode
+Package: audiowrt-udhcpd
+Depends: +audiowrt-busybox
 Package: audiowrt-storage
 Depends: +audiowrt-core +block-mount +kmod-usb-storage +kmod-fs-ext4 +e2fsprogs
 Package: audiowrt-storage-luci
@@ -86,6 +95,9 @@ python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
 grep -q '^audiowrt-audio|' "$tmp/core"
 grep -q '^audiowrt-core|' "$tmp/core"
 grep -q '^audiowrt-provisioning|' "$tmp/core"
+grep -q '^audiowrt-hostapd|' "$tmp/core"
+grep -q '^audiowrt-udhcpd|' "$tmp/core"
+grep -q '^audiowrt-busybox|' "$tmp/core"
 grep -q '^audiowrt-wifi-client|' "$tmp/core"
 grep -q '^luci-app-audiowrt-wifi-client|' "$tmp/core"
 grep -q '^audiowrt-extensions|' "$tmp/core"
