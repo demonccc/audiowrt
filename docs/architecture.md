@@ -53,7 +53,6 @@ AudioWRT derived APK for the selected release + architecture
 This is the rule for **all** actual source-derived packages, including the constrained Bluetooth stack. The current source-derived set includes:
 
 - `audiowrt-busybox` -> OpenWrt `busybox`;
-- `audiowrt-minimal-mbedtls` -> OpenWrt `mbedtls`;
 - `audiowrt-dropbear` -> OpenWrt `dropbear`;
 - `audiowrt-wpad` -> OpenWrt `hostapd` source, linked as one multicall binary exposing both `hostapd` and `wpa_supplicant`;
 - `audiowrt-umdns` -> OpenWrt `umdns` when that package is explicitly selected as a custom source build;
@@ -184,7 +183,7 @@ This is what makes the package model portable across 24.10, 25.12, snapshots and
 
 `config/build/package-build-targets` maps AudioWRT binary packages to SDK make targets. `config/build/source-build-packages` is a strict opt-in list containing only packages that genuinely compile/link a different binary.
 
-Package-only wrappers remain behind `NO_DEPS=1`, so unchanged runtime dependencies such as LuCI, uhttpd, umdns, `mpd-mini` and `upmpdcli` remain official binaries. `audiowrt-wpad` is a special constrained source-derived package: it compiles upstream hostap code behind the same `NO_DEPS=1` boundary while the builder stages only the exact-release development interfaces it needs.
+Package-only wrappers remain behind `NO_DEPS=1`, so unchanged runtime dependencies such as LuCI, uhttpd, umdns, `mpd-mini` and `upmpdcli` remain official binaries. TLS is also kept fully official: both minimal and standard images use OpenWrt's `libmbedtls21`; AudioWRT does not ship a replacement mbedTLS runtime. `audiowrt-wpad` is a special constrained source-derived package: it compiles upstream hostap code behind the same `NO_DEPS=1` boundary while the builder stages only the exact-release development interfaces it needs.
 
 A package may enter `source-build-packages` only if AudioWRT has a real compiled-source delta. Adding it means explicitly accepting compilation of the build/link dependency closure required to produce that binary. A wrapper, selector or runtime-profile package must never be added simply because it references an upstream project.
 
