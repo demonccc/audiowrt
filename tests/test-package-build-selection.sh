@@ -20,6 +20,8 @@ kmod-audiowrt-sound-core|package/feeds/audiowrt/packages/audiowrt-kmod-sound-cor
 kmod-audiowrt-usb-audio|package/feeds/audiowrt/packages/audiowrt-kmod-usb-audio/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
+audiowrt-player-core|package/feeds/audiowrt/audiowrt-player-core/compile
+audiowrt-player-flac|package/feeds/audiowrt/audiowrt-player-flac/compile
 audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
 audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 luci-app-audiowrt-wifi-client|package/feeds/audiowrt/luci-app-audiowrt-wifi-client/compile
@@ -64,6 +66,10 @@ Depends: +bluez-libs +glib2 +dbus +alsa-lib
 Package: audiowrt-minimal-alsa
 Depends: +kmod-sound-core
 Provides: alsa-lib
+Package: audiowrt-player-core
+Depends: +alsa-lib +libuclient +libustream-mbedtls
+Package: audiowrt-player-flac
+Depends: +audiowrt-player-core +libflac +libpthread
 Package: audiowrt-btctl
 Depends: +glib2
 Package: bluez-alsa
@@ -95,6 +101,18 @@ grep -q '^audiowrt-extensions|' "$tmp/core"
 if grep -Eq '^(audiowrt-storage|audiowrt-storage-luci|audiowrt-spotify|librespot|audiowrt-bluetooth|bluez-alsa|audiowrt-bluez|audiowrt-btctl)\|' "$tmp/core"; then
     echo "ERROR: non-Bluetooth core roots selected unrelated AudioWRT packages." >&2
     cat "$tmp/core" >&2
+    exit 1
+fi
+
+# A standalone package request must include its AudioWRT-owned build dependency
+# closure without selecting unrelated packages.
+python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
+    audiowrt-player-flac > "$tmp/flac"
+grep -q '^audiowrt-player-core|' "$tmp/flac"
+grep -q '^audiowrt-player-flac|' "$tmp/flac"
+if grep -Eq '^(audiowrt-core|audiowrt-bluetooth|audiowrt-spotify|librespot)\|' "$tmp/flac"; then
+    echo "ERROR: standalone FLAC package build selected unrelated AudioWRT packages." >&2
+    cat "$tmp/flac" >&2
     exit 1
 fi
 
