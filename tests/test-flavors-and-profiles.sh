@@ -63,7 +63,7 @@ for package in \
     audiowrt-minimal-alsa \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
-    audiowrt-wpa-supplicant \
+    audiowrt-wpad \
     audiowrt-player-core \
     audiowrt-player-flac; do
     grep -q "^  - $package$" "$groups/minimal.yaml"
@@ -108,7 +108,7 @@ for package in \
     audiowrt-minimal-alsa \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
-    audiowrt-wpa-supplicant \
+    audiowrt-wpad \
     audiowrt-minimal-upmpdcli \
     mpd-mini \
     mpd-full \
@@ -151,7 +151,7 @@ added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
     "audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-dropbear",
-    "audiowrt-wpa-supplicant", "audiowrt-renderer", "audiowrt-player-core",
+    "audiowrt-wpad", "audiowrt-renderer", "audiowrt-player-core",
     "audiowrt-player-flac", "luci-app-audiowrt-renderer",
     "kmod-audiowrt-bluetooth"
 } <= added
@@ -174,7 +174,7 @@ added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
     "audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-dropbear",
-    "audiowrt-wpa-supplicant", "audiowrt-renderer", "audiowrt-player-core",
+    "audiowrt-wpad", "audiowrt-renderer", "audiowrt-player-core",
     "audiowrt-player-flac", "luci-app-audiowrt-renderer",
     "audiowrt-usb-audio", "kmod-usb-audio"
 } <= added
