@@ -14,9 +14,9 @@ Runtime mapping:
 | Function | Minimal | Standard |
 | --- | --- | --- |
 | ALSA | `audiowrt-minimal-alsa` | `alsa-lib` |
-| TLS | `audiowrt-minimal-mbedtls` | `libmbedtls21` |
-| SSH server | `audiowrt-dropbear` | `dropbear` |
-| Wi-Fi station | `audiowrt-wpa-supplicant` | `wpad-basic-mbedtls` |
+| TLS | `libmbedtls21` | `libmbedtls21` |
+| SSH server | `dropbear` | `dropbear` |
+| Wi-Fi station | `audiowrt-wpad` | `wpad-basic-mbedtls` |
 | Renderer + discovery | `audiowrt-renderer` | `audiowrt-renderer` |
 | Native codec players | FLAC + MP3 | FLAC + MP3 + AAC + WAV |
 | Renderer configuration | `luci-app-audiowrt-renderer` | `luci-app-audiowrt-renderer` |

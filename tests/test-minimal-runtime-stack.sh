@@ -22,9 +22,9 @@ added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
     "audiowrt-minimal-alsa",
-    "audiowrt-minimal-mbedtls",
-    "audiowrt-dropbear",
-    "audiowrt-wpa-supplicant",
+    "libmbedtls21",
+    "dropbear",
+    "audiowrt-wpad",
     "audiowrt-renderer",
     "audiowrt-player-core",
     "audiowrt-player-flac",
@@ -33,8 +33,6 @@ assert {
 } <= added
 assert {
     "alsa-lib",
-    "libmbedtls21",
-    "dropbear",
     "wpad-basic-mbedtls",
     "mpd-mini",
     "mpd-full",
@@ -82,9 +80,7 @@ assert not ({"mpd-mini", "mpd-full", "upmpdcli", "audiowrt-mpd", "minidlna", "um
 
 for package in \
     audiowrt-minimal-alsa \
-    audiowrt-minimal-mbedtls \
-    audiowrt-dropbear \
-    audiowrt-wpa-supplicant \
+    audiowrt-wpad \
     audiowrt-renderer \
     audiowrt-player-core \
     audiowrt-player-flac \
@@ -102,12 +98,8 @@ grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth
 # not turn into source-build roots.
 for package in \
     audiowrt-minimal-alsa \
-    audiowrt-minimal-mbedtls \
-    audiowrt-dropbear \
-    audiowrt-wpa-supplicant \
+    audiowrt-wpad \
     audiowrt-busybox \
-    audiowrt-sbc \
-    audiowrt-bluez-libs \
     audiowrt-btctl \
     audiowrt-renderer \
     audiowrt-player-core \
@@ -134,12 +126,19 @@ for package in audiowrt-bluez bluez-alsa; do
     }
 done
 
-# WPA compiles upstream hostap source behind NO_DEPS=1. Its build interfaces
-# are staged explicitly so hostapd-common/ubus/ucode never become source roots.
-grep -Fq 'prepare_minimal_wpa_sdk()' "$build_script"
+# AudioWRT's multicall wpad compiles the exact upstream hostap source behind
+# NO_DEPS=1. Its build interfaces are staged once so hostapd-common/ubus/ucode
+# never become recursive source roots.
+grep -Fq 'prepare_hostap_sdk()' "$build_script"
+grep -Fq 'audiowrt-wpad' "$build_script"
 grep -Fq 'package/feeds/base/libnl-tiny/compile' "$build_script"
 grep -Fq 'package/feeds/base/libjson-c/compile' "$build_script"
 grep -Fq 'register_official_sdk_source base libs/libjson-c' "$build_script"
+grep -Fq 'register_official_sdk_source base libs/mbedtls' "$build_script"
+grep -Fq 'package/feeds/base/mbedtls/configure' "$build_script"
+grep -Fq "stage_official_link_stub libmbedtls21 base 'libmbedcrypto.so.*' libmbedcrypto.so" "$build_script"
+grep -Fq "stage_official_link_stub libmbedtls21 base 'libmbedx509.so.*' libmbedx509.so" "$build_script"
+grep -Fq "stage_official_link_stub libmbedtls21 base 'libmbedtls.so.*' libmbedtls.so" "$build_script"
 grep -Fq 'json-c/json.h' "$build_script"
 for package in libubox ubus ucode udebug; do
     grep -Fq "package/feeds/base/$package/prepare" "$build_script"
@@ -160,6 +159,7 @@ done
 grep -Fq 'find "$sdk_dir/bin/targets/$target/$subtarget/packages"' "$build_script"
 grep -Fq -- "-name 'kmod-audiowrt-*.apk'" "$build_script"
 grep -Fq 'SDK build did not produce selected AudioWRT package' "$build_script"
+! grep -q '^audiowrt-minimal-mbedtls|' "$targets"
 
 grep -q 'kmods_sha256sums_url' "$repo_root/scripts/resolve-openwrt-artifacts.py"
 grep -q '"kmods_sha256sums_url": urljoin(base_url, "sha256sums")' "$repo_root/scripts/resolve-openwrt-artifacts.py"

@@ -21,7 +21,9 @@ def main() -> int:
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[1]
-    workflow = root / ".github/workflows/build-audiowrt.yml"
+    workflows = [
+        root / ".github/workflows/build-audiowrt.yml",
+    ]
     spec = importlib.util.spec_from_file_location("profile_catalog", root / "scripts/validate-profile-catalog.py")
     catalog = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(catalog)
@@ -29,30 +31,37 @@ def main() -> int:
     if not profiles:
         raise SystemExit("ERROR: no AudioWRT YAML profiles found")
 
-    text = workflow.read_text(encoding="utf-8")
-    if text.count(BEGIN) != 1 or text.count(END) != 1:
-        raise SystemExit("ERROR: generated profile option markers are missing or duplicated")
-    before, remainder = text.split(BEGIN, 1)
-    _, after = remainder.split(END, 1)
     generated = BEGIN + "\n" + "\n".join(f"          - {profile}" for profile in profiles) + "\n" + END
-    expected = before + generated + after
-    default_pattern = r"(      audiowrt_profile:\n(?:(?!^      [a-z_]+:).)*?        default: )([^\n]+)"
-    match = re.search(default_pattern, expected, re.DOTALL | re.MULTILINE)
-    if not match:
-        raise SystemExit("ERROR: profile dropdown default is missing")
-    if match.group(2) not in profiles:
-        default = PREFERRED_DEFAULT if PREFERRED_DEFAULT in profiles else profiles[0]
-        expected = expected[:match.start(2)] + default + expected[match.end(2):]
+    stale = []
+    for workflow in workflows:
+        text = workflow.read_text(encoding="utf-8")
+        if text.count(BEGIN) != 1 or text.count(END) != 1:
+            raise SystemExit(f"ERROR: generated profile option markers are missing or duplicated in {workflow.name}")
+        before, remainder = text.split(BEGIN, 1)
+        _, after = remainder.split(END, 1)
+        expected = before + generated + after
+        default_pattern = r"(      audiowrt_profile:\n(?:(?!^      [a-z_]+:).)*?        default: )([^\n]+)"
+        match = re.search(default_pattern, expected, re.DOTALL | re.MULTILINE)
+        if not match:
+            raise SystemExit(f"ERROR: profile dropdown default is missing in {workflow.name}")
+        if match.group(2) not in profiles:
+            default = PREFERRED_DEFAULT if PREFERRED_DEFAULT in profiles else profiles[0]
+            expected = expected[:match.start(2)] + default + expected[match.end(2):]
+
+        if text != expected:
+            stale.append(workflow)
+            if not args.check:
+                workflow.write_text(expected, encoding="utf-8")
 
     if args.check:
-        if text != expected:
-            print("ERROR: GitHub Actions profile choices are stale.", file=sys.stderr)
+        if stale:
+            names = ", ".join(path.name for path in stale)
+            print(f"ERROR: GitHub Actions profile choices are stale: {names}.", file=sys.stderr)
             print("Run: python3 scripts/sync-profile-workflow.py", file=sys.stderr)
             return 1
         print(f"GitHub Actions profile choices match {len(profiles)} YAML profiles.")
         return 0
 
-    workflow.write_text(expected, encoding="utf-8")
     print(f"Updated GitHub Actions with {len(profiles)} profile choices.")
     return 0
 

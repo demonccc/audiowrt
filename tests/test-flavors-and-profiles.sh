@@ -61,17 +61,15 @@ done
 # remain absent from the constrained image.
 for package in \
     audiowrt-minimal-alsa \
-    audiowrt-minimal-mbedtls \
-    audiowrt-dropbear \
-    audiowrt-wpa-supplicant \
+    libmbedtls21 \
+    dropbear \
+    audiowrt-wpad \
     audiowrt-player-core \
     audiowrt-player-flac; do
     grep -q "^  - $package$" "$groups/minimal.yaml"
 done
 for package in \
     alsa-lib \
-    libmbedtls21 \
-    dropbear \
     wpad-basic-mbedtls \
     mpd-mini \
     mpd-full \
@@ -106,9 +104,7 @@ for package in \
 done
 for package in \
     audiowrt-minimal-alsa \
-    audiowrt-minimal-mbedtls \
-    audiowrt-dropbear \
-    audiowrt-wpa-supplicant \
+    audiowrt-wpad \
     audiowrt-minimal-upmpdcli \
     mpd-mini \
     mpd-full \
@@ -135,8 +131,9 @@ assert "audiowrt-branding" in data["packages_add"]
 assert "audiowrt-udhcpd" in data["packages_add"]
 assert "audiowrt-renderer" in data["packages_add"]
 assert "luci-app-audiowrt-renderer" in data["packages_add"]
-for package in ("dnsmasq", "ppp", "ppp-mod-pppoe", "luci-proto-ppp", "luci-app-firewall", "luci-mod-network", "minidlna", "umdns", "audiowrt-umdns"):
-    assert package in data["packages_remove"]
+required_removed = ("dnsmasq", "ppp", "ppp-mod-pppoe", "luci-proto-ppp", "luci-app-firewall", "luci-mod-network", "minidlna", "umdns", "audiowrt-umdns")
+missing_removed = [package for package in required_removed if package not in data["packages_remove"]]
+assert not missing_removed, f"{data['id']}: missing common removals: {missing_removed}"
 ' "$profile" <<< "$resolved"
 done
 
@@ -150,13 +147,13 @@ assert data["squashfs_block_size"] == "1024"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
-    "audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-dropbear",
-    "audiowrt-wpa-supplicant", "audiowrt-renderer", "audiowrt-player-core",
+    "audiowrt-minimal-alsa", "libmbedtls21", "dropbear",
+    "audiowrt-wpad", "audiowrt-renderer", "audiowrt-player-core",
     "audiowrt-player-flac", "luci-app-audiowrt-renderer",
     "kmod-audiowrt-bluetooth"
 } <= added
 assert {
-    "alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "mpd-mini",
+    "alsa-lib", "wpad-basic-mbedtls", "mpd-mini",
     "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli", "audiowrt-mpd",
     "minidlna", "umdns", "audiowrt-umdns", "dnsmasq", "kmod-bluetooth",
     "kmod-usb-audio", "audiowrt-player-mp3", "libmpg123", "libltdl"
@@ -173,21 +170,21 @@ assert data["openwrt_profile"] == "tplink_tl-wdr4300-v1"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
-    "audiowrt-minimal-alsa", "audiowrt-minimal-mbedtls", "audiowrt-dropbear",
-    "audiowrt-wpa-supplicant", "audiowrt-renderer", "audiowrt-player-core",
+    "audiowrt-minimal-alsa", "libmbedtls21", "dropbear",
+    "audiowrt-wpad", "audiowrt-renderer", "audiowrt-player-core",
     "audiowrt-player-flac", "luci-app-audiowrt-renderer",
     "audiowrt-usb-audio", "kmod-usb-audio"
 } <= added
 assert {
-    "alsa-lib", "libmbedtls21", "dropbear", "wpad-basic-mbedtls", "mpd-mini",
+    "alsa-lib", "wpad-basic-mbedtls", "mpd-mini",
     "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli", "audiowrt-mpd",
     "minidlna", "umdns", "audiowrt-umdns", "dnsmasq", "kmod-bluetooth",
     "kmod-audiowrt-bluetooth", "audiowrt-player-mp3", "libmpg123", "libltdl"
 } <= removed
 assert not ({
     "audiowrt-player-mp3", "audiowrt-player-aac", "audiowrt-player-wav", "mpd-mini", "upmpdcli", "umdns",
-    "audiowrt-bluetooth", "audiowrt-bluez", "audiowrt-bluez-libs",
-    "audiowrt-btctl", "audiowrt-sbc", "bluez-alsa",
+    "audiowrt-bluetooth", "audiowrt-bluez", "bluez-libs",
+    "audiowrt-btctl", "sbc", "bluez-alsa",
     "kmod-sound-midi2", "kmod-sound-midi2-usb"
 } & added)
 ' <<< "$wdr_audio"

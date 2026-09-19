@@ -12,12 +12,23 @@ jobs="${JOBS:-}"
 verbosity="${VERBOSITY:-normal}"
 builder_image="demonccc/openwrt-builder:latest"
 cache_dir="${CACHE_DIR:-}"
+build_mode="${AUDIOWRT_BUILD_MODE:-firmware}"
+package_request="${AUDIOWRT_PACKAGE:-all}"
 
 [[ "${AUDIOWRT_IN_CONTAINER:-0}" == "1" ]] || {
     echo "ERROR: scripts/build.sh is an internal container entry point." >&2
-    echo "Run 'make build AUDIOWRT_PROFILE=<profile>' so AudioWRT uses the published openwrt-builder Docker image." >&2
+    echo "Run 'make build ...' or 'make packages ...' so AudioWRT uses the published openwrt-builder Docker image." >&2
     exit 2
 }
+
+case "$build_mode" in
+    firmware|packages) ;;
+    *) echo "ERROR: AUDIOWRT_BUILD_MODE must be firmware or packages." >&2; exit 2 ;;
+esac
+if [[ "$build_mode" == "packages" && -z "$package_request" ]]; then
+    echo "ERROR: AUDIOWRT_PACKAGE must be all or an AudioWRT package name." >&2
+    exit 2
+fi
 
 [[ -n "$jobs" ]] || jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)"
 [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { echo "ERROR: JOBS must be a positive integer." >&2; exit 2; }
@@ -155,7 +166,13 @@ extract_archive() {
     printf '%s\n' "${roots[0]}"
 }
 
-work_dir="$repo_root/.work/$audiowrt_profile"
+if [[ "$build_mode" == "packages" ]]; then
+    work_dir="$repo_root/.work/packages/$audiowrt_profile"
+    output_dir="$repo_root/output/packages/$audiowrt_profile"
+else
+    work_dir="$repo_root/.work/$audiowrt_profile"
+    output_dir="$repo_root/output/$audiowrt_profile"
+fi
 source_dir="$work_dir/openwrt-source"
 resolved_profile="$work_dir/audiowrt-profile.json"
 packages_add_file="$work_dir/resolved-packages.add"
@@ -168,7 +185,6 @@ registered_sources="$work_dir/sdk-audiowrt-sources.txt"
 source_dependencies_file="$work_dir/source-build-dependencies.txt"
 official_feeds_buildinfo="$work_dir/official-feeds.buildinfo"
 official_version_buildinfo="$work_dir/official-version.buildinfo"
-output_dir="$repo_root/output/$audiowrt_profile"
 
 rm -rf "$work_dir" "$output_dir"
 mkdir -p "$work_dir" "$output_dir"
@@ -206,6 +222,7 @@ for key, destination in (("packages_add", sys.argv[2]), ("packages_remove", sys.
 PY
 
 printf 'AudioWRT build\n'
+printf '  Build mode: %s\n' "$build_mode"
 printf '  Profile: %s\n' "$audiowrt_profile"
 printf '  Package groups: %s\n' "$profile_package_groups"
 printf '  OpenWrt profile: %s (%s/%s)\n' "$platform" "$expected_target" "$expected_subtarget"
@@ -215,6 +232,9 @@ printf '  Builder image: %s (fixed)\n' "$builder_image"
 printf '  Jobs: %s\n' "$jobs"
 printf '  Verbosity: %s\n' "$verbosity"
 printf '  Download cache: %s\n' "${cache_dir:-disabled}"
+if [[ "$build_mode" == "packages" ]]; then
+    printf '  Package selection: %s\n' "$package_request"
+fi
 
 # A release profile uses its exact tag. A snapshot profile deliberately uses
 # the moving main branch and is recorded as such in the build provenance.
@@ -238,6 +258,13 @@ make_run "$source_dir" -s prepare-tmpinfo
 python3 "$repo_root/scripts/resolve-platform.py" "$source_dir/tmp/.targetinfo" "$platform" > "$platform_metadata"
 
 mapfile -t firmware_packages < <(read_package_file "$packages_add_file")
+if [[ "$build_mode" == "packages" && "$package_request" != "all" ]]; then
+    if ! awk -F '|' -v package="$package_request" '$0 !~ /^[[:space:]]*#/ && $1 == package { found=1 } END { exit found ? 0 : 1 }'         "$repo_root/config/build/package-build-targets"; then
+        echo "ERROR: unknown AudioWRT package: $package_request" >&2
+        exit 2
+    fi
+    firmware_packages=("$package_request")
+fi
 
 target="$(json_field "$platform_metadata" target)"
 subtarget="$(json_field "$platform_metadata" subtarget)"
@@ -568,9 +595,9 @@ prepare_native_player_sdk() {
     fi
 }
 
-prepare_minimal_wpa_sdk() {
+prepare_hostap_sdk() {
     local -a target_staging_matches=()
-    local target_staging libubox_src ubus_src ucode_src udebug_src
+    local target_staging libubox_src ubus_src ucode_src udebug_src mbedtls_src
 
     mapfile -t target_staging_matches < <(
         find "$sdk_dir/staging_dir" -mindepth 1 -maxdepth 1 -type d -name 'target-*' -print
@@ -581,8 +608,9 @@ prepare_minimal_wpa_sdk() {
     }
     target_staging="${target_staging_matches[0]}"
 
-    # wpa_supplicant needs these development interfaces, but the firmware must
-    # keep the exact official OpenWrt runtime packages. Compile only libnl-tiny
+    # AudioWRT's multicall wpad needs these development interfaces, but the
+    # firmware must keep
+    # the exact official OpenWrt runtime packages. Compile only libnl-tiny
     # and libjson-c with NO_DEPS=1: libjson-c supplies the public headers pulled
     # in by libucode's headers, while the final image still resolves the official
     # libjson-c runtime transitively through libucode. Prepare the remaining
@@ -591,6 +619,7 @@ prepare_minimal_wpa_sdk() {
     make_run "$sdk_dir" \
         package/feeds/base/libnl-tiny/compile \
         package/feeds/base/libjson-c/compile \
+        package/feeds/base/mbedtls/configure \
         package/feeds/base/libubox/prepare \
         package/feeds/base/ubus/prepare \
         package/feeds/base/ucode/prepare \
@@ -601,10 +630,13 @@ prepare_minimal_wpa_sdk() {
     ubus_src="$(prepared_source_dir ubus)"
     ucode_src="$(prepared_source_dir ucode)"
     udebug_src="$(prepared_source_dir udebug)"
+    mbedtls_src="$(prepared_source_dir mbedtls)"
 
     mkdir -p \
         "$target_staging/usr/include/libubox" \
         "$target_staging/usr/include/ucode" \
+        "$target_staging/usr/include/mbedtls" \
+        "$target_staging/usr/include/psa" \
         "$target_staging/usr/include"
 
     find "$libubox_src" -maxdepth 1 -type f -name '*.h' \
@@ -614,6 +646,8 @@ prepare_minimal_wpa_sdk() {
     cp -f "$ucode_src"/include/ucode/*.h "$target_staging/usr/include/ucode/"
     find "$udebug_src" -maxdepth 1 -type f -name '*.h' \
         -exec cp -f {} "$target_staging/usr/include/" \;
+    cp -f "$mbedtls_src"/include/mbedtls/*.h "$target_staging/usr/include/mbedtls/"
+    cp -f "$mbedtls_src"/include/psa/*.h "$target_staging/usr/include/psa/"
 
     for header in \
         libubox/uloop.h \
@@ -621,7 +655,10 @@ prepare_minimal_wpa_sdk() {
         libubus.h \
         json-c/json.h \
         ucode/lib.h \
-        udebug.h; do
+        udebug.h \
+        mbedtls/ssl.h \
+        mbedtls/mbedtls_config.h \
+        psa/crypto.h; do
         [[ -f "$target_staging/usr/include/$header" ]] || {
             echo "ERROR: WPA SDK header was not staged: $header" >&2
             exit 5
@@ -637,6 +674,12 @@ prepare_minimal_wpa_sdk() {
     stage_official_link_stub libucode base 'libucode.so.*' libucode.so \
         "$target_staging" --all-dynamic-symbols
     stage_official_link_stub libudebug base 'libudebug.so*' libudebug.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libmbedtls21 base 'libmbedcrypto.so.*' libmbedcrypto.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libmbedtls21 base 'libmbedx509.so.*' libmbedx509.so \
+        "$target_staging" --all-dynamic-symbols
+    stage_official_link_stub libmbedtls21 base 'libmbedtls.so.*' libmbedtls.so \
         "$target_staging" --all-dynamic-symbols
 }
 
@@ -672,15 +715,22 @@ printf '\n# AudioWRT reusable packages\nsrc-git audiowrt %s\n' "$feed_source" >>
 audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
 
 native_player_sdk=0
-minimal_wpa_sdk=0
-if [[ " ${firmware_packages[*]} " == *" audiowrt-player-core "* ]]; then
+hostap_sdk=0
+if [[ " ${firmware_packages[*]} " == *" audiowrt-player-core "* ||
+      " ${firmware_packages[*]} " == *" audiowrt-player-flac "* ||
+      " ${firmware_packages[*]} " == *" audiowrt-player-mp3 "* ||
+      " ${firmware_packages[*]} " == *" audiowrt-player-aac "* ||
+      " ${firmware_packages[*]} " == *" audiowrt-player-wav "* ]]; then
     native_player_sdk=1
 fi
-if [[ " ${firmware_packages[*]} " == *" audiowrt-wpa-supplicant "* ]]; then
-    minimal_wpa_sdk=1
+# The constrained AudioWRT Wi-Fi provider is one multicall wpad binary built
+# from the exact OpenWrt hostap source. Stage its development interfaces once
+# without turning OpenWrt runtime dependencies into source-build roots.
+if [[ " ${firmware_packages[*]} " == *" audiowrt-wpad "* ]]; then
+    hostap_sdk=1
 fi
 
-if (( native_player_sdk || minimal_wpa_sdk )); then
+if (( native_player_sdk || hostap_sdk )); then
     (
         cd "$sdk_dir"
         ./scripts/feeds update base
@@ -703,9 +753,10 @@ if (( native_player_sdk )); then
     fi
 fi
 
-if (( minimal_wpa_sdk )); then
+if (( hostap_sdk )); then
     register_official_sdk_source base libs/libnl-tiny
     register_official_sdk_source base libs/libjson-c
+    register_official_sdk_source base libs/mbedtls
     register_official_sdk_source base libs/libubox
     register_official_sdk_source base system/ubus
     register_official_sdk_source base utils/ucode
@@ -875,8 +926,8 @@ make_run "$sdk_dir" package/toolchain/compile NO_DEPS=1 -j"$jobs"
 if (( native_player_sdk )); then
     prepare_native_player_sdk
 fi
-if (( minimal_wpa_sdk )); then
-    prepare_minimal_wpa_sdk
+if (( hostap_sdk )); then
+    prepare_hostap_sdk
 fi
 
 # Download every selected AudioWRT target without traversing dependencies. Source
@@ -940,6 +991,94 @@ for package in "${build_packages[@]}"; do
         exit 6
     fi
 done
+
+if [[ "$build_mode" == "packages" ]]; then
+    mkdir -p "$output_dir/packages"
+    cp -f "$local_apks_dir"/*.apk "$output_dir/packages/"
+    cp "$platform_metadata" "$output_dir/platform.json"
+    cp "$resolved_profile" "$output_dir/audiowrt-profile.json"
+    cp "$artifacts_metadata" "$output_dir/openwrt-artifacts.json"
+    cp "$sdk_dir/feeds.conf" "$output_dir/sdk-feeds.conf"
+    cp "$official_feeds_buildinfo" "$output_dir/official-feeds.buildinfo"
+    cp "$official_version_buildinfo" "$output_dir/official-version.buildinfo"
+    cp "$registered_sources" "$output_dir/sdk-audiowrt-sources.txt"
+    cp "$source_dependencies_file" "$output_dir/source-build-dependencies.txt"
+    cp "$repo_root/config/build/package-build-targets" "$output_dir/package-build-targets"
+    cp "$repo_root/config/build/source-build-packages" "$output_dir/source-build-packages"
+    cp "$build_plan" "$output_dir/package-build-plan.txt"
+    [[ -f "$sdk_dir/.config" ]] && cp "$sdk_dir/.config" "$output_dir/sdk.config"
+
+    audiowrt_commit="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || printf unknown)"
+    cache_enabled='no'
+    [[ -n "$cache_dir" ]] && cache_enabled='yes'
+    cat > "$output_dir/BUILD_INFO" <<EOF
+BUILD_MODE=exact-release-sdk-packages
+BUILDER_IMAGE=$builder_image
+PLATFORM=$platform
+AUDIOWRT_PROFILE=$audiowrt_profile
+AUDIOWRT_PACKAGE_SELECTION=$package_request
+AUDIOWRT_PACKAGE_GROUPS=$profile_package_groups
+TARGET=$target
+SUBTARGET=$subtarget
+OPENWRT_RESOLVED_REF=$resolved_release
+OPENWRT_SOURCE=$openwrt_source
+OPENWRT_VERSION=$openwrt_version
+OPENWRT_COMMIT=$openwrt_commit
+SDK_URL=$sdk_url
+SDK_FEEDS_CONFIG=official-sdk-default+audiowrt
+SDK_PACKAGE_ONLY_MODE=NO_DEPS
+AUDIOWRT_COMMIT=$audiowrt_commit
+AUDIOWRT_PACKAGES_REPOSITORY=$packages_repo
+AUDIOWRT_PACKAGES_REF=$packages_ref
+AUDIOWRT_PACKAGES_COMMIT=$audiowrt_packages_commit
+AUDIOWRT_BUILD_PACKAGES=${build_packages[*]}
+AUDIOWRT_PACKAGE_ONLY_PACKAGES=${package_only_packages[*]}
+AUDIOWRT_SOURCE_PACKAGES=${source_packages[*]}
+SOURCE_BUILD_DEPENDENCIES=${source_dependencies[*]}
+LOCAL_APKS=$local_apk_count
+VERBOSITY=$verbosity
+CACHE_ENABLED=$cache_enabled
+EOF
+
+    python3 - "$platform_metadata" "$artifacts_metadata" "$resolved_profile" "$output_dir/manifest.json" <<PY
+import json, sys
+platform_data = json.load(open(sys.argv[1], encoding="utf-8"))
+artifacts = json.load(open(sys.argv[2], encoding="utf-8"))
+profile_data = json.load(open(sys.argv[3], encoding="utf-8"))
+manifest = {
+    "build_mode": "exact-release-sdk-packages",
+    "builder_image": "$builder_image",
+    "audiowrt_commit": "$audiowrt_commit",
+    "audiowrt_packages_repository": "$packages_repo",
+    "audiowrt_packages_ref": "$packages_ref",
+    "audiowrt_packages_commit": "$audiowrt_packages_commit",
+    "audiowrt_profile": "$audiowrt_profile",
+    "package_selection": "$package_request",
+    "package_groups": profile_data["package_groups"],
+    "resolved_profile": profile_data,
+    "openwrt_repository": "$openwrt_repo",
+    "openwrt_source": "$openwrt_source",
+    "openwrt_version": "$openwrt_version",
+    "openwrt_resolved_ref": "$resolved_release",
+    "openwrt_commit": "$openwrt_commit",
+    "openwrt_artifacts": artifacts,
+    "platform": platform_data,
+    "audiowrt_build_packages": "${build_packages[*]}".split(),
+    "audiowrt_package_only_packages": "${package_only_packages[*]}".split(),
+    "audiowrt_source_packages": "${source_packages[*]}".split(),
+    "source_build_dependencies": "${source_dependencies[*]}".split(),
+    "local_apk_count": int("$local_apk_count"),
+    "cache_enabled": "$cache_enabled" == "yes",
+}
+with open(sys.argv[4], "w", encoding="utf-8") as handle:
+    json.dump(manifest, handle, indent=2, sort_keys=True)
+    handle.write("\n")
+PY
+
+    printf '\nAudioWRT package build complete.\nArtifacts: %s\n' "$output_dir"
+    find "$output_dir/packages" -maxdepth 1 -type f -name '*.apk' -printf '  %f\n' | sort
+    exit 0
+fi
 
 # Assemble the final firmware from the official ImageBuilder for the same exact
 # release. OpenWrt runtime dependencies are resolved from the official release
