@@ -13,10 +13,10 @@
 #   recursive source-build roots.
 #
 # Bluetooth ownership:
-# - audiowrt-bluez builds both audiowrt-bluez and audiowrt-bluez-libs.
+# - audiowrt-bluez builds only the constrained bluetoothd daemon; runtime
+#   libbluetooth comes from the official OpenWrt bluez-libs package.
 # - audiowrt-btctl is AudioWRT-owned C code and is package-only.
-# - audiowrt-sbc is derived upstream source but has no external build dependency
-#   and remains package-only.
+# - bluez-alsa uses the official OpenWrt sbc and bluez-libs packages.
 # - bluez-alsa and audiowrt-bluez are the only Bluetooth upstream source roots.
 
 librespot
