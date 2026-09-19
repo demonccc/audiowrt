@@ -105,7 +105,6 @@ for package in \
     audiowrt-minimal-mbedtls \
     audiowrt-dropbear \
     audiowrt-wpad \
-    audiowrt-wpad \
     audiowrt-busybox \
     audiowrt-sbc \
     audiowrt-bluez-libs \
