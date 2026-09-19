@@ -169,7 +169,7 @@ assert data["openwrt_profile"] == "tplink_tl-wdr4300-v1"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
-    "audiowrt-minimal-alsa", "libmbedtls21", "audiowrt-dropbear",
+    "audiowrt-minimal-alsa", "libmbedtls21", "dropbear",
     "audiowrt-wpad", "audiowrt-renderer", "audiowrt-player-core",
     "audiowrt-player-flac", "luci-app-audiowrt-renderer",
     "audiowrt-usb-audio", "kmod-usb-audio"
@@ -182,8 +182,8 @@ assert {
 } <= removed
 assert not ({
     "audiowrt-player-mp3", "audiowrt-player-aac", "audiowrt-player-wav", "mpd-mini", "upmpdcli", "umdns",
-    "audiowrt-bluetooth", "audiowrt-bluez", "audiowrt-bluez-libs",
-    "audiowrt-btctl", "audiowrt-sbc", "bluez-alsa",
+    "audiowrt-bluetooth", "audiowrt-bluez", "bluez-libs",
+    "audiowrt-btctl", "sbc", "bluez-alsa",
     "kmod-sound-midi2", "kmod-sound-midi2-usb"
 } & added)
 ' <<< "$wdr_audio"
