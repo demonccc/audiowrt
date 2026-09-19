@@ -8,10 +8,10 @@ packages_add:
 packages_remove:
   - audiowrt-bluetooth
   - audiowrt-bluez
-  - audiowrt-bluez-libs
+  - bluez-libs
   - audiowrt-btctl
   - bluez-alsa
-  - audiowrt-sbc
+  - sbc
   - kmod-audiowrt-bluetooth
   - kmod-bluetooth
   - kmod-btusb
