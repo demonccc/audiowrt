@@ -62,7 +62,7 @@ done
 for package in \
     audiowrt-minimal-alsa \
     libmbedtls21 \
-    audiowrt-dropbear \
+    dropbear \
     audiowrt-wpad \
     audiowrt-player-core \
     audiowrt-player-flac; do
@@ -70,7 +70,6 @@ for package in \
 done
 for package in \
     alsa-lib \
-    dropbear \
     wpad-basic-mbedtls \
     mpd-mini \
     mpd-full \
@@ -105,7 +104,6 @@ for package in \
 done
 for package in \
     audiowrt-minimal-alsa \
-    audiowrt-dropbear \
     audiowrt-wpad \
     audiowrt-minimal-upmpdcli \
     mpd-mini \
@@ -148,13 +146,13 @@ assert data["squashfs_block_size"] == "1024"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
-    "audiowrt-minimal-alsa", "libmbedtls21", "audiowrt-dropbear",
+    "audiowrt-minimal-alsa", "libmbedtls21", "dropbear",
     "audiowrt-wpad", "audiowrt-renderer", "audiowrt-player-core",
     "audiowrt-player-flac", "luci-app-audiowrt-renderer",
     "kmod-audiowrt-bluetooth"
 } <= added
 assert {
-    "alsa-lib", "dropbear", "wpad-basic-mbedtls", "mpd-mini",
+    "alsa-lib", "wpad-basic-mbedtls", "mpd-mini",
     "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli", "audiowrt-mpd",
     "minidlna", "umdns", "audiowrt-umdns", "dnsmasq", "kmod-bluetooth",
     "kmod-usb-audio", "audiowrt-player-mp3", "libmpg123", "libltdl"
