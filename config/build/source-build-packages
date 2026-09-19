@@ -6,10 +6,11 @@
 # dependencies must never turn into source-build roots.
 #
 # Wi-Fi ownership:
-# - audiowrt-wpa-supplicant compiles the exact OpenWrt hostap source, but stays
-#   on the NO_DEPS=1 boundary. scripts/build.sh stages only its required
-#   development interfaces from exact-release sources/APKs so runtime
-#   hostapd/ubus/ucode packages never become recursive source-build roots.
+# - audiowrt-wpad compiles one multicall hostapd+wpa_supplicant binary from the
+#   exact OpenWrt hostap source, but stays on the NO_DEPS=1 boundary.
+#   scripts/build.sh stages only its required development interfaces from
+#   exact-release sources/APKs so hostapd-common/ubus/ucode never become
+#   recursive source-build roots.
 #
 # Bluetooth ownership:
 # - audiowrt-bluez builds both audiowrt-bluez and audiowrt-bluez-libs.
