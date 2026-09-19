@@ -581,8 +581,8 @@ prepare_hostap_sdk() {
     }
     target_staging="${target_staging_matches[0]}"
 
-    # AudioWRT's hostap-derived binaries (wpa_supplicant and provisioning
-    # hostapd) need these development interfaces, but the firmware must keep
+    # AudioWRT's multicall wpad needs these development interfaces, but the
+    # firmware must keep
     # the exact official OpenWrt runtime packages. Compile only libnl-tiny
     # and libjson-c with NO_DEPS=1: libjson-c supplies the public headers pulled
     # in by libucode's headers, while the final image still resolves the official
@@ -677,12 +677,10 @@ hostap_sdk=0
 if [[ " ${firmware_packages[*]} " == *" audiowrt-player-core "* ]]; then
     native_player_sdk=1
 fi
-# Provisioning depends on audiowrt-hostapd, while minimal images also select
-# audiowrt-wpa-supplicant directly. Both are compiled from the same exact
-# OpenWrt hostap source and share the same SDK-only development staging.
-if [[ " ${firmware_packages[*]} " == *" audiowrt-wpa-supplicant "* ]] ||
-   [[ " ${firmware_packages[*]} " == *" audiowrt-hostapd "* ]] ||
-   [[ " ${firmware_packages[*]} " == *" audiowrt-provisioning "* ]]; then
+# The constrained AudioWRT Wi-Fi provider is one multicall wpad binary built
+# from the exact OpenWrt hostap source. Stage its development interfaces once
+# without turning OpenWrt runtime dependencies into source-build roots.
+if [[ " ${firmware_packages[*]} " == *" audiowrt-wpad "* ]]; then
     hostap_sdk=1
 fi
 
