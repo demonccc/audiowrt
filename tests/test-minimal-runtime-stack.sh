@@ -33,7 +33,6 @@ assert {
 } <= added
 assert {
     "alsa-lib",
-    "dropbear",
     "wpad-basic-mbedtls",
     "mpd-mini",
     "mpd-full",
@@ -81,7 +80,6 @@ assert not ({"mpd-mini", "mpd-full", "upmpdcli", "audiowrt-mpd", "minidlna", "um
 
 for package in \
     audiowrt-minimal-alsa \
-    dropbear \
     audiowrt-wpad \
     audiowrt-renderer \
     audiowrt-player-core \
@@ -100,7 +98,6 @@ grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth
 # not turn into source-build roots.
 for package in \
     audiowrt-minimal-alsa \
-    audiowrt-dropbear \
     audiowrt-wpad \
     audiowrt-busybox \
     audiowrt-btctl \
