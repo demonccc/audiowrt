@@ -4,13 +4,13 @@ packages_add:
   - libmbedtls21
   - dropbear
   - wpad-basic-mbedtls
-  - audiowrt-player-core
+  - libaudiowrt-player
   - audiowrt-player-flac
   - audiowrt-player-mp3
   - audiowrt-player-aac
   - audiowrt-player-wav
 packages_remove:
-  - audiowrt-minimal-alsa
+  - libaudiowrt-alsa-minimal
   - audiowrt-wpad
   - mpd-mini
   - mpd-full
