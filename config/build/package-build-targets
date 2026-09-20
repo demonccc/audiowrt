@@ -31,6 +31,7 @@ audiowrt-player-flac|package/feeds/audiowrt/audiowrt-player-flac/compile
 audiowrt-player-mp3|package/feeds/audiowrt/audiowrt-player-mp3/compile
 audiowrt-player-aac|package/feeds/audiowrt/audiowrt-player-aac/compile
 audiowrt-player-wav|package/feeds/audiowrt/audiowrt-player-wav/compile
+audiowrt-player-vorbis|package/feeds/audiowrt/audiowrt-player-vorbis/compile
 luci-app-audiowrt-renderer|package/feeds/audiowrt/luci-app-audiowrt-dlna/compile
 audiowrt-airplay|package/feeds/audiowrt/audiowrt-airplay/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
