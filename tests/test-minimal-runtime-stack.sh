@@ -81,6 +81,7 @@ assert not ({"mpd-mini", "mpd-full", "upmpdcli", "audiowrt-mpd", "minidlna", "um
 for package in \
     libaudiowrt-alsa-minimal \
     audiowrt-wpad \
+    audiowrt-sbc \
     audiowrt-renderer \
     libaudiowrt-player \
     audiowrt-player-flac \
@@ -101,6 +102,7 @@ for package in \
     audiowrt-wpad \
     audiowrt-busybox \
     audiowrt-btctl \
+    audiowrt-sbc \
     audiowrt-renderer \
     libaudiowrt-player \
     audiowrt-player-flac \

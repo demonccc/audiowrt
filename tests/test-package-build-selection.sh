@@ -27,6 +27,7 @@ audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 luci-app-audiowrt-wifi-client|package/feeds/audiowrt/luci-app-audiowrt-wifi-client/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
 librespot|package/feeds/audiowrt/librespot/compile
+audiowrt-sbc|package/feeds/audiowrt/audiowrt-sbc/compile
 audiowrt-bluez|package/feeds/audiowrt/audiowrt-bluez/compile
 audiowrt-btctl|package/feeds/audiowrt/audiowrt-btctl/compile
 bluez-alsa|package/feeds/audiowrt/bluez-alsa/compile
@@ -61,6 +62,8 @@ Package: audiowrt-spotify
 Depends: +audiowrt-extensions +librespot
 Package: librespot
 Depends: +alsa-lib
+Package: audiowrt-sbc
+Depends: +libc
 Package: audiowrt-bluez
 Depends: +bluez-libs +glib2 +dbus +alsa-lib
 Package: libaudiowrt-alsa-minimal
@@ -73,7 +76,7 @@ Depends: +libaudiowrt-player +libflac +libpthread
 Package: audiowrt-btctl
 Depends: +glib2
 Package: bluez-alsa
-Depends: +alsa-lib +audiowrt-bluez +bluez-libs +glib2 +sbc +dbus
+Depends: +alsa-lib +audiowrt-bluez +bluez-libs +glib2 +audiowrt-sbc +dbus
 Package: audiowrt-bluetooth
 Depends: +audiowrt-audio +audiowrt-bluez +audiowrt-btctl +bluez-alsa +kmod-bluetooth +kmod-btusb
 Package: kmod-audiowrt-bluetooth
@@ -146,7 +149,7 @@ fi
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
     audiowrt-core audiowrt-extensions libaudiowrt-alsa-minimal kmod-audiowrt-bluetooth \
     kmod-audiowrt-sound-core kmod-audiowrt-usb-audio audiowrt-bluetooth > "$tmp/bluetooth"
-for package in libaudiowrt-alsa-minimal audiowrt-bluez audiowrt-btctl bluez-alsa kmod-audiowrt-bluetooth audiowrt-bluetooth; do
+for package in libaudiowrt-alsa-minimal audiowrt-sbc audiowrt-bluez audiowrt-btctl bluez-alsa kmod-audiowrt-bluetooth audiowrt-bluetooth; do
     grep -q "^${package}|" "$tmp/bluetooth"
 done
 for package in kmod-audiowrt-sound-core kmod-audiowrt-usb-audio; do
