@@ -13,7 +13,7 @@ Runtime mapping:
 
 | Function | Minimal | Standard |
 | --- | --- | --- |
-| ALSA | `audiowrt-minimal-alsa` | `alsa-lib` |
+| ALSA | `libaudiowrt-alsa-minimal` | `alsa-lib` |
 | TLS | `libmbedtls21` | `libmbedtls21` |
 | SSH server | `dropbear` | `dropbear` |
 | Wi-Fi station | `audiowrt-wpad` | `wpad-basic-mbedtls` |
