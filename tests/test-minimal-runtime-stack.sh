@@ -21,12 +21,12 @@ data = json.load(sys.stdin)
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
-    "audiowrt-minimal-alsa",
+    "libaudiowrt-alsa-minimal",
     "libmbedtls21",
     "dropbear",
     "audiowrt-wpad",
     "audiowrt-renderer",
-    "audiowrt-player-core",
+    "libaudiowrt-player",
     "audiowrt-player-flac",
     "luci-app-audiowrt-renderer",
     "kmod-audiowrt-bluetooth",
@@ -67,7 +67,7 @@ added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
     "audiowrt-renderer",
-    "audiowrt-player-core",
+    "libaudiowrt-player",
     "audiowrt-player-flac",
     "audiowrt-player-mp3",
     "audiowrt-player-aac",
@@ -79,10 +79,10 @@ assert not ({"mpd-mini", "mpd-full", "upmpdcli", "audiowrt-mpd", "minidlna", "um
 ' <<< "$standard"
 
 for package in \
-    audiowrt-minimal-alsa \
+    libaudiowrt-alsa-minimal \
     audiowrt-wpad \
     audiowrt-renderer \
-    audiowrt-player-core \
+    libaudiowrt-player \
     audiowrt-player-flac \
     audiowrt-player-mp3 \
     audiowrt-player-aac \
@@ -97,12 +97,12 @@ grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth
 # NO_DEPS=1. Runtime-only OpenWrt dependencies (including kernel modules) must
 # not turn into source-build roots.
 for package in \
-    audiowrt-minimal-alsa \
+    libaudiowrt-alsa-minimal \
     audiowrt-wpad \
     audiowrt-busybox \
     audiowrt-btctl \
     audiowrt-renderer \
-    audiowrt-player-core \
+    libaudiowrt-player \
     audiowrt-player-flac \
     audiowrt-player-mp3 \
     audiowrt-player-aac \
