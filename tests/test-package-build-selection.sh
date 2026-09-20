@@ -107,12 +107,22 @@ fi
 # A standalone package request must include its AudioWRT-owned build dependency
 # closure without selecting unrelated packages.
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-player-flac > "$tmp/flac"
+    audiowrt-player-flac \
+    --providers audiowrt-minimal-alsa > "$tmp/flac"
+grep -q '^audiowrt-minimal-alsa|' "$tmp/flac"
 grep -q '^audiowrt-player-core|' "$tmp/flac"
 grep -q '^audiowrt-player-flac|' "$tmp/flac"
 if grep -Eq '^(audiowrt-core|audiowrt-bluetooth|audiowrt-spotify|librespot)\|' "$tmp/flac"; then
     echo "ERROR: standalone FLAC package build selected unrelated AudioWRT packages." >&2
     cat "$tmp/flac" >&2
+    exit 1
+fi
+
+python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
+    audiowrt-player-flac > "$tmp/flac-official-alsa"
+if grep -q '^audiowrt-minimal-alsa|' "$tmp/flac-official-alsa"; then
+    echo "ERROR: resolver selected a profile provider that was not supplied." >&2
+    cat "$tmp/flac-official-alsa" >&2
     exit 1
 fi
 
