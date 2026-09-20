@@ -19,8 +19,8 @@ kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
 kmod-audiowrt-sound-core|package/feeds/audiowrt/packages/audiowrt-kmod-sound-core/compile
 kmod-audiowrt-usb-audio|package/feeds/audiowrt/packages/audiowrt-kmod-usb-audio/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
-audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
-audiowrt-player-core|package/feeds/audiowrt/audiowrt-player-core/compile
+libaudiowrt-alsa-minimal|package/feeds/audiowrt/libaudiowrt-alsa-minimal/compile
+libaudiowrt-player|package/feeds/audiowrt/libaudiowrt-player/compile
 audiowrt-player-flac|package/feeds/audiowrt/audiowrt-player-flac/compile
 audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
 audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
@@ -63,13 +63,13 @@ Package: librespot
 Depends: +alsa-lib
 Package: audiowrt-bluez
 Depends: +bluez-libs +glib2 +dbus +alsa-lib
-Package: audiowrt-minimal-alsa
+Package: libaudiowrt-alsa-minimal
 Depends: +kmod-sound-core
 Provides: alsa-lib
-Package: audiowrt-player-core
+Package: libaudiowrt-player
 Depends: +alsa-lib +libuclient +libustream-mbedtls
 Package: audiowrt-player-flac
-Depends: +audiowrt-player-core +libflac +libpthread
+Depends: +libaudiowrt-player +libflac +libpthread
 Package: audiowrt-btctl
 Depends: +glib2
 Package: bluez-alsa
@@ -108,9 +108,9 @@ fi
 # closure without selecting unrelated packages.
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
     audiowrt-player-flac \
-    --providers audiowrt-minimal-alsa > "$tmp/flac"
-grep -q '^audiowrt-minimal-alsa|' "$tmp/flac"
-grep -q '^audiowrt-player-core|' "$tmp/flac"
+    --providers libaudiowrt-alsa-minimal > "$tmp/flac"
+grep -q '^libaudiowrt-alsa-minimal|' "$tmp/flac"
+grep -q '^libaudiowrt-player|' "$tmp/flac"
 grep -q '^audiowrt-player-flac|' "$tmp/flac"
 if grep -Eq '^(audiowrt-core|audiowrt-bluetooth|audiowrt-spotify|librespot)\|' "$tmp/flac"; then
     echo "ERROR: standalone FLAC package build selected unrelated AudioWRT packages." >&2
@@ -120,7 +120,7 @@ fi
 
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
     audiowrt-player-flac > "$tmp/flac-official-alsa"
-if grep -q '^audiowrt-minimal-alsa|' "$tmp/flac-official-alsa"; then
+if grep -q '^libaudiowrt-alsa-minimal|' "$tmp/flac-official-alsa"; then
     echo "ERROR: resolver selected a profile provider that was not supplied." >&2
     cat "$tmp/flac-official-alsa" >&2
     exit 1
@@ -144,9 +144,9 @@ fi
 # minimal ALSA and Bluetooth kernel packages are part of
 # the AudioWRT-owned dependency closure.
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-core audiowrt-extensions audiowrt-minimal-alsa kmod-audiowrt-bluetooth \
+    audiowrt-core audiowrt-extensions libaudiowrt-alsa-minimal kmod-audiowrt-bluetooth \
     kmod-audiowrt-sound-core kmod-audiowrt-usb-audio audiowrt-bluetooth > "$tmp/bluetooth"
-for package in audiowrt-minimal-alsa audiowrt-bluez audiowrt-btctl bluez-alsa kmod-audiowrt-bluetooth audiowrt-bluetooth; do
+for package in libaudiowrt-alsa-minimal audiowrt-bluez audiowrt-btctl bluez-alsa kmod-audiowrt-bluetooth audiowrt-bluetooth; do
     grep -q "^${package}|" "$tmp/bluetooth"
 done
 for package in kmod-audiowrt-sound-core kmod-audiowrt-usb-audio; do
