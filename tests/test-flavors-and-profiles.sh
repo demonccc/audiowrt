@@ -60,11 +60,11 @@ done
 # FLAC player only. MP3/AAC/WAV, MPD/upmpdcli and a separate mDNS daemon must
 # remain absent from the constrained image.
 for package in \
-    audiowrt-minimal-alsa \
+    libaudiowrt-alsa-minimal \
     libmbedtls21 \
     dropbear \
     audiowrt-wpad \
-    audiowrt-player-core \
+    libaudiowrt-player \
     audiowrt-player-flac; do
     grep -q "^  - $package$" "$groups/minimal.yaml"
 done
@@ -95,7 +95,7 @@ for package in \
     libmbedtls21 \
     dropbear \
     wpad-basic-mbedtls \
-    audiowrt-player-core \
+    libaudiowrt-player \
     audiowrt-player-flac \
     audiowrt-player-mp3 \
     audiowrt-player-aac \
@@ -103,7 +103,7 @@ for package in \
     grep -q "^  - $package$" "$groups/standard.yaml"
 done
 for package in \
-    audiowrt-minimal-alsa \
+    libaudiowrt-alsa-minimal \
     audiowrt-wpad \
     audiowrt-minimal-upmpdcli \
     mpd-mini \
@@ -147,8 +147,8 @@ assert data["squashfs_block_size"] == "1024"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
-    "audiowrt-minimal-alsa", "libmbedtls21", "dropbear",
-    "audiowrt-wpad", "audiowrt-renderer", "audiowrt-player-core",
+    "libaudiowrt-alsa-minimal", "libmbedtls21", "dropbear",
+    "audiowrt-wpad", "audiowrt-renderer", "libaudiowrt-player",
     "audiowrt-player-flac", "luci-app-audiowrt-renderer",
     "kmod-audiowrt-bluetooth"
 } <= added
@@ -170,8 +170,8 @@ assert data["openwrt_profile"] == "tplink_tl-wdr4300-v1"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
-    "audiowrt-minimal-alsa", "libmbedtls21", "dropbear",
-    "audiowrt-wpad", "audiowrt-renderer", "audiowrt-player-core",
+    "libaudiowrt-alsa-minimal", "libmbedtls21", "dropbear",
+    "audiowrt-wpad", "audiowrt-renderer", "libaudiowrt-player",
     "audiowrt-player-flac", "luci-app-audiowrt-renderer",
     "audiowrt-usb-audio", "kmod-usb-audio"
 } <= added
