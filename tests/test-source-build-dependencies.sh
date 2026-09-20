@@ -69,7 +69,7 @@ if grep -qx 'alsa-lib' "$tmp/bluetooth"; then
     echo 'ERROR: minimal ALSA provider leaked the official ALSA source dependency.' >&2
     exit 1
 fi
-if grep -Eq '^(libc|audiowrt-sbc|audiowrt-bluez|audiowrt-btctl|bluez-daemon|sbc|libsndfile|libical|libreadline|libncurses)
+if grep -Eq '^(libc|audiowrt-sbc|audiowrt-bluez|audiowrt-btctl|bluez-daemon|sbc|libsndfile|libical|libreadline|libncurses)$' "$tmp/bluetooth"; then
     echo "ERROR: generic or AudioWRT-owned dependencies leaked into Bluetooth source roots." >&2
     cat "$tmp/bluetooth" >&2
     exit 1
@@ -88,55 +88,9 @@ python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
     audiowrt-bluez bluez-alsa \
     --providers audiowrt-sbc audiowrt-bluez audiowrt-btctl bluez-alsa audiowrt-bluetooth > "$tmp/official-bluetooth"
 grep -qx 'alsa-lib' "$tmp/official-bluetooth"
-if grep -Eq '^(sbc|libsndfile|audiowrt-sbc)
-printf 'Source build dependency tests passed.\n'
- "$tmp/bluetooth"; then
-    echo "ERROR: generic or AudioWRT-owned dependencies leaked into Bluetooth source roots." >&2
-    cat "$tmp/bluetooth" >&2
-    exit 1
-fi
-
-# Runtime kernel packages must not trigger kernel source compilation while
-# staging userspace dependencies.
-if grep -Eq '^(kernel|kmod-)' "$tmp/bluetooth"; then
-    echo 'ERROR: runtime kernel packages leaked into userspace source dependencies.' >&2
-    cat "$tmp/bluetooth" >&2
-    exit 1
-fi
-
-# Standard/full profiles do not select the minimal provider, so the official
-# ALSA source dependency must be staged for AudioWRT source packages.
-python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-bluez bluez-alsa \
-    --providers audiowrt-bluez audiowrt-btctl bluez-alsa audiowrt-bluetooth > "$tmp/official-bluetooth"
-grep -qx 'alsa-lib' "$tmp/official-bluetooth"
-
-printf 'Source build dependency tests passed.\n'
- "$tmp/official-bluetooth"; then
+if grep -Eq '^(sbc|libsndfile|audiowrt-sbc)$' "$tmp/official-bluetooth"; then
     echo 'ERROR: standard Bluetooth source roots bypassed the AudioWRT SBC provider.' >&2
     exit 1
 fi
-
-printf 'Source build dependency tests passed.\n'
- "$tmp/bluetooth"; then
-    echo "ERROR: generic or AudioWRT-owned dependencies leaked into Bluetooth source roots." >&2
-    cat "$tmp/bluetooth" >&2
-    exit 1
-fi
-
-# Runtime kernel packages must not trigger kernel source compilation while
-# staging userspace dependencies.
-if grep -Eq '^(kernel|kmod-)' "$tmp/bluetooth"; then
-    echo 'ERROR: runtime kernel packages leaked into userspace source dependencies.' >&2
-    cat "$tmp/bluetooth" >&2
-    exit 1
-fi
-
-# Standard/full profiles do not select the minimal provider, so the official
-# ALSA source dependency must be staged for AudioWRT source packages.
-python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-bluez bluez-alsa \
-    --providers audiowrt-bluez audiowrt-btctl bluez-alsa audiowrt-bluetooth > "$tmp/official-bluetooth"
-grep -qx 'alsa-lib' "$tmp/official-bluetooth"
 
 printf 'Source build dependency tests passed.\n'
