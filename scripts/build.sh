@@ -717,7 +717,7 @@ audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
 
 native_player_sdk=0
 hostap_sdk=0
-if [[ " ${firmware_packages[*]} " == *" audiowrt-player-core "* ||
+if [[ " ${firmware_packages[*]} " == *" libaudiowrt-player "* ||
       " ${firmware_packages[*]} " == *" audiowrt-player-flac "* ||
       " ${firmware_packages[*]} " == *" audiowrt-player-mp3 "* ||
       " ${firmware_packages[*]} " == *" audiowrt-player-aac "* ||
