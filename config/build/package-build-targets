@@ -16,7 +16,7 @@ kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
 
 audiowrt-busybox|package/feeds/audiowrt/audiowrt-busybox/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
-audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
+libaudiowrt-alsa-minimal|package/feeds/audiowrt/libaudiowrt-alsa-minimal/compile
 audiowrt-wpad|package/feeds/audiowrt/audiowrt-wpad/compile
 audiowrt-minimal-upmpdcli|package/feeds/audiowrt/audiowrt-minimal-upmpdcli/compile
 audiowrt-umdns|package/feeds/audiowrt/audiowrt-umdns/compile
@@ -26,7 +26,7 @@ audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 audiowrt-udhcpd|package/feeds/audiowrt/audiowrt-udhcpd/compile
 audiowrt-mpd|package/feeds/audiowrt/audiowrt-mpd/compile
 audiowrt-renderer|package/feeds/audiowrt/audiowrt-dlna/compile
-audiowrt-player-core|package/feeds/audiowrt/audiowrt-player-core/compile
+libaudiowrt-player|package/feeds/audiowrt/libaudiowrt-player/compile
 audiowrt-player-flac|package/feeds/audiowrt/audiowrt-player-flac/compile
 audiowrt-player-mp3|package/feeds/audiowrt/audiowrt-player-mp3/compile
 audiowrt-player-aac|package/feeds/audiowrt/audiowrt-player-aac/compile
