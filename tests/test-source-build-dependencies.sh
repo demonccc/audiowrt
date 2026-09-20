@@ -8,7 +8,7 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 cat > "$tmp/targets" <<'EOF'
-audiowrt-minimal-alsa|package/feeds/audiowrt/audiowrt-minimal-alsa/compile
+libaudiowrt-alsa-minimal|package/feeds/audiowrt/libaudiowrt-alsa-minimal/compile
 audiowrt-wpad|package/feeds/audiowrt/audiowrt-wpad/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
 librespot|package/feeds/audiowrt/librespot/compile
@@ -22,7 +22,7 @@ cat > "$tmp/packageinfo" <<'EOF'
 Build-Depends: rust/host
 Package: librespot
 Depends: +libc +alsa-lib +audiowrt-spotify +kmod-sound-core
-Package: audiowrt-minimal-alsa
+Package: libaudiowrt-alsa-minimal
 Depends: +kmod-sound-core +libpthread +librt
 Provides: alsa-lib
 Package: audiowrt-wpad
@@ -43,14 +43,14 @@ EOF
 
 resolver="$repo_root/scripts/resolve-source-build-dependencies.py"
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" librespot \
-    --providers audiowrt-minimal-alsa audiowrt-spotify librespot > "$tmp/librespot"
+    --providers libaudiowrt-alsa-minimal audiowrt-spotify librespot > "$tmp/librespot"
 
 grep -qx 'rust' "$tmp/librespot"
 if grep -qx 'alsa-lib' "$tmp/librespot"; then
     echo 'ERROR: selected AudioWRT provider did not satisfy the alsa-lib build dependency.' >&2
     exit 1
 fi
-if grep -Eq '^(libc|audiowrt-spotify|audiowrt-minimal-alsa|kernel|kmod-)' "$tmp/librespot"; then
+if grep -Eq '^(libc|audiowrt-spotify|libaudiowrt-alsa-minimal|kernel|kmod-)' "$tmp/librespot"; then
     echo "ERROR: toolchain or AudioWRT-owned dependencies leaked into source dependency roots." >&2
     cat "$tmp/librespot" >&2
     exit 1
@@ -58,7 +58,7 @@ fi
 
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
     audiowrt-bluez bluez-alsa \
-    --providers audiowrt-minimal-alsa audiowrt-bluez audiowrt-btctl bluez-alsa audiowrt-bluetooth > "$tmp/bluetooth"
+    --providers libaudiowrt-alsa-minimal audiowrt-bluez audiowrt-btctl bluez-alsa audiowrt-bluetooth > "$tmp/bluetooth"
 for package in glib2 dbus bluez-libs sbc; do
     grep -qx "$package" "$tmp/bluetooth"
 done
