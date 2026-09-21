@@ -128,6 +128,11 @@ grep -Fq 'config/build/source-build-packages' "$build_script" || {
     exit 1
 }
 
+grep -qx 'audiowrt-btctl' "$repo_root/config/build/source-build-packages" || {
+    echo "ERROR: audiowrt-btctl must use the development-dependency path for glib2/GIO headers." >&2
+    exit 1
+}
+
 grep -Fq 'source_target_seen[$target_path]' "$build_script" || {
     echo "ERROR: shared SDK targets must be de-duplicated in favor of the source-build path." >&2
     exit 1
