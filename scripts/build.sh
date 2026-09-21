@@ -459,7 +459,21 @@ stage_official_link_stub() {
         target_cc_candidates+=("$canonical_cc")
     done < <(
         find "$sdk_dir/staging_dir" -mindepth 3 -maxdepth 4 \( -type f -o -type l \) -print 2>/dev/null |
-            grep '/toolchain-[^/]*/bin/[^/]*-readelf    printf 'Official %s runtime library: %s\n' "$package" "$library"
+            grep '/toolchain-[^/]*/bin/[^/]*-readelf$' |
+            sort -u
+    )
+
+    [[ "${#target_readelf_candidates[@]}" -eq 1 ]] || {
+        echo "ERROR: expected exactly one distinct target readelf/gcc toolchain pair, found ${#target_readelf_candidates[@]}." >&2
+        if [[ "${#target_readelf_candidates[@]}" -gt 0 ]]; then
+            printf '  %s\n' "${target_readelf_candidates[@]}" >&2
+        fi
+        exit 5
+    }
+
+    readelf_bin="${target_readelf_candidates[0]}"
+    target_cc="${target_cc_candidates[0]}"
+    printf 'Official %s runtime library: %s\n' "$package" "$library"
     file "$library" || true
     if ! "$readelf_bin" -h "$library"; then
         echo "ERROR: official $package APK did not extract a valid target ELF library." >&2
