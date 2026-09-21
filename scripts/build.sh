@@ -597,11 +597,10 @@ prepare_native_player_sdk() {
 
     if [[ " ${firmware_packages[*]} " == *" audiowrt-player-mp3 "* ]]; then
         local mad_src
-        # libmad 0.16.4 generates mad.h during its CMake build; prepare alone
-        # only leaves the source inputs. Build just this package with NO_DEPS so
-        # the public generated header exists without turning its dependencies
-        # into AudioWRT source-build roots.
-        make_run "$sdk_dir" package/feeds/packages/libmad/compile NO_DEPS=1 -j"$jobs"
+        # libmad 0.16.4 generates mad.h from its CMake configuration. Prepare
+        # alone leaves only the source inputs, while configure creates the public
+        # header without compiling or replacing the official runtime library.
+        make_run "$sdk_dir" package/feeds/packages/libmad/configure NO_DEPS=1 -j"$jobs"
         mad_src="$(prepared_source_dir libmad)"
         mkdir -p "$target_staging/usr/include"
         copy_single_header "$mad_src" mad.h "$target_staging/usr/include/mad.h"
