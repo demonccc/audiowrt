@@ -96,6 +96,19 @@ grep -Fq 'grep -Fxq "$soname" "$provides_file" || printf' "$build_script" || {
     echo "ERROR: multi-SONAME runtime packages must accumulate dependency metadata without overwriting earlier SONAMEs." >&2
     exit 1
 }
+
+grep -Fq 'provider_name="$package"' "$build_script" || {
+    echo "ERROR: staged runtime libraries must track their logical dependency provider name." >&2
+    exit 1
+}
+grep -Fq -- '--provider-name libmbedtls --all-dynamic-symbols' "$build_script" || {
+    echo "ERROR: ABI-versioned libmbedtls runtime must publish provides for logical dependency libmbedtls." >&2
+    exit 1
+}
+grep -Fq '"$target_staging/pkginfo/$provider_name.provides"' "$build_script" || {
+    echo "ERROR: logical dependency .provides metadata is not staged." >&2
+    exit 1
+}
 grep -Fq 'uloop_cancelled uloop_init uloop_run_timeout uloop_done' "$build_script" || {
     echo "ERROR: libubox stub must satisfy uloop inline-helper symbols." >&2
     exit 1

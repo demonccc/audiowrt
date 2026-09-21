@@ -413,6 +413,15 @@ stage_official_link_stub() {
     local package="$1" feed="$2" library_glob="$3" linker_name="$4"
     local target_staging="$5"
     shift 5
+    local provider_name="$package"
+    if [[ "${1:-}" == "--provider-name" ]]; then
+        [[ "$#" -ge 2 ]] || {
+            echo "ERROR: --provider-name requires a logical package name for $package." >&2
+            exit 5
+        }
+        provider_name="$2"
+        shift 2
+    fi
     local package_stage="$work_dir/prebuilt-sdk/$package"
     local package_url package_apk library soname readelf_bin target_cc stub_source runtime_pkg
     local -a libraries=()
@@ -531,12 +540,14 @@ stage_official_link_stub() {
         ln -sf "$linker_name" "$target_staging/usr/lib/$soname"
     fi
 
-    # OpenWrt dependency checking keys ABI-versioned packages by their concrete
-    # runtime package name. Record both the logical dependency name and the
-    # concrete APK package name so CheckDependencies can resolve the SONAME.
+    # OpenWrt CheckDependencies expands the package's logical DEPENDS and then
+    # concatenates <dependency>.provides. ABI-versioned runtime APKs use a
+    # different concrete name (for example libmbedtls21), so keep metadata for
+    # both the logical dependency and the concrete runtime package.
     runtime_pkg="$(basename "$package_apk" .apk)"
     runtime_pkg="${runtime_pkg%%-[0-9]*}"
     for provides_file in \
+        "$target_staging/pkginfo/$provider_name.provides" \
         "$target_staging/pkginfo/$package.provides" \
         "$target_staging/pkginfo/$runtime_pkg.provides"; do
         touch "$provides_file"
@@ -768,11 +779,11 @@ prepare_hostap_sdk() {
     stage_official_link_stub libudebug base 'libudebug.so*' libudebug.so \
         "$target_staging" --all-dynamic-symbols
     stage_official_link_stub libmbedtls21 base 'libmbedcrypto.so.*' libmbedcrypto.so \
-        "$target_staging" --all-dynamic-symbols
+        "$target_staging" --provider-name libmbedtls --all-dynamic-symbols
     stage_official_link_stub libmbedtls21 base 'libmbedx509.so.*' libmbedx509.so \
-        "$target_staging" --all-dynamic-symbols
+        "$target_staging" --provider-name libmbedtls --all-dynamic-symbols
     stage_official_link_stub libmbedtls21 base 'libmbedtls.so.*' libmbedtls.so \
-        "$target_staging" --all-dynamic-symbols
+        "$target_staging" --provider-name libmbedtls --all-dynamic-symbols
 }
 
 # Keep the SDK's official exact-release feed configuration intact. We only
