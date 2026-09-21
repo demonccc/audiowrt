@@ -104,7 +104,6 @@ for package in \
     libaudiowrt-alsa-minimal \
     audiowrt-wpad \
     audiowrt-busybox \
-    audiowrt-btctl \
     audiowrt-sbc \
     audiowrt-renderer \
     libaudiowrt-player \
@@ -125,9 +124,9 @@ for package in \
     fi
 done
 
-for package in audiowrt-bluez bluez-alsa; do
+for package in audiowrt-bluez audiowrt-btctl bluez-alsa; do
     grep -qx "$package" "$sources" || {
-        echo "ERROR: $package must remain an explicit upstream source root." >&2
+        echo "ERROR: $package must remain on the explicit development-dependency path." >&2
         exit 1
     }
 done

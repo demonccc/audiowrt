@@ -1,9 +1,9 @@
-# AudioWRT-owned packages that genuinely compile upstream source and therefore
-# need an OpenWrt development dependency staging path.
+# AudioWRT-owned packages that need OpenWrt development dependencies staged
+# while compiling. This includes wrappers around upstream source and AudioWRT
+# native C packages that include/link against OpenWrt feed libraries.
 #
-# Packages NOT listed here are still compiled when they contain AudioWRT source
-# code, but they stay on the NO_DEPS=1 package boundary. Runtime-only OpenWrt
-# dependencies must never turn into source-build roots.
+# Packages NOT listed here stay on the NO_DEPS=1 package boundary. Runtime-only
+# OpenWrt dependencies must never turn into source-build roots.
 #
 # Wi-Fi ownership:
 # - audiowrt-wpad compiles one multicall hostapd+wpa_supplicant binary from the
@@ -15,10 +15,11 @@
 # Bluetooth ownership:
 # - audiowrt-bluez builds only the constrained bluetoothd daemon; runtime
 #   libbluetooth comes from the official OpenWrt bluez-libs package.
-# - audiowrt-btctl is AudioWRT-owned C code and is package-only.
+# - audiowrt-btctl is AudioWRT-owned C code but needs glib2/GIO development
+#   headers, so it uses the explicit development-dependency path.
 # - bluez-alsa uses the official OpenWrt sbc and bluez-libs packages.
-# - bluez-alsa and audiowrt-bluez are the only Bluetooth upstream source roots.
 
 librespot
 audiowrt-bluez
+audiowrt-btctl
 bluez-alsa
