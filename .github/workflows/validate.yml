@@ -42,6 +42,9 @@ jobs:
       - name: Validate Makefile entry point
         run: make help
 
+      - name: Test AudioWRT distribution version
+        run: bash tests/test-versioning.sh
+
       - name: Test exact release policy
         run: bash tests/test-release-ref.sh
 

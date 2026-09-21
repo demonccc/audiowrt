@@ -4,6 +4,13 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+version_file="$repo_root/VERSION"
+[[ -f "$version_file" ]] || { echo "ERROR: AudioWRT VERSION file is missing." >&2; exit 2; }
+audiowrt_version="$(tr -d '[:space:]' < "$version_file")"
+[[ "$audiowrt_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+    echo "ERROR: AudioWRT VERSION must use semantic versioning (MAJOR.MINOR.PATCH)." >&2
+    exit 2
+}
 audiowrt_profile="${AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5}"
 openwrt_repo="${OPENWRT_REPOSITORY:-https://github.com/openwrt/openwrt.git}"
 packages_repo="${AUDIOWRT_PACKAGES_REPOSITORY:-https://github.com/demonccc/audiowrt-packages.git}"
@@ -1051,6 +1058,7 @@ if [[ "$build_mode" == "packages" ]]; then
     [[ -n "$cache_dir" ]] && cache_enabled='yes'
     cat > "$output_dir/BUILD_INFO" <<EOF
 BUILD_MODE=exact-release-sdk-packages
+AUDIOWRT_VERSION=$audiowrt_version
 BUILDER_IMAGE=$builder_image
 PLATFORM=$platform
 AUDIOWRT_PROFILE=$audiowrt_profile
@@ -1085,6 +1093,7 @@ artifacts = json.load(open(sys.argv[2], encoding="utf-8"))
 profile_data = json.load(open(sys.argv[3], encoding="utf-8"))
 manifest = {
     "build_mode": "exact-release-sdk-packages",
+    "audiowrt_version": "$audiowrt_version",
     "builder_image": "$builder_image",
     "audiowrt_commit": "$audiowrt_commit",
     "audiowrt_packages_repository": "$packages_repo",
@@ -1175,6 +1184,7 @@ cache_enabled='no'
 
 cat > "$output_dir/BUILD_INFO" <<EOF
 BUILD_MODE=exact-release-sdk-imagebuilder
+AUDIOWRT_VERSION=$audiowrt_version
 BUILDER_IMAGE=$builder_image
 PLATFORM=$platform
 AUDIOWRT_PROFILE=$audiowrt_profile
@@ -1211,6 +1221,7 @@ artifacts = json.load(open(sys.argv[2], encoding="utf-8"))
 profile_data = json.load(open(sys.argv[3], encoding="utf-8"))
 manifest = {
     "build_mode": "exact-release-sdk-imagebuilder",
+    "audiowrt_version": "$audiowrt_version",
     "builder_image": "$builder_image",
     "audiowrt_commit": "$audiowrt_commit",
     "audiowrt_packages_repository": "$packages_repo",
