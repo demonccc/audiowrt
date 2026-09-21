@@ -154,10 +154,12 @@ done
 # NO_DEPS=1. Its build interfaces are staged once so hostapd-common/ubus/ucode
 # never become recursive source roots.
 grep -Fq 'prepare_native_player_sdk()' "$build_script"
-grep -Fq 'package/feeds/packages/libmad/prepare' "$build_script"
+grep -Fq 'package/feeds/packages/libmad/configure' "$build_script"
 grep -Fq 'stage_official_link_stub libmad packages' "$build_script"
 grep -Fq 'package/feeds/packages/libvorbis/prepare' "$build_script"
 grep -Fq 'stage_official_link_stub libvorbis packages' "$build_script"
+grep -Fq 'package/feeds/packages/opusfile/prepare' "$build_script"
+grep -Fq 'stage_official_link_stub libopusfile packages' "$build_script"
 ! grep -Fq 'package/feeds/packages/mpg123/prepare' "$build_script"
 grep -Fq 'prepare_hostap_sdk()' "$build_script"
 grep -Fq 'audiowrt-wpad' "$build_script"
