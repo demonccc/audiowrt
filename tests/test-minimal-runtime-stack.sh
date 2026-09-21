@@ -29,6 +29,9 @@ assert {
     "libaudiowrt-player",
     "audiowrt-player-flac",
     "audiowrt-player-mp3",
+    "audiowrt-player-aac",
+    "audiowrt-player-m4a",
+    "audiowrt-player-lpcm",
     "audiowrt-player-wav",
     "luci-app-audiowrt-renderer",
     "kmod-audiowrt-bluetooth",
@@ -52,7 +55,8 @@ assert {
 assert not ({
     "mpd-mini", "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli",
     "audiowrt-mpd", "minidlna", "umdns", "audiowrt-umdns",
-    "audiowrt-player-aac", "audiowrt-player-vorbis"
+    "audiowrt-player-vorbis", "audiowrt-player-aiff",
+    "audiowrt-player-opus", "audiowrt-player-ffmpeg"
 } & added)
 ' <<< "$minimal"
 
@@ -72,8 +76,13 @@ assert {
     "audiowrt-player-flac",
     "audiowrt-player-mp3",
     "audiowrt-player-aac",
+    "audiowrt-player-m4a",
+    "audiowrt-player-lpcm",
     "audiowrt-player-wav",
     "audiowrt-player-vorbis",
+    "audiowrt-player-aiff",
+    "audiowrt-player-opus",
+    "audiowrt-player-ffmpeg",
     "luci-app-audiowrt-renderer",
 } <= added
 assert {"mpd-mini", "mpd-full", "upmpdcli", "audiowrt-mpd", "minidlna", "umdns", "audiowrt-umdns"} <= removed
@@ -89,8 +98,13 @@ for package in \
     audiowrt-player-flac \
     audiowrt-player-mp3 \
     audiowrt-player-aac \
+    audiowrt-player-m4a \
+    audiowrt-player-lpcm \
     audiowrt-player-wav \
     audiowrt-player-vorbis \
+    audiowrt-player-aiff \
+    audiowrt-player-opus \
+    audiowrt-player-ffmpeg \
     luci-app-audiowrt-renderer; do
     grep -q "^${package}|package/feeds/audiowrt/" "$targets"
 done
@@ -110,8 +124,13 @@ for package in \
     audiowrt-player-flac \
     audiowrt-player-mp3 \
     audiowrt-player-aac \
+    audiowrt-player-m4a \
+    audiowrt-player-lpcm \
     audiowrt-player-wav \
     audiowrt-player-vorbis \
+    audiowrt-player-aiff \
+    audiowrt-player-opus \
+    audiowrt-player-ffmpeg \
     audiowrt-minimal-upmpdcli \
     audiowrt-mpd \
     audiowrt-umdns \
