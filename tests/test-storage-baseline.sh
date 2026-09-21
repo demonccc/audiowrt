@@ -16,10 +16,8 @@ grep -q '^audiowrt-storage-luci|package/feeds/audiowrt/luci-app-audiowrt-storage
  \
     "$repo_root/config/build/package-build-targets"
 
-# /var is runtime storage in AudioWRT. Reject ImageBuilders that would make
-# it persistent, otherwise upstream daemons could turn ordinary state/cache
-# updates into internal-flash writes.
-grep -Fq "CONFIG_TARGET_ROOTFS_PERSIST_VAR=y" "$repo_root/scripts/build.sh"
-grep -Fq "AudioWRT requires volatile /var" "$repo_root/scripts/build.sh"
+# AudioWRT requires /var to remain volatile runtime storage.
+grep -Fq 'CONFIG_TARGET_ROOTFS_PERSIST_VAR=y' "$repo_root/scripts/build.sh"
+grep -Fq 'AudioWRT requires volatile /var' "$repo_root/scripts/build.sh"
 
 echo 'Storage baseline tests passed.'
