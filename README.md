@@ -7,6 +7,34 @@ profile names and declares its OpenWrt base, uses the matching official SDK and
 ImageBuilder, builds the AudioWRT layer, and assembles the final image from
 official binaries plus locally produced AudioWRT APKs.
 
+## AudioWRT version policy
+
+AudioWRT has its own distribution version in the repository-root `VERSION` file.
+It uses semantic versioning (`MAJOR.MINOR.PATCH`) independently from the
+underlying OpenWrt release and independently from individual package versions.
+
+For example:
+
+```text
+AudioWRT 1.0.0
+OpenWrt 25.12.5
+profile: tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
+```
+
+The AudioWRT version identifies a tested distribution state: builder logic,
+profile behavior, package selection policy and their expected integration. It
+does not imply that every AudioWRT package has the same version, and it does not
+replace the OpenWrt version encoded in each profile.
+
+Individual AudioWRT-owned packages follow the OpenWrt package convention:
+stable package name + semantic `PKG_VERSION` + numeric `PKG_RELEASE`.
+OpenWrt-derived and third-party packages keep their upstream version instead.
+Kernel packages continue to follow OpenWrt kernel/ABI versioning.
+
+A firmware build records the AudioWRT distribution version in both `BUILD_INFO`
+and `manifest.json`, alongside the exact AudioWRT commit, package-feed commit
+and OpenWrt release.
+
 ## OpenWrt version policy
 
 The OpenWrt source and version are part of the profile itself and must also be
