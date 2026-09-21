@@ -59,6 +59,18 @@ if grep -Eq '^(libc|audiowrt-spotify|libaudiowrt-alsa-minimal|kernel|kmod-)' "$t
     exit 1
 fi
 
+
+# audiowrt-btctl is native AudioWRT C code, but it includes GIO/GLib headers.
+# A standalone btctl build must therefore stage glib2 before compiling btctl.
+python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" audiowrt-btctl \
+    --providers audiowrt-btctl > "$tmp/btctl"
+grep -qx 'glib2' "$tmp/btctl"
+if grep -Eq '^(audiowrt-btctl|kernel|kmod-)' "$tmp/btctl"; then
+    echo 'ERROR: standalone btctl development dependency resolution leaked owned/runtime packages.' >&2
+    cat "$tmp/btctl" >&2
+    exit 1
+fi
+
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
     audiowrt-bluez bluez-alsa \
     --providers libaudiowrt-alsa-minimal audiowrt-sbc audiowrt-bluez audiowrt-btctl bluez-alsa audiowrt-bluetooth > "$tmp/bluetooth"
