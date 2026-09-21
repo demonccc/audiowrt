@@ -636,6 +636,23 @@ prepare_native_player_sdk() {
         stage_official_link_stub libvorbis packages 'libvorbisfile.so.*' libvorbisfile.so "$target_staging" \
             ov_open_callbacks ov_read ov_info ov_clear
     fi
+
+    if [[ " ${firmware_packages[*]} " == *" audiowrt-player-opus "* ]]; then
+        local opus_src opusfile_src
+        make_run "$sdk_dir" package/feeds/packages/opus/prepare NO_DEPS=1 -j"$jobs"
+        make_run "$sdk_dir" package/feeds/packages/opusfile/prepare NO_DEPS=1 -j"$jobs"
+        opus_src="$(prepared_source_dir opus)"
+        opusfile_src="$(prepared_source_dir opusfile)"
+        mkdir -p "$target_staging/usr/include/opus"
+        find "$opus_src/include" -maxdepth 1 -type f -name '*.h' -exec cp -f {} "$target_staging/usr/include/opus/" \;
+        find "$opusfile_src/include" -maxdepth 1 -type f -name '*.h' -exec cp -f {} "$target_staging/usr/include/opus/" \;
+        [[ -f "$target_staging/usr/include/opus/opusfile.h" ]] || {
+            echo "ERROR: opusfile headers were not staged." >&2
+            exit 5
+        }
+        stage_official_link_stub libopusfile packages 'libopusfile.so.*' libopusfile.so "$target_staging" \
+            op_open_callbacks op_read_stereo op_free
+    fi
 }
 
 prepare_hostap_sdk() {
@@ -764,7 +781,8 @@ if [[ " ${firmware_packages[*]} " == *" libaudiowrt-player "* ||
       " ${firmware_packages[*]} " == *" audiowrt-player-mp3 "* ||
       " ${firmware_packages[*]} " == *" audiowrt-player-aac "* ||
       " ${firmware_packages[*]} " == *" audiowrt-player-wav "* ||
-      " ${firmware_packages[*]} " == *" audiowrt-player-vorbis "* ]]; then
+      " ${firmware_packages[*]} " == *" audiowrt-player-vorbis "* ||
+      " ${firmware_packages[*]} " == *" audiowrt-player-opus "* ]]; then
     native_player_sdk=1
 fi
 # The constrained AudioWRT Wi-Fi provider is one multicall wpad binary built
@@ -787,23 +805,6 @@ if (( native_player_sdk )); then
     register_official_sdk_source base libs/ustream-ssl
 
 
-    if [[ " ${firmware_packages[*]} " == *" audiowrt-player-opus "* ]]; then
-        local opus_src opusfile_src
-        make_run "$sdk_dir" package/feeds/packages/opus/prepare NO_DEPS=1 -j"$jobs"
-        make_run "$sdk_dir" package/feeds/packages/opusfile/prepare NO_DEPS=1 -j"$jobs"
-        opus_src="$(prepared_source_dir opus)"
-        opusfile_src="$(prepared_source_dir opusfile)"
-        mkdir -p "$target_staging/usr/include/opus"
-        find "$opus_src/include" -maxdepth 1 -type f -name '*.h' -exec cp -f {} "$target_staging/usr/include/opus/" \;
-        find "$opusfile_src/include" -maxdepth 1 -type f -name '*.h' -exec cp -f {} "$target_staging/usr/include/opus/" \;
-        [[ -f "$target_staging/usr/include/opus/opusfile.h" ]] || {
-            echo "ERROR: opusfile headers were not staged." >&2
-            exit 5
-        }
-        stage_official_link_stub libopusfile packages 'libopusfile.so.*' libopusfile.so "$target_staging" \
-            op_open_callbacks op_read_stereo op_free
-    fi
-
     if [[ " ${firmware_packages[*]} " == *" audiowrt-player-flac "* ]]; then
         register_official_sdk_source packages libs/flac
     fi
@@ -816,6 +817,10 @@ if (( native_player_sdk )); then
     if [[ " ${firmware_packages[*]} " == *" audiowrt-player-vorbis "* ]]; then
         register_official_sdk_source packages libs/libogg
         register_official_sdk_source packages libs/libvorbis
+    fi
+    if [[ " ${firmware_packages[*]} " == *" audiowrt-player-opus "* ]]; then
+        register_official_sdk_source packages libs/opus
+        register_official_sdk_source packages libs/opusfile
     fi
 fi
 
