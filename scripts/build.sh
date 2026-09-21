@@ -1139,131 +1139,6 @@ imagebuilder_config="$imagebuilder_dir/.config"
 if grep -q "^CONFIG_TARGET_ROOTFS_PERSIST_VAR=y$" "$imagebuilder_config"; then
     die "AudioWRT requires volatile /var; CONFIG_TARGET_ROOTFS_PERSIST_VAR=y is not supported"
 fi
-
-mkdir -p "$imagebuilder_dir/packages"
-cp -f "$local_apks_dir"/*.apk "$imagebuilder_dir/packages/"
-package_args=()
-while IFS= read -r package; do package_args+=("$package"); done < <(read_package_file "$packages_add_file")
-while IFS= read -r package; do package_args+=("-$package"); done < <(read_package_file "$packages_remove_file")
-package_string="${package_args[*]}"
-
-image_args=(
-    "PROFILE=$platform"
-    "PACKAGES=$package_string"
-    "BIN_DIR=$output_dir"
-)
-if [[ "$squashfs_block_size" != "default" ]]; then
-    if grep -q '^CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=' "$imagebuilder_config"; then
-        sed -i "s/^CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=.*/CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=$squashfs_block_size/" "$imagebuilder_config"
-    else
-        printf 'CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=%s\n' "$squashfs_block_size" >> "$imagebuilder_config"
-    fi
-fi
-
-make_run "$imagebuilder_dir" image "${image_args[@]}"
-
-cp "$platform_metadata" "$output_dir/platform.json"
-cp "$resolved_profile" "$output_dir/audiowrt-profile.json"
-cp "$artifacts_metadata" "$output_dir/openwrt-artifacts.json"
-cp "$sdk_dir/feeds.conf" "$output_dir/sdk-feeds.conf"
-cp "$official_feeds_buildinfo" "$output_dir/official-feeds.buildinfo"
-cp "$official_version_buildinfo" "$output_dir/official-version.buildinfo"
-cp "$registered_sources" "$output_dir/sdk-audiowrt-sources.txt"
-cp "$source_dependencies_file" "$output_dir/source-build-dependencies.txt"
-cp "$packages_add_file" "$output_dir/audiowrt-packages.add"
-cp "$packages_remove_file" "$output_dir/audiowrt-packages.remove"
-cp "$repo_root/config/build/package-build-targets" "$output_dir/package-build-targets"
-cp "$repo_root/config/build/source-build-packages" "$output_dir/source-build-packages"
-cp "$build_plan" "$output_dir/package-build-plan.txt"
-mkdir -p "$output_dir/local-apks"
-cp -f "$local_apks_dir"/*.apk "$output_dir/local-apks/"
-[[ -f "$sdk_dir/.config" ]] && cp "$sdk_dir/.config" "$output_dir/sdk.config"
-[[ -f "$imagebuilder_dir/.config" ]] && cp "$imagebuilder_dir/.config" "$output_dir/imagebuilder.config"
-
-python3 "$repo_root/scripts/image-size-report.py" \
-    "$output_dir" \
-    "$output_dir/image-size-report.json" \
-    "$output_dir/image-size-report.txt"
-
-audiowrt_commit="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || printf unknown)"
-cache_enabled='no'
-[[ -n "$cache_dir" ]] && cache_enabled='yes'
-
-cat > "$output_dir/BUILD_INFO" <<EOF
-BUILD_MODE=exact-release-sdk-imagebuilder
-AUDIOWRT_VERSION=$audiowrt_version
-BUILDER_IMAGE=$builder_image
-PLATFORM=$platform
-AUDIOWRT_PROFILE=$audiowrt_profile
-AUDIOWRT_PACKAGE_GROUPS=$profile_package_groups
-TARGET=$target
-SUBTARGET=$subtarget
-OPENWRT_RESOLVED_REF=$resolved_release
-OPENWRT_SOURCE=$openwrt_source
-OPENWRT_VERSION=$openwrt_version
-OPENWRT_COMMIT=$openwrt_commit
-SDK_URL=$sdk_url
-IMAGEBUILDER_URL=$imagebuilder_url
-OFFICIAL_FEEDS_BUILDINFO=$feeds_buildinfo_url
-OFFICIAL_VERSION_BUILDINFO=$version_buildinfo_url
-SDK_FEEDS_CONFIG=official-sdk-default+audiowrt
-SDK_PACKAGE_ONLY_MODE=NO_DEPS
-AUDIOWRT_COMMIT=$audiowrt_commit
-AUDIOWRT_PACKAGES_REPOSITORY=$packages_repo
-AUDIOWRT_PACKAGES_REF=$packages_ref
-AUDIOWRT_PACKAGES_COMMIT=$audiowrt_packages_commit
-AUDIOWRT_BUILD_PACKAGES=${build_packages[*]}
-AUDIOWRT_PACKAGE_ONLY_PACKAGES=${package_only_packages[*]}
-AUDIOWRT_SOURCE_PACKAGES=${source_packages[*]}
-SOURCE_BUILD_DEPENDENCIES=${source_dependencies[*]}
-LOCAL_APKS=$local_apk_count
-VERBOSITY=$verbosity
-CACHE_ENABLED=$cache_enabled
-EOF
-
-python3 - "$platform_metadata" "$artifacts_metadata" "$resolved_profile" "$output_dir/manifest.json" <<PY
-import json, sys
-platform_data = json.load(open(sys.argv[1], encoding="utf-8"))
-artifacts = json.load(open(sys.argv[2], encoding="utf-8"))
-profile_data = json.load(open(sys.argv[3], encoding="utf-8"))
-manifest = {
-    "build_mode": "exact-release-sdk-imagebuilder",
-    "audiowrt_version": "$audiowrt_version",
-    "builder_image": "$builder_image",
-    "audiowrt_commit": "$audiowrt_commit",
-    "audiowrt_packages_repository": "$packages_repo",
-    "audiowrt_packages_ref": "$packages_ref",
-    "audiowrt_packages_commit": "$audiowrt_packages_commit",
-    "audiowrt_profile": "$audiowrt_profile",
-    "package_groups": profile_data["package_groups"],
-    "resolved_profile": profile_data,
-    "openwrt_repository": "$openwrt_repo",
-    "openwrt_source": "$openwrt_source",
-    "openwrt_version": "$openwrt_version",
-    "openwrt_resolved_ref": "$resolved_release",
-    "openwrt_commit": "$openwrt_commit",
-    "openwrt_artifacts": artifacts,
-    "sdk_feeds_config": "official-sdk-default+audiowrt",
-    "sdk_package_only_mode": "NO_DEPS",
-    "platform": platform_data,
-    "audiowrt_build_packages": "${build_packages[*]}".split(),
-    "audiowrt_package_only_packages": "${package_only_packages[*]}".split(),
-    "audiowrt_source_packages": "${source_packages[*]}".split(),
-    "source_build_dependencies": "${source_dependencies[*]}".split(),
-    "local_apk_count": int("$local_apk_count"),
-    "cache_enabled": "$cache_enabled" == "yes",
-}
-with open(sys.argv[4], "w", encoding="utf-8") as handle:
-    json.dump(manifest, handle, indent=2, sort_keys=True)
-    handle.write("\n")
-PY
-
-printf '\nAudioWRT build complete.\nArtifacts: %s\n' "$output_dir"
-cat "$output_dir/image-size-report.txt"
- "$imagebuilder_config"; then
-    die "AudioWRT requires volatile /var; CONFIG_TARGET_ROOTFS_PERSIST_VAR=y is not supported"
-fi
-
 mkdir -p "$imagebuilder_dir/packages"
 cp -f "$local_apks_dir"/*.apk "$imagebuilder_dir/packages/"
 
@@ -1278,7 +1153,6 @@ image_args=(
     "BIN_DIR=$output_dir"
 )
 if [[ "$squashfs_block_size" != "default" ]]; then
-    imagebuilder_config="$imagebuilder_dir/.config"
     if grep -q '^CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=' "$imagebuilder_config"; then
         sed -i "s/^CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=.*/CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=$squashfs_block_size/" "$imagebuilder_config"
     else
