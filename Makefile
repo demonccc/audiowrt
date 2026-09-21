@@ -13,7 +13,7 @@ help:
 	  'AudioWRT build targets:' \
 	  '' \
 	  '  make build AUDIOWRT_PROFILE=<profile> [AUDIOWRT_PACKAGES_REF=main] [JOBS=N] [VERBOSITY=normal|verbose|debug] [LOG_FILE=logs/build.log] [CACHE_DIR=.cache/audiowrt]' \
-	  '  make packages AUDIOWRT_PROFILE=<profile> PACKAGE=<all|package-name> [AUDIOWRT_PACKAGES_REF=main] [JOBS=N] [VERBOSITY=normal|verbose|debug] [CACHE_DIR=.cache/audiowrt]' \
+	  '  make packages AUDIOWRT_PROFILE=<profile> PACKAGE="<all|package-name ...>" [AUDIOWRT_PACKAGES_REF=main] [JOBS=N] [VERBOSITY=normal|verbose|debug] [CACHE_DIR=.cache/audiowrt]' \
 	  '  make package ...  (alias of make packages)' \
 	  '  make clean' \
 	  '' \
@@ -43,7 +43,7 @@ build:
 
 packages:
 	@if [ -z "$(AUDIOWRT_PROFILE)" ]; then echo 'ERROR: AUDIOWRT_PROFILE is required.' >&2; exit 2; fi
-	@if [ -z "$(PACKAGE)" ]; then echo 'ERROR: PACKAGE must be all or an AudioWRT package name.' >&2; exit 2; fi
+	@if [ -z "$(PACKAGE)" ]; then echo 'ERROR: PACKAGE must be all or one or more space-separated AudioWRT package names.' >&2; exit 2; fi
 	@AUDIOWRT_BUILD_MODE="packages" \
 	 AUDIOWRT_PACKAGE="$(PACKAGE)" \
 	 AUDIOWRT_PROFILE="$(AUDIOWRT_PROFILE)" \
