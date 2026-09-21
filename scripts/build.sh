@@ -536,8 +536,12 @@ stage_official_link_stub() {
     # concrete APK package name so CheckDependencies can resolve the SONAME.
     runtime_pkg="$(basename "$package_apk" .apk)"
     runtime_pkg="${runtime_pkg%%-[0-9]*}"
-    printf '%s\n' "$soname" > "$target_staging/pkginfo/$package.provides"
-    printf '%s\n' "$soname" > "$target_staging/pkginfo/$runtime_pkg.provides"
+    for provides_file in \
+        "$target_staging/pkginfo/$package.provides" \
+        "$target_staging/pkginfo/$runtime_pkg.provides"; do
+        touch "$provides_file"
+        grep -Fxq "$soname" "$provides_file" || printf '%s\n' "$soname" >> "$provides_file"
+    done
 }
 
 copy_single_header() {
