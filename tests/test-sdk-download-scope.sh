@@ -91,6 +91,11 @@ grep -Fq 'ln -sf "$linker_name" "$target_staging/usr/lib/$soname"' "$build_scrip
     echo "ERROR: SDK link stubs must expose their runtime SONAME for transitive links." >&2
     exit 1
 }
+
+grep -Fq 'grep -Fxq "$soname" "$provides_file" || printf' "$build_script" || {
+    echo "ERROR: multi-SONAME runtime packages must accumulate dependency metadata without overwriting earlier SONAMEs." >&2
+    exit 1
+}
 grep -Fq 'uloop_cancelled uloop_init uloop_run_timeout uloop_done' "$build_script" || {
     echo "ERROR: libubox stub must satisfy uloop inline-helper symbols." >&2
     exit 1
