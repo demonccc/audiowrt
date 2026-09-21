@@ -12,8 +12,7 @@ if grep -R -Eq '^  - (audiowrt-storage|audiowrt-storage-luci)$' "$repo_root/conf
     exit 1
 fi
 
-grep -q '^audiowrt-storage-luci|package/feeds/audiowrt/luci-app-audiowrt-storage/compileecho 'Storage baseline tests passed.'
- \
+grep -q '^audiowrt-storage-luci|package/feeds/audiowrt/luci-app-audiowrt-storage/compile$' \
     "$repo_root/config/build/package-build-targets"
 
 # AudioWRT requires /var to remain volatile runtime storage.
