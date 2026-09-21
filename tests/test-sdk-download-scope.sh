@@ -148,7 +148,7 @@ grep -Fq 'paired_cc="${candidate%readelf}gcc"' "$build_script" || {
     echo "ERROR: target readelf selection must require a matching target gcc." >&2
     exit 1
 }
-if grep -Fq 'find "$sdk_dir/staging_dir" -path '\''*/bin/*-readelf'\''' "$build_script"; then
+if grep -Fq "find \"$sdk_dir/staging_dir\" -path '*/bin/*-readelf'" "$build_script"; then
     echo "ERROR: broad SDK readelf discovery can select host helpers such as mklibs-readelf." >&2
     exit 1
 fi
