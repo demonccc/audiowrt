@@ -597,7 +597,11 @@ prepare_native_player_sdk() {
 
     if [[ " ${firmware_packages[*]} " == *" audiowrt-player-mp3 "* ]]; then
         local mad_src
-        make_run "$sdk_dir" package/feeds/packages/libmad/prepare NO_DEPS=1 -j"$jobs"
+        # libmad 0.16.4 generates mad.h during its CMake build; prepare alone
+        # only leaves the source inputs. Build just this package with NO_DEPS so
+        # the public generated header exists without turning its dependencies
+        # into AudioWRT source-build roots.
+        make_run "$sdk_dir" package/feeds/packages/libmad/compile NO_DEPS=1 -j"$jobs"
         mad_src="$(prepared_source_dir libmad)"
         mkdir -p "$target_staging/usr/include"
         copy_single_header "$mad_src" mad.h "$target_staging/usr/include/mad.h"
@@ -781,6 +785,24 @@ if (( native_player_sdk )); then
     register_official_sdk_source base libs/libubox
     register_official_sdk_source base libs/uclient
     register_official_sdk_source base libs/ustream-ssl
+
+
+    if [[ " ${firmware_packages[*]} " == *" audiowrt-player-opus "* ]]; then
+        local opus_src opusfile_src
+        make_run "$sdk_dir" package/feeds/packages/opus/prepare NO_DEPS=1 -j"$jobs"
+        make_run "$sdk_dir" package/feeds/packages/opusfile/prepare NO_DEPS=1 -j"$jobs"
+        opus_src="$(prepared_source_dir opus)"
+        opusfile_src="$(prepared_source_dir opusfile)"
+        mkdir -p "$target_staging/usr/include/opus"
+        find "$opus_src/include" -maxdepth 1 -type f -name '*.h' -exec cp -f {} "$target_staging/usr/include/opus/" \;
+        find "$opusfile_src/include" -maxdepth 1 -type f -name '*.h' -exec cp -f {} "$target_staging/usr/include/opus/" \;
+        [[ -f "$target_staging/usr/include/opus/opusfile.h" ]] || {
+            echo "ERROR: opusfile headers were not staged." >&2
+            exit 5
+        }
+        stage_official_link_stub libopusfile packages 'libopusfile.so.*' libopusfile.so "$target_staging" \
+            op_open_callbacks op_read_stereo op_free
+    fi
 
     if [[ " ${firmware_packages[*]} " == *" audiowrt-player-flac "* ]]; then
         register_official_sdk_source packages libs/flac
