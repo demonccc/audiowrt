@@ -15,11 +15,20 @@ grep -q 'AUDIOWRT_BUILD_MODE="packages"' <<<"$dry_run"
 grep -q 'AUDIOWRT_PACKAGE="audiowrt-player-flac"' <<<"$dry_run"
 grep -q 'bash scripts/run-in-docker.sh' <<<"$dry_run"
 
+multi_dry_run="$(make -n packages \
+    AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5 \
+    PACKAGE='audiowrt-btctl audiowrt-audio audiowrt-bluetooth luci-app-audiowrt' \
+    AUDIOWRT_PACKAGES_REF=main)"
+grep -q 'AUDIOWRT_PACKAGE="audiowrt-btctl audiowrt-audio audiowrt-bluetooth luci-app-audiowrt"' <<<"$multi_dry_run"
+
 grep -q 'AUDIOWRT_BUILD_MODE="${AUDIOWRT_BUILD_MODE:-firmware}"' scripts/run-in-docker.sh
 grep -q 'AUDIOWRT_PACKAGE="${AUDIOWRT_PACKAGE:-all}"' scripts/run-in-docker.sh
 
 grep -q 'build_mode="${AUDIOWRT_BUILD_MODE:-firmware}"' scripts/build.sh
 grep -q 'package_request="${AUDIOWRT_PACKAGE:-all}"' scripts/build.sh
+grep -q 'read -r -a package_requests <<< "$package_request"' scripts/build.sh
+grep -q "'all' cannot be combined with explicit package names" scripts/build.sh
+grep -q 'for package in "${package_requests\[@\]}"' scripts/build.sh
 grep -q 'BUILD_MODE=exact-release-sdk-packages' scripts/build.sh
 grep -q 'output/packages' scripts/build.sh
 grep -q 'unknown AudioWRT package' scripts/build.sh
