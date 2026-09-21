@@ -1131,6 +1131,14 @@ fi
 # release. OpenWrt runtime dependencies are resolved from the official release
 # repositories; only locally built AudioWRT APKs are injected.
 imagebuilder_dir="$(extract_archive "$imagebuilder_url" "$work_dir/imagebuilder" "ImageBuilder")"
+imagebuilder_config="$imagebuilder_dir/.config"
+
+# AudioWRT treats /var as volatile runtime storage. Reject any OpenWrt target
+# that was built with persistent /var, because upstream services may write
+# generated configs, PID/state files or caches below /var during normal use.
+if grep -q "^CONFIG_TARGET_ROOTFS_PERSIST_VAR=y$" "$imagebuilder_config"; then
+    die "AudioWRT requires volatile /var; CONFIG_TARGET_ROOTFS_PERSIST_VAR=y is not supported"
+fi
 mkdir -p "$imagebuilder_dir/packages"
 cp -f "$local_apks_dir"/*.apk "$imagebuilder_dir/packages/"
 
@@ -1145,7 +1153,6 @@ image_args=(
     "BIN_DIR=$output_dir"
 )
 if [[ "$squashfs_block_size" != "default" ]]; then
-    imagebuilder_config="$imagebuilder_dir/.config"
     if grep -q '^CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=' "$imagebuilder_config"; then
         sed -i "s/^CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=.*/CONFIG_TARGET_SQUASHFS_BLOCK_SIZE=$squashfs_block_size/" "$imagebuilder_config"
     else
