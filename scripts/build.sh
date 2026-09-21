@@ -25,9 +25,17 @@ case "$build_mode" in
     firmware|packages) ;;
     *) echo "ERROR: AUDIOWRT_BUILD_MODE must be firmware or packages." >&2; exit 2 ;;
 esac
-if [[ "$build_mode" == "packages" && -z "$package_request" ]]; then
-    echo "ERROR: AUDIOWRT_PACKAGE must be all or an AudioWRT package name." >&2
-    exit 2
+package_requests=()
+if [[ "$build_mode" == "packages" ]]; then
+    read -r -a package_requests <<< "$package_request"
+    if [[ "${#package_requests[@]}" -eq 0 ]]; then
+        echo "ERROR: AUDIOWRT_PACKAGE must be all or one or more space-separated AudioWRT package names." >&2
+        exit 2
+    fi
+    if [[ " ${package_requests[*]} " == *" all "* && "${#package_requests[@]}" -ne 1 ]]; then
+        echo "ERROR: 'all' cannot be combined with explicit package names." >&2
+        exit 2
+    fi
 fi
 
 [[ -n "$jobs" ]] || jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)"
@@ -260,11 +268,19 @@ python3 "$repo_root/scripts/resolve-platform.py" "$source_dir/tmp/.targetinfo" "
 mapfile -t profile_firmware_packages < <(read_package_file "$packages_add_file")
 firmware_packages=("${profile_firmware_packages[@]}")
 if [[ "$build_mode" == "packages" && "$package_request" != "all" ]]; then
-    if ! awk -F '|' -v package="$package_request" '$0 !~ /^[[:space:]]*#/ && $1 == package { found=1 } END { exit found ? 0 : 1 }'         "$repo_root/config/build/package-build-targets"; then
-        echo "ERROR: unknown AudioWRT package: $package_request" >&2
-        exit 2
-    fi
-    firmware_packages=("$package_request")
+    firmware_packages=()
+    declare -A requested_package_seen=()
+    for package in "${package_requests[@]}"; do
+        if ! awk -F '|' -v package="$package" '$0 !~ /^[[:space:]]*#/ && $1 == package { found=1 } END { exit found ? 0 : 1 }' \
+            "$repo_root/config/build/package-build-targets"; then
+            echo "ERROR: unknown AudioWRT package: $package" >&2
+            exit 2
+        fi
+        if [[ -z "${requested_package_seen[$package]+x}" ]]; then
+            firmware_packages+=("$package")
+            requested_package_seen["$package"]=1
+        fi
+    done
 fi
 
 target="$(json_field "$platform_metadata" target)"
