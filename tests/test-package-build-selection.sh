@@ -22,6 +22,9 @@ audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 libaudiowrt-alsa-minimal|package/feeds/audiowrt/libaudiowrt-alsa-minimal/compile
 libaudiowrt-player|package/feeds/audiowrt/libaudiowrt-player/compile
 audiowrt-player-flac|package/feeds/audiowrt/audiowrt-player-flac/compile
+audiowrt-player-mp3|package/feeds/audiowrt/audiowrt-player-mp3/compile
+audiowrt-player-wav|package/feeds/audiowrt/audiowrt-player-wav/compile
+audiowrt-player-vorbis|package/feeds/audiowrt/audiowrt-player-vorbis/compile
 audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
 audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 luci-app-audiowrt-wifi-client|package/feeds/audiowrt/luci-app-audiowrt-wifi-client/compile
@@ -73,6 +76,12 @@ Package: libaudiowrt-player
 Depends: +alsa-lib +libuclient +libustream-mbedtls
 Package: audiowrt-player-flac
 Depends: +libaudiowrt-player +libflac +libpthread
+Package: audiowrt-player-mp3
+Depends: +libaudiowrt-player +libmad +libpthread
+Package: audiowrt-player-wav
+Depends: +libaudiowrt-player +libpthread
+Package: audiowrt-player-vorbis
+Depends: +libaudiowrt-player +libvorbis +libpthread
 Package: audiowrt-btctl
 Depends: +glib2
 Package: bluez-alsa
@@ -128,6 +137,15 @@ if grep -q '^libaudiowrt-alsa-minimal|' "$tmp/flac-official-alsa"; then
     cat "$tmp/flac-official-alsa" >&2
     exit 1
 fi
+
+for player in audiowrt-player-mp3 audiowrt-player-wav audiowrt-player-vorbis; do
+    out="$tmp/${player}"
+    python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" "$player" \
+        --providers libaudiowrt-alsa-minimal > "$out"
+    grep -q '^libaudiowrt-alsa-minimal|' "$out"
+    grep -q '^libaudiowrt-player|' "$out"
+    grep -q "^${player}|" "$out"
+done
 
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
     audiowrt-core audiowrt-storage-luci > "$tmp/storage"
