@@ -1,0 +1,44 @@
+name: Smoke DLNA codecs
+
+on:
+  push:
+    branches:
+      - feat/dlna-codecs
+    paths:
+      - '.github/workflows/smoke-dlna-codecs.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        profile:
+          - tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5
+          - tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
+          - x86-64-usb-bluetooth-audio-25.12.5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build codec smoke image
+        run: |
+          make build \
+            AUDIOWRT_PROFILE='${{ matrix.profile }}' \
+            AUDIOWRT_PACKAGES_REF='feat/dlna-codecs' \
+            JOBS='4' \
+            VERBOSITY='normal' \
+            CACHE_DIR='.cache/audiowrt'
+
+      - name: Upload build output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codec-smoke-${{ matrix.profile }}
+          path: output/
+          if-no-files-found: warn
+          retention-days: 2
