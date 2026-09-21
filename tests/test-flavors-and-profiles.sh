@@ -89,7 +89,7 @@ for group in minimal-usb-audio minimal-usb-bluetooth minimal-usb-audio-bluetooth
     grep -A1 '^include:$' "$groups/$group.yaml" | grep -q '^  - minimal$'
 done
 
-# Standard runtime uses the same renderer/discovery core but installs all four
+# Standard runtime uses the same renderer/discovery core and installs all five
 # official AudioWRT codec players.
 for package in \
     alsa-lib \
