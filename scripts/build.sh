@@ -1136,8 +1136,12 @@ imagebuilder_config="$imagebuilder_dir/.config"
 # AudioWRT treats /var as volatile runtime storage. Reject any OpenWrt target
 # that was built with persistent /var, because upstream services may write
 # generated configs, PID/state files or caches below /var during normal use.
-if grep -q '^CONFIG_TARGET_ROOTFS_PERSIST_VAR=ycp -f "$local_apks_dir"/*.apk "$imagebuilder_dir/packages/"
+if grep -q "^CONFIG_TARGET_ROOTFS_PERSIST_VAR=y$" "$imagebuilder_config"; then
+    die "AudioWRT requires volatile /var; CONFIG_TARGET_ROOTFS_PERSIST_VAR=y is not supported"
+fi
 
+mkdir -p "$imagebuilder_dir/packages"
+cp -f "$local_apks_dir"/*.apk "$imagebuilder_dir/packages/"
 package_args=()
 while IFS= read -r package; do package_args+=("$package"); done < <(read_package_file "$packages_add_file")
 while IFS= read -r package; do package_args+=("-$package"); done < <(read_package_file "$packages_remove_file")
