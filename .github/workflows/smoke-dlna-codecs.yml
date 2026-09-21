@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - feat/dlna-codecs
-    paths:
-      - '.github/workflows/smoke-dlna-codecs.yml'
 
 permissions:
   contents: read
@@ -18,6 +16,8 @@ jobs:
       fail-fast: false
       matrix:
         profile:
+          - tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5
+          - tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
           - linksys-ea8300-usb-bluetooth-audio-25.12.5
 
     steps:
