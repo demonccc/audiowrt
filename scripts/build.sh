@@ -437,11 +437,26 @@ stage_official_link_stub() {
     # staging_dir/host/bin also contains helpers such as mklibs-readelf; those
     # are host utilities and do not have a matching target compiler.
     local -a target_readelf_candidates=()
-    local candidate paired_cc
+    local -a target_cc_candidates=()
+    local -A target_tool_pair_seen=()
+    local candidate paired_cc canonical_readelf canonical_cc pair_key
     while IFS= read -r candidate; do
         paired_cc="${candidate%readelf}gcc"
         [[ -x "$paired_cc" ]] || continue
-        target_readelf_candidates+=("$candidate")
+
+        # OpenWrt SDKs may expose multiple target-triplet aliases for the same
+        # toolchain (for example mips-openwrt-linux-readelf and
+        # mips-openwrt-linux-musl-readelf). Collapse aliases by their resolved
+        # readelf/gcc pair instead of treating each pathname as a toolchain.
+        canonical_readelf="$(readlink -f "$candidate" 2>/dev/null || true)"
+        canonical_cc="$(readlink -f "$paired_cc" 2>/dev/null || true)"
+        [[ -x "$canonical_readelf" && -x "$canonical_cc" ]] || continue
+
+        pair_key="$canonical_readelf|$canonical_cc"
+        [[ -z "${target_tool_pair_seen[$pair_key]+x}" ]] || continue
+        target_tool_pair_seen["$pair_key"]=1
+        target_readelf_candidates+=("$canonical_readelf")
+        target_cc_candidates+=("$canonical_cc")
     done < <(
         find "$sdk_dir/staging_dir" -mindepth 3 -maxdepth 4 \( -type f -o -type l \) -print 2>/dev/null |
             grep '/toolchain-[^/]*/bin/[^/]*-readelf$' |
@@ -449,7 +464,7 @@ stage_official_link_stub() {
     )
 
     [[ "${#target_readelf_candidates[@]}" -eq 1 ]] || {
-        echo "ERROR: expected exactly one target readelf/gcc toolchain pair, found ${#target_readelf_candidates[@]}." >&2
+        echo "ERROR: expected exactly one distinct target readelf/gcc toolchain pair, found ${#target_readelf_candidates[@]}." >&2
         if [[ "${#target_readelf_candidates[@]}" -gt 0 ]]; then
             printf '  %s\n' "${target_readelf_candidates[@]}" >&2
         fi
@@ -457,7 +472,7 @@ stage_official_link_stub() {
     }
 
     readelf_bin="${target_readelf_candidates[0]}"
-    target_cc="${readelf_bin%readelf}gcc"
+    target_cc="${target_cc_candidates[0]}"
     printf 'Official %s runtime library: %s\n' "$package" "$library"
     file "$library" || true
     if ! "$readelf_bin" -h "$library"; then
