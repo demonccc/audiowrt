@@ -58,12 +58,16 @@ grep -Fq 'stage_official_link_stub libflac packages' "$build_script" || {
     echo "ERROR: FLAC builds must link against an SDK-only libflac stub." >&2
     exit 1
 }
-grep -Fq 'stage_official_link_stub libmpg123 packages' "$build_script" || {
-    echo "ERROR: MP3 builds must link against an SDK-only libmpg123 stub." >&2
+grep -Fq 'stage_official_link_stub libmad packages' "$build_script" || {
+    echo "ERROR: MP3 builds must link against an SDK-only libmad stub." >&2
     exit 1
 }
 grep -Fq 'stage_official_link_stub libfaad2 packages' "$build_script" || {
     echo "ERROR: AAC builds must link against an SDK-only libfaad2 stub." >&2
+    exit 1
+}
+grep -Fq 'stage_official_link_stub libvorbis packages' "$build_script" || {
+    echo "ERROR: Vorbis builds must link against an SDK-only libvorbisfile stub." >&2
     exit 1
 }
 grep -Fq 'Runtime APK libraries are aggressively stripped by OpenWrt' "$build_script" || {
@@ -78,7 +82,7 @@ grep -Fq 'uloop_cancelled uloop_init uloop_run_timeout uloop_done' "$build_scrip
     echo "ERROR: libubox stub must satisfy uloop inline-helper symbols." >&2
     exit 1
 }
-if grep -Eq 'package/feeds/(base|packages)/(libubox|uclient|ustream-ssl|flac|mpg123|faad2)/compile' "$build_script"; then
+if grep -Eq 'package/feeds/(base|packages)/(libubox|uclient|ustream-ssl|flac|libmad|faad2|libogg|libvorbis)/compile' "$build_script"; then
     echo "ERROR: official native-player dependencies must not be compiled." >&2
     exit 1
 fi
