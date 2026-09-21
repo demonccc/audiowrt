@@ -30,8 +30,13 @@ libaudiowrt-player|package/feeds/audiowrt/libaudiowrt-player/compile
 audiowrt-player-flac|package/feeds/audiowrt/audiowrt-player-flac/compile
 audiowrt-player-mp3|package/feeds/audiowrt/audiowrt-player-mp3/compile
 audiowrt-player-aac|package/feeds/audiowrt/audiowrt-player-aac/compile
+audiowrt-player-m4a|package/feeds/audiowrt/audiowrt-player-m4a/compile
+audiowrt-player-lpcm|package/feeds/audiowrt/audiowrt-player-lpcm/compile
 audiowrt-player-wav|package/feeds/audiowrt/audiowrt-player-wav/compile
 audiowrt-player-vorbis|package/feeds/audiowrt/audiowrt-player-vorbis/compile
+audiowrt-player-aiff|package/feeds/audiowrt/audiowrt-player-aiff/compile
+audiowrt-player-opus|package/feeds/audiowrt/audiowrt-player-opus/compile
+audiowrt-player-ffmpeg|package/feeds/audiowrt/audiowrt-player-ffmpeg/compile
 luci-app-audiowrt-renderer|package/feeds/audiowrt/luci-app-audiowrt-dlna/compile
 audiowrt-airplay|package/feeds/audiowrt/audiowrt-airplay/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
