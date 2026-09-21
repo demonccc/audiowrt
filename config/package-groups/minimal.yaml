@@ -7,6 +7,9 @@ packages_add:
   - libaudiowrt-player
   - audiowrt-player-flac
   - audiowrt-player-mp3
+  - audiowrt-player-aac
+  - audiowrt-player-m4a
+  - audiowrt-player-lpcm
   - audiowrt-player-wav
 packages_remove:
   - odhcp6c

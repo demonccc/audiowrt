@@ -23,8 +23,14 @@ libaudiowrt-alsa-minimal|package/feeds/audiowrt/libaudiowrt-alsa-minimal/compile
 libaudiowrt-player|package/feeds/audiowrt/libaudiowrt-player/compile
 audiowrt-player-flac|package/feeds/audiowrt/audiowrt-player-flac/compile
 audiowrt-player-mp3|package/feeds/audiowrt/audiowrt-player-mp3/compile
+audiowrt-player-aac|package/feeds/audiowrt/audiowrt-player-aac/compile
+audiowrt-player-m4a|package/feeds/audiowrt/audiowrt-player-m4a/compile
+audiowrt-player-lpcm|package/feeds/audiowrt/audiowrt-player-lpcm/compile
 audiowrt-player-wav|package/feeds/audiowrt/audiowrt-player-wav/compile
 audiowrt-player-vorbis|package/feeds/audiowrt/audiowrt-player-vorbis/compile
+audiowrt-player-aiff|package/feeds/audiowrt/audiowrt-player-aiff/compile
+audiowrt-player-opus|package/feeds/audiowrt/audiowrt-player-opus/compile
+audiowrt-player-ffmpeg|package/feeds/audiowrt/audiowrt-player-ffmpeg/compile
 audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
 audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 luci-app-audiowrt-wifi-client|package/feeds/audiowrt/luci-app-audiowrt-wifi-client/compile
@@ -78,10 +84,22 @@ Package: audiowrt-player-flac
 Depends: +libaudiowrt-player +libflac +libpthread
 Package: audiowrt-player-mp3
 Depends: +libaudiowrt-player +libmad +libpthread
+Package: audiowrt-player-aac
+Depends: +libaudiowrt-player +libfaad2 +libpthread
+Package: audiowrt-player-m4a
+Depends: +libaudiowrt-player +faad2
+Package: audiowrt-player-lpcm
+Depends: +libaudiowrt-player +libpthread
 Package: audiowrt-player-wav
 Depends: +libaudiowrt-player +libpthread
 Package: audiowrt-player-vorbis
 Depends: +libaudiowrt-player +libvorbis +libpthread
+Package: audiowrt-player-aiff
+Depends: +libaudiowrt-player +libpthread
+Package: audiowrt-player-opus
+Depends: +libaudiowrt-player +libopusfile +libpthread
+Package: audiowrt-player-ffmpeg
+Depends: +libaudiowrt-player +ffmpeg
 Package: audiowrt-btctl
 Depends: +glib2
 Package: bluez-alsa
@@ -138,7 +156,7 @@ if grep -q '^libaudiowrt-alsa-minimal|' "$tmp/flac-official-alsa"; then
     exit 1
 fi
 
-for player in audiowrt-player-mp3 audiowrt-player-wav audiowrt-player-vorbis; do
+for player in audiowrt-player-mp3 audiowrt-player-aac audiowrt-player-m4a audiowrt-player-lpcm audiowrt-player-wav audiowrt-player-vorbis audiowrt-player-aiff audiowrt-player-opus audiowrt-player-ffmpeg; do
     out="$tmp/${player}"
     python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" "$player" \
         --providers libaudiowrt-alsa-minimal > "$out"
