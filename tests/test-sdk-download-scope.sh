@@ -74,6 +74,19 @@ grep -Fq 'Runtime APK libraries are aggressively stripped by OpenWrt' "$build_sc
     echo "ERROR: stripped runtime libraries must not be copied into the SDK linker path." >&2
     exit 1
 }
+
+grep -Fq 'canonical_readelf="$(readlink -f "$candidate"' "$build_script" || {
+    echo "ERROR: target toolchain aliases must be canonicalized before selection." >&2
+    exit 1
+}
+grep -Fq 'target_tool_pair_seen["$pair_key"]=1' "$build_script" || {
+    echo "ERROR: target toolchain aliases must be de-duplicated by resolved readelf/gcc pair." >&2
+    exit 1
+}
+grep -Fq 'expected exactly one distinct target readelf/gcc toolchain pair' "$build_script" || {
+    echo "ERROR: target toolchain validation must operate on distinct toolchains, not alias paths." >&2
+    exit 1
+}
 grep -Fq 'ln -sf "$linker_name" "$target_staging/usr/lib/$soname"' "$build_script" || {
     echo "ERROR: SDK link stubs must expose their runtime SONAME for transitive links." >&2
     exit 1
