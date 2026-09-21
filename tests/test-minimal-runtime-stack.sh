@@ -28,6 +28,8 @@ assert {
     "audiowrt-renderer",
     "libaudiowrt-player",
     "audiowrt-player-flac",
+    "audiowrt-player-mp3",
+    "audiowrt-player-wav",
     "luci-app-audiowrt-renderer",
     "kmod-audiowrt-bluetooth",
 } <= added
@@ -44,14 +46,13 @@ assert {
     "audiowrt-umdns",
     "kmod-sound-midi2",
     "kmod-sound-midi2-usb",
-    "audiowrt-player-mp3",
     "libmpg123",
     "libltdl",
 } <= removed
 assert not ({
     "mpd-mini", "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli",
     "audiowrt-mpd", "minidlna", "umdns", "audiowrt-umdns",
-    "audiowrt-player-mp3", "audiowrt-player-aac", "audiowrt-player-wav"
+    "audiowrt-player-aac", "audiowrt-player-vorbis"
 } & added)
 ' <<< "$minimal"
 
@@ -72,6 +73,7 @@ assert {
     "audiowrt-player-mp3",
     "audiowrt-player-aac",
     "audiowrt-player-wav",
+    "audiowrt-player-vorbis",
     "luci-app-audiowrt-renderer",
 } <= added
 assert {"mpd-mini", "mpd-full", "upmpdcli", "audiowrt-mpd", "minidlna", "umdns", "audiowrt-umdns"} <= removed
@@ -88,6 +90,7 @@ for package in \
     audiowrt-player-mp3 \
     audiowrt-player-aac \
     audiowrt-player-wav \
+    audiowrt-player-vorbis \
     luci-app-audiowrt-renderer; do
     grep -q "^${package}|package/feeds/audiowrt/" "$targets"
 done
@@ -109,6 +112,7 @@ for package in \
     audiowrt-player-mp3 \
     audiowrt-player-aac \
     audiowrt-player-wav \
+    audiowrt-player-vorbis \
     audiowrt-minimal-upmpdcli \
     audiowrt-mpd \
     audiowrt-umdns \
@@ -131,6 +135,12 @@ done
 # AudioWRT's multicall wpad compiles the exact upstream hostap source behind
 # NO_DEPS=1. Its build interfaces are staged once so hostapd-common/ubus/ucode
 # never become recursive source roots.
+grep -Fq 'prepare_native_player_sdk()' "$build_script"
+grep -Fq 'package/feeds/packages/libmad/prepare' "$build_script"
+grep -Fq 'stage_official_link_stub libmad packages' "$build_script"
+grep -Fq 'package/feeds/packages/libvorbis/prepare' "$build_script"
+grep -Fq 'stage_official_link_stub libvorbis packages' "$build_script"
+! grep -Fq 'package/feeds/packages/mpg123/prepare' "$build_script"
 grep -Fq 'prepare_hostap_sdk()' "$build_script"
 grep -Fq 'audiowrt-wpad' "$build_script"
 grep -Fq 'package/feeds/base/libnl-tiny/compile' "$build_script"

@@ -9,6 +9,7 @@ packages_add:
   - audiowrt-player-mp3
   - audiowrt-player-aac
   - audiowrt-player-wav
+  - audiowrt-player-vorbis
 packages_remove:
   - libaudiowrt-alsa-minimal
   - audiowrt-wpad

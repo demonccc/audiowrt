@@ -57,15 +57,17 @@ for package in \
 done
 
 # Minimal runtime uses the AudioWRT native renderer/discovery daemon plus the
-# FLAC player only. MP3/AAC/WAV, MPD/upmpdcli and a separate mDNS daemon must
-# remain absent from the constrained image.
+# FLAC, MP3 and WAV native players. AAC/Vorbis, MPD/upmpdcli and a separate
+# mDNS daemon remain outside the constrained image.
 for package in \
     libaudiowrt-alsa-minimal \
     libmbedtls21 \
     dropbear \
     audiowrt-wpad \
     libaudiowrt-player \
-    audiowrt-player-flac; do
+    audiowrt-player-flac \
+    audiowrt-player-mp3 \
+    audiowrt-player-wav; do
     grep -q "^  - $package$" "$groups/minimal.yaml"
 done
 for package in \
@@ -76,19 +78,18 @@ for package in \
     upmpdcli \
     audiowrt-minimal-upmpdcli \
     audiowrt-mpd \
-    audiowrt-player-mp3 \
     libmpg123 \
     libltdl; do
     grep -q "^  - $package$" "$groups/minimal.yaml"
 done
-for package in audiowrt-player-mp3 audiowrt-player-aac audiowrt-player-wav; do
+for package in audiowrt-player-aac audiowrt-player-vorbis; do
     ! grep -q "^  - $package$" "$groups/minimal.yaml"
 done
 for group in minimal-usb-audio minimal-usb-bluetooth minimal-usb-audio-bluetooth; do
     grep -A1 '^include:$' "$groups/$group.yaml" | grep -q '^  - minimal$'
 done
 
-# Standard runtime uses the same renderer/discovery core but installs all four
+# Standard runtime uses the same renderer/discovery core and installs all five
 # official AudioWRT codec players.
 for package in \
     alsa-lib \
@@ -99,7 +100,8 @@ for package in \
     audiowrt-player-flac \
     audiowrt-player-mp3 \
     audiowrt-player-aac \
-    audiowrt-player-wav; do
+    audiowrt-player-wav \
+    audiowrt-player-vorbis; do
     grep -q "^  - $package$" "$groups/standard.yaml"
 done
 for package in \
@@ -149,16 +151,16 @@ removed = set(data["packages_remove"])
 assert {
     "libaudiowrt-alsa-minimal", "libmbedtls21", "dropbear",
     "audiowrt-wpad", "audiowrt-renderer", "libaudiowrt-player",
-    "audiowrt-player-flac", "luci-app-audiowrt-renderer",
-    "kmod-audiowrt-bluetooth"
+    "audiowrt-player-flac", "audiowrt-player-mp3", "audiowrt-player-wav",
+    "luci-app-audiowrt-renderer", "kmod-audiowrt-bluetooth"
 } <= added
 assert {
     "alsa-lib", "wpad-basic-mbedtls", "mpd-mini",
     "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli", "audiowrt-mpd",
     "minidlna", "umdns", "audiowrt-umdns", "dnsmasq", "kmod-bluetooth",
-    "kmod-usb-audio", "audiowrt-player-mp3", "libmpg123", "libltdl"
+    "kmod-usb-audio", "libmpg123", "libltdl"
 } <= removed
-assert not ({"audiowrt-player-mp3", "audiowrt-player-aac", "audiowrt-player-wav", "mpd-mini", "upmpdcli", "umdns"} & added)
+assert not ({"audiowrt-player-aac", "audiowrt-player-vorbis", "mpd-mini", "upmpdcli", "umdns"} & added)
 ' <<< "$wdr_bt"
 
 wdr_audio="$(python3 "$resolver" "$repo_root/profiles" "$groups" tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5)"
@@ -172,17 +174,17 @@ removed = set(data["packages_remove"])
 assert {
     "libaudiowrt-alsa-minimal", "libmbedtls21", "dropbear",
     "audiowrt-wpad", "audiowrt-renderer", "libaudiowrt-player",
-    "audiowrt-player-flac", "luci-app-audiowrt-renderer",
-    "audiowrt-usb-audio", "kmod-usb-audio"
+    "audiowrt-player-flac", "audiowrt-player-mp3", "audiowrt-player-wav",
+    "luci-app-audiowrt-renderer", "audiowrt-usb-audio", "kmod-usb-audio"
 } <= added
 assert {
     "alsa-lib", "wpad-basic-mbedtls", "mpd-mini",
     "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli", "audiowrt-mpd",
     "minidlna", "umdns", "audiowrt-umdns", "dnsmasq", "kmod-bluetooth",
-    "kmod-audiowrt-bluetooth", "audiowrt-player-mp3", "libmpg123", "libltdl"
+    "kmod-audiowrt-bluetooth", "libmpg123", "libltdl"
 } <= removed
 assert not ({
-    "audiowrt-player-mp3", "audiowrt-player-aac", "audiowrt-player-wav", "mpd-mini", "upmpdcli", "umdns",
+    "audiowrt-player-aac", "audiowrt-player-vorbis", "mpd-mini", "upmpdcli", "umdns",
     "audiowrt-bluetooth", "audiowrt-bluez", "bluez-libs",
     "audiowrt-btctl", "sbc", "bluez-alsa",
     "kmod-sound-midi2", "kmod-sound-midi2-usb"

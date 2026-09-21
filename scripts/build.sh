@@ -573,15 +573,13 @@ prepare_native_player_sdk() {
     fi
 
     if [[ " ${firmware_packages[*]} " == *" audiowrt-player-mp3 "* ]]; then
-        local mpg123_src
-        make_run "$sdk_dir" package/feeds/packages/mpg123/prepare NO_DEPS=1 -j"$jobs"
-        mpg123_src="$(prepared_source_dir mpg123)"
+        local mad_src
+        make_run "$sdk_dir" package/feeds/packages/libmad/prepare NO_DEPS=1 -j"$jobs"
+        mad_src="$(prepared_source_dir libmad)"
         mkdir -p "$target_staging/usr/include"
-        cp -f "$mpg123_src/src/include/mpg123.h" "$target_staging/usr/include/mpg123.h"
-        cp -f "$mpg123_src/src/include/fmt123.h" "$target_staging/usr/include/fmt123.h"
-        stage_official_link_stub libmpg123 packages 'libmpg123.so.*' libmpg123.so "$target_staging" \
-            mpg123_init mpg123_new mpg123_format_none mpg123_rates mpg123_format \
-            mpg123_open_fd mpg123_read mpg123_getformat mpg123_close mpg123_delete mpg123_exit
+        copy_single_header "$mad_src" mad.h "$target_staging/usr/include/mad.h"
+        stage_official_link_stub libmad packages 'libmad.so.*' libmad.so "$target_staging" \
+            mad_decoder_init mad_decoder_run mad_decoder_finish mad_stream_buffer
     fi
 
     if [[ " ${firmware_packages[*]} " == *" audiowrt-player-aac "* ]]; then
@@ -593,6 +591,23 @@ prepare_native_player_sdk() {
         stage_official_link_stub libfaad2 packages 'libfaad.so.*' libfaad.so "$target_staging" \
             NeAACDecOpen NeAACDecGetCurrentConfiguration NeAACDecSetConfiguration \
             NeAACDecInit NeAACDecDecode NeAACDecClose
+    fi
+
+    if [[ " ${firmware_packages[*]} " == *" audiowrt-player-vorbis "* ]]; then
+        local ogg_src vorbis_src
+        make_run "$sdk_dir" package/feeds/packages/libogg/prepare NO_DEPS=1 -j"$jobs"
+        make_run "$sdk_dir" package/feeds/packages/libvorbis/prepare NO_DEPS=1 -j"$jobs"
+        ogg_src="$(prepared_source_dir libogg)"
+        vorbis_src="$(prepared_source_dir libvorbis)"
+        mkdir -p "$target_staging/usr/include/ogg" "$target_staging/usr/include/vorbis"
+        cp -f "$ogg_src"/include/ogg/*.h "$target_staging/usr/include/ogg/"
+        cp -f "$vorbis_src"/include/vorbis/*.h "$target_staging/usr/include/vorbis/"
+        [[ -f "$target_staging/usr/include/vorbis/vorbisfile.h" ]] || {
+            echo "ERROR: Vorbis headers were not staged." >&2
+            exit 5
+        }
+        stage_official_link_stub libvorbis packages 'libvorbisfile.so.*' libvorbisfile.so "$target_staging" \
+            ov_open_callbacks ov_read ov_info ov_clear
     fi
 }
 
@@ -721,7 +736,8 @@ if [[ " ${firmware_packages[*]} " == *" libaudiowrt-player "* ||
       " ${firmware_packages[*]} " == *" audiowrt-player-flac "* ||
       " ${firmware_packages[*]} " == *" audiowrt-player-mp3 "* ||
       " ${firmware_packages[*]} " == *" audiowrt-player-aac "* ||
-      " ${firmware_packages[*]} " == *" audiowrt-player-wav "* ]]; then
+      " ${firmware_packages[*]} " == *" audiowrt-player-wav "* ||
+      " ${firmware_packages[*]} " == *" audiowrt-player-vorbis "* ]]; then
     native_player_sdk=1
 fi
 # The constrained AudioWRT Wi-Fi provider is one multicall wpad binary built
@@ -747,10 +763,14 @@ if (( native_player_sdk )); then
         register_official_sdk_source packages libs/flac
     fi
     if [[ " ${firmware_packages[*]} " == *" audiowrt-player-mp3 "* ]]; then
-        register_official_sdk_source packages sound/mpg123
+        register_official_sdk_source packages libs/libmad
     fi
     if [[ " ${firmware_packages[*]} " == *" audiowrt-player-aac "* ]]; then
         register_official_sdk_source packages libs/faad2
+    fi
+    if [[ " ${firmware_packages[*]} " == *" audiowrt-player-vorbis "* ]]; then
+        register_official_sdk_source packages libs/libogg
+        register_official_sdk_source packages libs/libvorbis
     fi
 fi
 

@@ -18,14 +18,14 @@ Runtime mapping:
 | SSH server | `dropbear` | `dropbear` |
 | Wi-Fi station | `audiowrt-wpad` | `wpad-basic-mbedtls` |
 | Renderer + discovery | `audiowrt-renderer` | `audiowrt-renderer` |
-| Native codec players | FLAC + MP3 | FLAC + MP3 + AAC + WAV |
+| Native codec players | FLAC + MP3 + WAV | FLAC + MP3 + WAV + Vorbis + AAC |
 | Renderer configuration | `luci-app-audiowrt-renderer` | `luci-app-audiowrt-renderer` |
 
-`audiowrt-renderer` is the public network-audio service. One small daemon owns SSDP/DLNA, the UPnP MediaRenderer control services, minimal authoritative mDNS/DNS-SD for the AudioWRT hostname and LuCI service, codec/player autodetection, custom player overrides and playback status. A separate `umdns` daemon is not part of the default runtime.
+`audiowrt-renderer` is the public network-audio service. One small daemon owns SSDP/DLNA, the UPnP MediaRenderer control services, minimal authoritative mDNS/DNS-SD for the AudioWRT hostname and LuCI service, the UCI codec/player registry, default/fallback player selection and playback status. A separate `umdns` daemon is not part of the default runtime.
 
-The renderer discovers installed `audiowrt-player-*` packages at runtime and advertises only codecs that are actually available. Official players use `libuclient` in-process for HTTP/HTTPS streaming, decode directly with their codec library and write PCM through ALSA.
+Player packages register codec MIME/extension metadata and their executable in `/etc/config/audiowrt`. The renderer hot-reloads that registry and advertises only codecs with an available compatible player. Official players use `libuclient` in-process for HTTP/HTTPS streaming, decode directly with their codec library and write PCM through ALSA.
 
-MPD and `upmpdcli` are no longer part of the default AudioWRT renderer stack. MPD remains installable as an optional external player and can be associated with a codec through the renderer LuCI custom-player override. A custom mapping takes precedence while the autodetected AudioWRT player remains registered as the fallback.
+MPD and `upmpdcli` are no longer part of the default AudioWRT renderer stack. MPD, VLC or another engine can be integrated through a wrapper that obeys the common `player <URL>` foreground contract and registers its supported codecs. LuCI selects the default player per codec; other compatible players remain automatic fallbacks.
 
 Selectable capability groups are:
 
