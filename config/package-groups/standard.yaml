@@ -8,8 +8,13 @@ packages_add:
   - audiowrt-player-flac
   - audiowrt-player-mp3
   - audiowrt-player-aac
+  - audiowrt-player-m4a
+  - audiowrt-player-lpcm
   - audiowrt-player-wav
   - audiowrt-player-vorbis
+  - audiowrt-player-aiff
+  - audiowrt-player-opus
+  - audiowrt-player-ffmpeg
 packages_remove:
   - libaudiowrt-alsa-minimal
   - audiowrt-wpad
