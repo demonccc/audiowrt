@@ -36,13 +36,18 @@ if grep -Fq './scripts/feeds install -a' "$build_script"; then
     exit 1
 fi
 
-grep -Fq './scripts/feeds update packages audiowrt' "$build_script" || {
-    echo "ERROR: core SDK setup must update only packages helpers and the AudioWRT feed." >&2
+grep -Fq './scripts/feeds update base packages audiowrt' "$build_script" || {
+    echo "ERROR: SDK setup must update the official base, packages, and AudioWRT feeds." >&2
+    exit 1
+}
+
+grep -Fq './scripts/feeds install "${build_packages[@]}"' "$build_script" || {
+    echo "ERROR: selected AudioWRT packages must register their runtime dependency source definitions." >&2
     exit 1
 }
 
 grep -Fq 'ln -s "$source_path" "$destination"' "$build_script" || {
-    echo "ERROR: AudioWRT feed sources must be registered without recursive feeds install." >&2
+    echo "ERROR: AudioWRT target sources must remain explicitly registered from the selected feed." >&2
     exit 1
 }
 
