@@ -816,6 +816,33 @@ printf '\n# AudioWRT reusable packages\nsrc-git audiowrt %s\n' "$feed_source" >>
 )
 audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
 
+# Install the selected AudioWRT roots before linking every AudioWRT source into
+# package/feeds. OpenWrt's feed installer skips dependency traversal when it
+# sees a source package as already installed, so doing this after source
+# registration silently leaves runtime dependency symbols out of Kconfig.
+declare -A firmware_package_selected=()
+for package in "${firmware_packages[@]}"; do
+    firmware_package_selected["$package"]=1
+done
+
+audio_feed_roots=()
+while IFS='|' read -r package target_path extra; do
+    [[ -n "$package" && "$package" != \#* ]] || continue
+    [[ "$target_path" == package/feeds/audiowrt/*/compile ]] || continue
+    if [[ -n "${firmware_package_selected[$package]+x}" ]]; then
+        audio_feed_roots+=("$package")
+    fi
+done < "$repo_root/config/build/package-build-targets"
+
+if [[ "${#audio_feed_roots[@]}" -gt 0 ]]; then
+    printf 'Installing selected AudioWRT feed roots and registering their dependency sources:\n'
+    printf '  %s\n' "${audio_feed_roots[@]}"
+    (
+        cd "$sdk_dir"
+        ./scripts/feeds install "${audio_feed_roots[@]}"
+    )
+fi
+
 native_player_sdk=0
 hostap_sdk=0
 if [[ " ${firmware_packages[*]} " == *" libaudiowrt-player "* ||
@@ -874,9 +901,8 @@ if [[ " ${firmware_packages[*]} " == *" kmod-audiowrt-bluetooth "* ]]; then
 fi
 
 # Register all AudioWRT target source directories so the resolver can see the
-# complete package graph. Selected packages and their dependency definitions
-# are installed through scripts/feeds below; installation registers sources but
-# does not compile them.
+# complete package graph. Selected roots and dependency definitions were
+# installed above; feed installation registers sources but does not compile.
 mkdir -p "$sdk_dir/package/feeds/audiowrt"
 : > "$registered_sources"
 while IFS='|' read -r package target_path extra; do
@@ -1024,22 +1050,22 @@ if [[ "${#source_packages[@]}" -gt 0 ]]; then
     fi
 fi
 
-# Register selected packages through the standard OpenWrt feed installer. This
-# installs source definitions for their runtime dependencies so Kconfig can
-# retain the package symbols. Feed installation does not compile packages; all
-# package targets below continue to use NO_DEPS=1, so official dependencies
-# remain release binaries in the resulting image.
-(
-    cd "$sdk_dir"
-    ./scripts/feeds install "${build_packages[@]}"
-)
-
-# Feed installation may add new Kconfig symbols. Re-enable the selected AudioWRT
-# package symbols and regenerate OpenWrt's config outputs before invoking package
-# targets; SDK make re-runs defconfig for every target.
+# Re-enable all resolved package symbols and regenerate OpenWrt's config outputs
+# before invoking package targets; SDK make re-runs defconfig for every target.
 python3 "$repo_root/scripts/select-sdk-packages.py" \
     "$sdk_dir/.config" "${build_packages[@]}"
 make_run "$sdk_dir" defconfig
+
+# Never let Kconfig silently turn a selected package target into a no-op. This
+# check catches missing or unsatisfied package definitions before toolchain or
+# AudioWRT package targets run.
+for package in "${build_packages[@]}"; do
+    if ! grep -Fxq "CONFIG_PACKAGE_${package}=m" "$sdk_dir/include/config/auto.conf" &&
+       ! grep -Fxq "CONFIG_PACKAGE_${package}=y" "$sdk_dir/include/config/auto.conf"; then
+        echo "ERROR: OpenWrt Kconfig did not enable selected AudioWRT package: $package" >&2
+        exit 5
+    fi
+done
 
 # The SDK ships the target toolchain itself, but package dependency checking
 # needs its libc/libgcc package metadata staged before NO_DEPS packages are

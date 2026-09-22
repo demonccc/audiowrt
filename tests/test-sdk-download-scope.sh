@@ -36,8 +36,8 @@ grep -Fq './scripts/feeds update base packages audiowrt' "$build_script" || {
     echo "ERROR: core builds must update the official base, package-helper, and AudioWRT feeds." >&2
     exit 1
 }
-grep -Fq './scripts/feeds install "${build_packages[@]}"' "$build_script" || {
-    echo "ERROR: selected package runtime dependency sources must be registered for Kconfig." >&2
+grep -Fq './scripts/feeds install "${audio_feed_roots[@]}"' "$build_script" || {
+    echo "ERROR: selected AudioWRT roots must install dependency sources for Kconfig." >&2
     exit 1
 }
 

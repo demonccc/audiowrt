@@ -41,8 +41,8 @@ grep -Fq './scripts/feeds update base packages audiowrt' "$build_script" || {
     exit 1
 }
 
-grep -Fq './scripts/feeds install "${build_packages[@]}"' "$build_script" || {
-    echo "ERROR: selected AudioWRT packages must register their runtime dependency source definitions." >&2
+grep -Fq './scripts/feeds install "${audio_feed_roots[@]}"' "$build_script" || {
+    echo "ERROR: selected AudioWRT roots must register runtime dependency source definitions." >&2
     exit 1
 }
 
