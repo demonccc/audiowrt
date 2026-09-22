@@ -788,10 +788,9 @@ prepare_hostap_sdk() {
 
 # Keep the SDK's official exact-release feed configuration intact. We only
 # update the feeds whose source trees are needed by AudioWRT package Makefiles:
-# packages (for shared build helpers such as rust-package.mk) and audiowrt.
-# The base feed remains available in feeds.conf for provenance/lazy source
-# dependency resolution, but it is not installed into the SDK package tree for
-# package-only builds.
+# base, packages (for shared build helpers such as rust-package.mk), and
+# audiowrt. Base source definitions let Kconfig retain selected AudioWRT
+# packages with official runtime dependencies such as uci.
 [[ -s "$sdk_dir/feeds.conf.default" ]] || {
     echo "ERROR: official OpenWrt SDK is missing feeds.conf.default." >&2
     exit 5
@@ -813,7 +812,7 @@ printf '\n# AudioWRT reusable packages\nsrc-git audiowrt %s\n' "$feed_source" >>
 
 (
     cd "$sdk_dir"
-    ./scripts/feeds update packages audiowrt
+    ./scripts/feeds update base packages audiowrt
 )
 audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
 
@@ -833,13 +832,6 @@ fi
 # without turning OpenWrt runtime dependencies into source-build roots.
 if [[ " ${firmware_packages[*]} " == *" audiowrt-wpad "* ]]; then
     hostap_sdk=1
-fi
-
-if (( native_player_sdk || hostap_sdk )); then
-    (
-        cd "$sdk_dir"
-        ./scripts/feeds update base
-    )
 fi
 
 if (( native_player_sdk )); then
@@ -881,10 +873,10 @@ if [[ " ${firmware_packages[*]} " == *" kmod-audiowrt-bluetooth "* ]]; then
     prepare_bluetooth_package
 fi
 
-# Register only AudioWRT feed source directories. Do not call scripts/feeds
-# install for package-only AudioWRT packages because that recursively installs
-# runtime dependencies (hostapd, uhttpd, kernel libraries, etc.) as
-# source packages and causes the SDK to rebuild them.
+# Register all AudioWRT target source directories so the resolver can see the
+# complete package graph. Selected packages and their dependency definitions
+# are installed through scripts/feeds below; installation registers sources but
+# does not compile them.
 mkdir -p "$sdk_dir/package/feeds/audiowrt"
 : > "$registered_sources"
 while IFS='|' read -r package target_path extra; do
@@ -1032,14 +1024,22 @@ if [[ "${#source_packages[@]}" -gt 0 ]]; then
     fi
 fi
 
-# Kconfig drops selected AudioWRT wrappers when their official runtime
-# dependency sources are intentionally absent from the SDK's package tree.
-# Keep the SDK build boundary intact: restore only our selected package symbols
-# after the last defconfig, then compile those targets with the existing
-# NO_DEPS=1 policy. Their APK metadata still comes from the real package
-# Makefiles and retains the official runtime dependencies for ImageBuilder.
+# Register selected packages through the standard OpenWrt feed installer. This
+# installs source definitions for their runtime dependencies so Kconfig can
+# retain the package symbols. Feed installation does not compile packages; all
+# package targets below continue to use NO_DEPS=1, so official dependencies
+# remain release binaries in the resulting image.
+(
+    cd "$sdk_dir"
+    ./scripts/feeds install "${build_packages[@]}"
+)
+
+# Feed installation may add new Kconfig symbols. Re-enable the selected AudioWRT
+# package symbols and regenerate OpenWrt's config outputs before invoking package
+# targets; SDK make re-runs defconfig for every target.
 python3 "$repo_root/scripts/select-sdk-packages.py" \
     "$sdk_dir/.config" "${build_packages[@]}"
+make_run "$sdk_dir" defconfig
 
 # The SDK ships the target toolchain itself, but package dependency checking
 # needs its libc/libgcc package metadata staged before NO_DEPS packages are
