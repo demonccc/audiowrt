@@ -1032,6 +1032,15 @@ if [[ "${#source_packages[@]}" -gt 0 ]]; then
     fi
 fi
 
+# Kconfig drops selected AudioWRT wrappers when their official runtime
+# dependency sources are intentionally absent from the SDK's package tree.
+# Keep the SDK build boundary intact: restore only our selected package symbols
+# after the last defconfig, then compile those targets with the existing
+# NO_DEPS=1 policy. Their APK metadata still comes from the real package
+# Makefiles and retains the official runtime dependencies for ImageBuilder.
+python3 "$repo_root/scripts/select-sdk-packages.py" \
+    "$sdk_dir/.config" "${build_packages[@]}"
+
 # The SDK ships the target toolchain itself, but package dependency checking
 # needs its libc/libgcc package metadata staged before NO_DEPS packages are
 # emitted. Build this metadata once instead of letting every AudioWRT package
