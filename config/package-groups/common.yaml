@@ -3,6 +3,8 @@ packages_add:
   - audiowrt-branding
   - audiowrt-busybox
   - audiowrt-core
+  - audiowrt-config
+  - audiowrt-identity
   - audiowrt-provisioning
   - audiowrt-audio
   - audiowrt-extensions

@@ -9,12 +9,12 @@ trap 'rm -rf "$tmp"' EXIT
 
 cat > "$tmp/targets" <<'EOF'
 audiowrt-core|package/feeds/audiowrt/audiowrt-core/compile
+audiowrt-config|package/feeds/audiowrt/audiowrt-config/compile
+audiowrt-identity|package/feeds/audiowrt/audiowrt-identity/compile
 audiowrt-busybox|package/feeds/audiowrt/audiowrt-busybox/compile
 audiowrt-provisioning|package/feeds/audiowrt/audiowrt-provisioning/compile
 audiowrt-wpad|package/feeds/audiowrt/audiowrt-wpad/compile
 audiowrt-udhcpd|package/feeds/audiowrt/audiowrt-udhcpd/compile
-audiowrt-storage|package/feeds/audiowrt/audiowrt-storage/compile
-audiowrt-storage-luci|package/feeds/audiowrt/luci-app-audiowrt-storage/compile
 kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
 kmod-audiowrt-sound-core|package/feeds/audiowrt/packages/audiowrt-kmod-sound-core/compile
 kmod-audiowrt-usb-audio|package/feeds/audiowrt/packages/audiowrt-kmod-usb-audio/compile
@@ -45,7 +45,7 @@ EOF
 
 cat > "$tmp/packageinfo" <<'EOF'
 Package: audiowrt-core
-Depends: +libc +audiowrt-audio
+Depends: +libc +audiowrt-audio +audiowrt-identity
 Package: audiowrt-busybox
 Depends: +libc
 Package: audiowrt-provisioning
@@ -55,16 +55,16 @@ Depends: +libnl-tiny +hostapd-common +libubus +libucode +libmbedtls
 Provides: hostapd wpa-supplicant
 Package: audiowrt-udhcpd
 Depends: +audiowrt-busybox
-Package: audiowrt-storage
-Depends: +audiowrt-core +block-mount +kmod-usb-storage +kmod-fs-ext4 +e2fsprogs
-Package: audiowrt-storage-luci
-Depends: +luci-base +rpcd-mod-file +luci-app-audiowrt +audiowrt-storage
+Package: audiowrt-config
+Depends: +uci
+Package: audiowrt-identity
+Depends: +libc
 Package: audiowrt-audio
 Depends: +uci
 Package: audiowrt-extensions
 Depends: +audiowrt-audio +apk-mbedtls
 Package: audiowrt-wifi-client
-Depends: +uci +ubus +rpcd-mod-iwinfo +wpa-supplicant
+Depends: +audiowrt-config +uci +ubus +rpcd-mod-iwinfo +wpa-supplicant
 Package: luci-app-audiowrt-wifi-client
 Depends: +luci-base +audiowrt-wifi-client
 Package: audiowrt-spotify
@@ -165,10 +165,7 @@ for player in audiowrt-player-mp3 audiowrt-player-aac audiowrt-player-m4a audiow
     grep -q "^${player}|" "$out"
 done
 
-python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-core audiowrt-storage-luci > "$tmp/storage"
-grep -q '^audiowrt-storage|' "$tmp/storage"
-grep -q '^audiowrt-storage-luci|' "$tmp/storage"
+
 
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
     audiowrt-core audiowrt-extensions audiowrt-spotify > "$tmp/spotify"

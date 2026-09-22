@@ -1217,7 +1217,13 @@ while IFS= read -r package; do package_args+=("$package"); done < <(read_package
 while IFS= read -r package; do package_args+=("-$package"); done < <(read_package_file "$packages_remove_file")
 package_string="${package_args[*]}"
 
+image_defaults_dir="$work_dir/image-defaults"
+rm -rf "$image_defaults_dir"
+python3 "$repo_root/scripts/prepare-image-defaults.py" \
+    "$packages_add_file" "$sdk_dir/feeds/audiowrt" "$image_defaults_dir"
+
 image_args=(
+    "FILES=$image_defaults_dir"
     "PROFILE=$platform"
     "PACKAGES=$package_string"
     "BIN_DIR=$output_dir"

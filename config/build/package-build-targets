@@ -7,11 +7,11 @@
 # source and may traverse the SDK build dependency graph when selected.
 
 audiowrt-branding|package/feeds/audiowrt/audiowrt-branding/compile
+audiowrt-config|package/feeds/audiowrt/audiowrt-config/compile
+audiowrt-identity|package/feeds/audiowrt/audiowrt-identity/compile
 audiowrt-core|package/feeds/audiowrt/audiowrt-core/compile
 audiowrt-provisioning|package/feeds/audiowrt/audiowrt-provisioning/compile
-audiowrt-storage|package/feeds/audiowrt/audiowrt-storage/compile
 luci-app-audiowrt-core|package/feeds/audiowrt/luci-app-audiowrt-core/compile
-audiowrt-storage-luci|package/feeds/audiowrt/luci-app-audiowrt-storage/compile
 kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
 
 audiowrt-busybox|package/feeds/audiowrt/audiowrt-busybox/compile
