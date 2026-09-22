@@ -67,6 +67,9 @@ jobs:
       - name: Test SDK package-only build boundary
         run: bash tests/test-sdk-download-scope.sh
 
+      - name: Test SDK package selection after defconfig
+        run: bash tests/test-sdk-package-selection.sh
+
       - name: Test runtime ELF link-stub generation
         run: bash tests/test-elf-link-stub.sh
 
