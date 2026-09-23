@@ -193,4 +193,26 @@ if grep -Eq '^(audiowrt-spotify|librespot)\|' "$tmp/bluetooth"; then
     exit 1
 fi
 
+# A single BlueZ source target must not inherit the unrelated profile roots.
+python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
+    audiowrt-bluez \
+    --providers audiowrt-sbc audiowrt-bluez audiowrt-btctl bluez-alsa audiowrt-bluetooth kmod-audiowrt-bluetooth > "$tmp/bluez-target"
+grep -q '^audiowrt-bluez|' "$tmp/bluez-target"
+if grep -Eq '^(audiowrt-sbc|audiowrt-btctl|bluez-alsa|audiowrt-bluetooth|kmod-audiowrt-bluetooth)\|' "$tmp/bluez-target"; then
+    echo "ERROR: compiling the audiowrt-bluez target selected unrelated AudioWRT targets." >&2
+    cat "$tmp/bluez-target" >&2
+    exit 1
+fi
+
+python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
+    bluez-alsa \
+    --providers audiowrt-sbc audiowrt-bluez audiowrt-btctl bluez-alsa audiowrt-bluetooth kmod-audiowrt-bluetooth > "$tmp/bluez-alsa-target"
+grep -q '^audiowrt-bluez|' "$tmp/bluez-alsa-target"
+grep -q '^audiowrt-sbc|' "$tmp/bluez-alsa-target"
+if grep -Eq '^(audiowrt-btctl|audiowrt-bluetooth|kmod-audiowrt-bluetooth)\|' "$tmp/bluez-alsa-target"; then
+    echo "ERROR: compiling bluez-alsa selected unrelated AudioWRT targets." >&2
+    cat "$tmp/bluez-alsa-target" >&2
+    exit 1
+fi
+
 printf 'Package build selection tests passed.\n'
