@@ -158,10 +158,12 @@ removed = set(data["packages_remove"])
 assert {
     "libaudiowrt-alsa-minimal", "libmbedtls21", "dropbear",
     "audiowrt-wpad", "audiowrt-renderer", "libaudiowrt-player",
-    "audiowrt-player-flac", "audiowrt-player-mp3", "audiowrt-player-aac",
+    "audiowrt-player-flac", "audiowrt-player-aac",
     "audiowrt-player-m4a", "audiowrt-player-lpcm", "audiowrt-player-wav",
     "luci-app-audiowrt-renderer", "kmod-audiowrt-bluetooth"
 } <= added
+assert "audiowrt-player-mp3" not in added
+assert "audiowrt-player-mp3" in removed
 assert {
     "alsa-lib", "wpad-basic-mbedtls", "mpd-mini",
     "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli", "audiowrt-mpd",
