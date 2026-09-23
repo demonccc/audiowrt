@@ -1071,9 +1071,35 @@ fi
 # run only after earlier AudioWRT providers (for example minimal ALSA and SBC)
 # have installed their Build/InstallDev output into the SDK staging directory.
 for target_path in "${ordered_targets[@]}"; do
+    target_roots=()
+    for spec in "${build_specs[@]}"; do
+        [[ "${spec#*|}" == "$target_path" ]] || continue
+        target_roots+=("${spec%%|*}")
+    done
+    [[ "${#target_roots[@]}" -gt 0 ]] || {
+        echo "ERROR: no AudioWRT packages map to SDK target $target_path." >&2
+        exit 5
+    }
+
+    target_build_plan="$work_dir/target-build-plan.txt"
+    python3 "$repo_root/scripts/resolve-package-build-targets.py" \
+        "$repo_root/config/build/package-build-targets" \
+        "$packageinfo" \
+        "${target_roots[@]}" \
+        --providers "${build_packages[@]}" > "$target_build_plan"
+    mapfile -t target_build_specs < "$target_build_plan"
+    declare -A target_package_seen=()
+    for spec in "${target_build_specs[@]}"; do
+        target_package_seen["${spec%%|*}"]=1
+    done
+
     target_package_config_args=()
     for package in "${build_packages[@]}"; do
-        target_package_config_args+=("CONFIG_PACKAGE_${package}=m")
+        if [[ -n "${target_package_seen[$package]+x}" ]]; then
+            target_package_config_args+=("CONFIG_PACKAGE_${package}=m")
+        else
+            target_package_config_args+=("CONFIG_PACKAGE_${package}=n")
+        fi
     done
 
     if [[ -n "${source_target_seen[$target_path]+x}" ]]; then
