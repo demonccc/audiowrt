@@ -1,5 +1,7 @@
 AUDIOWRT_PROFILE ?= tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
 AUDIOWRT_PACKAGES_REF ?= main
+PROVISIONING_IP ?= 192.168.77.1
+export PROVISIONING_IP
 JOBS ?=
 VERBOSITY ?= normal
 LOG_FILE ?=
@@ -12,7 +14,7 @@ help:
 	@printf '%s\n' \
 	  'AudioWRT build targets:' \
 	  '' \
-	  '  make build AUDIOWRT_PROFILE=<profile> [AUDIOWRT_PACKAGES_REF=main] [JOBS=N] [VERBOSITY=normal|verbose|debug] [LOG_FILE=logs/build.log] [CACHE_DIR=.cache/audiowrt]' \
+	  '  make build AUDIOWRT_PROFILE=<profile> [PROVISIONING_IP=192.168.77.1] [AUDIOWRT_PACKAGES_REF=main] [JOBS=N] [VERBOSITY=normal|verbose|debug] [LOG_FILE=logs/build.log] [CACHE_DIR=.cache/audiowrt]' \
 	  '  make packages AUDIOWRT_PROFILE=<profile> PACKAGE="<all|package-name ...>" [AUDIOWRT_PACKAGES_REF=main] [JOBS=N] [VERBOSITY=normal|verbose|debug] [CACHE_DIR=.cache/audiowrt]' \
 	  '  make package ...  (alias of make packages)' \
 	  '  make clean' \
