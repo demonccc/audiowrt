@@ -131,11 +131,11 @@ grep -Fq 'if [[ -n "${source_target_seen[$target_path]+x}" ]]; then' "$build_scr
     echo "ERROR: ordered builds must distinguish genuine source targets." >&2
     exit 1
 }
-grep -Fq 'make_run "$sdk_dir" "${package_config_args[@]}" "$target_path" NO_DEPS=1 -j"$jobs"' "$build_script" || {
+grep -Fq 'make_run "$sdk_dir" "${target_package_config_args[@]}" "$target_path" NO_DEPS=1 -j"$jobs"' "$build_script" || {
     echo "ERROR: package-only compile targets must use NO_DEPS=1." >&2
     exit 1
 }
-grep -Fq 'make_run "$sdk_dir" "${package_config_args[@]}" "$target_path" -j"$jobs"' "$build_script" || {
+grep -Fq 'make_run "$sdk_dir" "${target_package_config_args[@]}" "$target_path" -j"$jobs"' "$build_script" || {
     echo "ERROR: genuine AudioWRT source packages must keep their explicit development dependency path." >&2
     exit 1
 }
