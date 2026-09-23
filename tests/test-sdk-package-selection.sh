@@ -9,6 +9,7 @@ build_script="$repo_root/scripts/build.sh"
 grep -Fq 'package_config_args+=("CONFIG_PACKAGE_${package}=m")' "$build_script"
 grep -Fq '"${package_config_args[@]}" "${download_targets[@]}" NO_DEPS=1' "$build_script"
 grep -Fq 'target_package_config_args+=("CONFIG_PACKAGE_${package}=m")' "$build_script"
+grep -Fq 'target_package_config_args+=("CONFIG_PACKAGE_${package}=n")' "$build_script"
 grep -Fq '"${target_package_config_args[@]}" "$target_path" NO_DEPS=1' "$build_script"
 grep -Fq '"${target_package_config_args[@]}" "$target_path" -j"$jobs"' "$build_script"
 if grep -Fq '"${package_config_args[@]}" "$target_path"' "$build_script"; then

@@ -1072,10 +1072,19 @@ fi
 # have installed their Build/InstallDev output into the SDK staging directory.
 for target_path in "${ordered_targets[@]}"; do
     target_package_config_args=()
+    target_packages=()
     for spec in "${build_specs[@]}"; do
-        [[ "${spec#*|}" == "$target_path" ]] || continue
         package="${spec%%|*}"
-        target_package_config_args+=("CONFIG_PACKAGE_${package}=m")
+        if [[ "${spec#*|}" == "$target_path" ]]; then
+            target_packages+=("$package")
+        fi
+    done
+    for package in "${build_packages[@]}"; do
+        if [[ " ${target_packages[*]} " == *" $package "* ]]; then
+            target_package_config_args+=("CONFIG_PACKAGE_${package}=m")
+        else
+            target_package_config_args+=("CONFIG_PACKAGE_${package}=n")
+        fi
     done
 
     if [[ -n "${source_target_seen[$target_path]+x}" ]]; then
