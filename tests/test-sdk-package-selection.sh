@@ -8,8 +8,13 @@ build_script="$repo_root/scripts/build.sh"
 
 grep -Fq 'package_config_args+=("CONFIG_PACKAGE_${package}=m")' "$build_script"
 grep -Fq '"${package_config_args[@]}" "${download_targets[@]}" NO_DEPS=1' "$build_script"
-grep -Fq '"${package_config_args[@]}" "$target_path" NO_DEPS=1' "$build_script"
-grep -Fq '"${package_config_args[@]}" "$target_path" -j"$jobs"' "$build_script"
+grep -Fq 'target_package_config_args+=("CONFIG_PACKAGE_${package}=m")' "$build_script"
+grep -Fq '"${target_package_config_args[@]}" "$target_path" NO_DEPS=1' "$build_script"
+grep -Fq '"${target_package_config_args[@]}" "$target_path" -j"$jobs"' "$build_script"
+if grep -Fq '"${package_config_args[@]}" "$target_path"' "$build_script"; then
+    echo "ERROR: each SDK compile target must receive only its own AudioWRT package symbols." >&2
+    exit 1
+fi
 grep -Fq 'OpenWrt still writes the original DEPENDS metadata into the APK' "$build_script"
 
 if grep -Eq 'feeds install.*(build_packages|audio_feed_roots)' "$build_script"; then
@@ -21,4 +26,4 @@ if grep -Fq 'include/config/auto.conf' "$build_script"; then
     exit 1
 fi
 
-printf 'SDK passes selected AudioWRT symbols directly to download and compile targets.\n'
+printf 'SDK downloads all selected targets and scopes compile symbols to each target.\n'
