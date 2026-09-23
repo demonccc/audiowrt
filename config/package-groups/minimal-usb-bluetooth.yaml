@@ -6,6 +6,8 @@ packages_add:
   - kmod-audiowrt-bluetooth
 packages_remove:
   - audiowrt-player-mp3
+  - audiowrt-player-aac
+  - audiowrt-player-m4a
   - kmod-bluetooth
   - kmod-btusb
   - kmod-btmtk
