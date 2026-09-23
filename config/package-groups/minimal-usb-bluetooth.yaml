@@ -5,6 +5,7 @@ packages_add:
   - audiowrt-bluetooth
   - kmod-audiowrt-bluetooth
 packages_remove:
+  - audiowrt-player-mp3
   - kmod-bluetooth
   - kmod-btusb
   - kmod-btmtk
