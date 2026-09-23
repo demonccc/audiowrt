@@ -40,7 +40,7 @@ Package groups may declare `include` entries to reuse another package group. Inc
 
 The three `minimal-*` groups include `minimal`. The three standard `usb-*` groups include `standard`. This keeps runtime implementation policy separate from USB audio/Bluetooth capability selection and avoids relying on include ordering to choose core implementations.
 
-`minimal-usb-bluetooth` removes `audiowrt-player-mp3` from the shared minimal set to reduce flash use on constrained Bluetooth devices. Other minimal groups retain MP3.
+`minimal-usb-bluetooth` removes the MP3, AAC and M4A players from the shared minimal set to reduce flash use on constrained Bluetooth devices. Other minimal groups retain them.
 
 A profile selects the package group or groups it needs through `package_groups`. Package groups define package selection only. Device-specific exceptions belong in the profile's `packages_add` / `packages_remove` overrides.
 

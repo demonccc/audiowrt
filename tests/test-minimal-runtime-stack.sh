@@ -28,8 +28,6 @@ assert {
     "audiowrt-renderer",
     "libaudiowrt-player",
     "audiowrt-player-flac",
-    "audiowrt-player-aac",
-    "audiowrt-player-m4a",
     "audiowrt-player-lpcm",
     "audiowrt-player-wav",
     "luci-app-audiowrt-renderer",
@@ -37,6 +35,10 @@ assert {
 } <= added
 assert "audiowrt-player-mp3" not in added
 assert "audiowrt-player-mp3" in removed
+assert "audiowrt-player-aac" not in added
+assert "audiowrt-player-aac" in removed
+assert "audiowrt-player-m4a" not in added
+assert "audiowrt-player-m4a" in removed
 assert {
     "alsa-lib",
     "wpad-basic-mbedtls",
