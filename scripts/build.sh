@@ -788,9 +788,8 @@ prepare_hostap_sdk() {
 
 # Keep the SDK's official exact-release feed configuration intact. We only
 # update the feeds whose source trees are needed by AudioWRT package Makefiles:
-# base, packages (for shared build helpers such as rust-package.mk), and
-# audiowrt. Base source definitions let Kconfig retain selected AudioWRT
-# packages with official runtime dependencies such as uci.
+# packages (for shared build helpers such as rust-package.mk) and audiowrt.
+# Update base lazily only when source-build dependencies need it.
 [[ -s "$sdk_dir/feeds.conf.default" ]] || {
     echo "ERROR: official OpenWrt SDK is missing feeds.conf.default." >&2
     exit 5
@@ -812,36 +811,9 @@ printf '\n# AudioWRT reusable packages\nsrc-git audiowrt %s\n' "$feed_source" >>
 
 (
     cd "$sdk_dir"
-    ./scripts/feeds update base packages audiowrt
+    ./scripts/feeds update packages audiowrt
 )
 audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
-
-# Install the selected AudioWRT roots before linking every AudioWRT source into
-# package/feeds. OpenWrt's feed installer skips dependency traversal when it
-# sees a source package as already installed, so doing this after source
-# registration silently leaves runtime dependency symbols out of Kconfig.
-declare -A firmware_package_selected=()
-for package in "${firmware_packages[@]}"; do
-    firmware_package_selected["$package"]=1
-done
-
-audio_feed_roots=()
-while IFS='|' read -r package target_path extra; do
-    [[ -n "$package" && "$package" != \#* ]] || continue
-    [[ "$target_path" == package/feeds/audiowrt/*/compile ]] || continue
-    if [[ -n "${firmware_package_selected[$package]+x}" ]]; then
-        audio_feed_roots+=("$package")
-    fi
-done < "$repo_root/config/build/package-build-targets"
-
-if [[ "${#audio_feed_roots[@]}" -gt 0 ]]; then
-    printf 'Installing selected AudioWRT feed roots and registering their dependency sources:\n'
-    printf '  %s\n' "${audio_feed_roots[@]}"
-    (
-        cd "$sdk_dir"
-        ./scripts/feeds install "${audio_feed_roots[@]}"
-    )
-fi
 
 native_player_sdk=0
 hostap_sdk=0
@@ -901,8 +873,8 @@ if [[ " ${firmware_packages[*]} " == *" kmod-audiowrt-bluetooth "* ]]; then
 fi
 
 # Register all AudioWRT target source directories so the resolver can see the
-# complete package graph. Selected roots and dependency definitions were
-# installed above; feed installation registers sources but does not compile.
+# complete package graph. Only explicitly required source-build dependencies
+# are installed through the official feed installer below.
 mkdir -p "$sdk_dir/package/feeds/audiowrt"
 : > "$registered_sources"
 while IFS='|' read -r package target_path extra; do
@@ -1050,21 +1022,13 @@ if [[ "${#source_packages[@]}" -gt 0 ]]; then
     fi
 fi
 
-# Re-enable all resolved package symbols and regenerate OpenWrt's config outputs
-# before invoking package targets; SDK make re-runs defconfig for every target.
-python3 "$repo_root/scripts/select-sdk-packages.py" \
-    "$sdk_dir/.config" "${build_packages[@]}"
-make_run "$sdk_dir" defconfig
-
-# Never let Kconfig silently turn a selected package target into a no-op. This
-# check catches missing or unsatisfied package definitions before toolchain or
-# AudioWRT package targets run.
+# The SDK may omit a package symbol when its official runtime dependency source
+# is not installed. Pass the selected package symbols directly to each target;
+# OpenWrt still writes the original DEPENDS metadata into the APK, while NO_DEPS
+# prevents these runtime packages from being built from source.
+package_config_args=()
 for package in "${build_packages[@]}"; do
-    if ! grep -Fxq "CONFIG_PACKAGE_${package}=m" "$sdk_dir/include/config/auto.conf" &&
-       ! grep -Fxq "CONFIG_PACKAGE_${package}=y" "$sdk_dir/include/config/auto.conf"; then
-        echo "ERROR: OpenWrt Kconfig did not enable selected AudioWRT package: $package" >&2
-        exit 5
-    fi
+    package_config_args+=("CONFIG_PACKAGE_${package}=m")
 done
 
 # The SDK ships the target toolchain itself, but package dependency checking
@@ -1098,7 +1062,7 @@ for target_path in "${ordered_targets[@]}"; do
     download_targets+=("${target_path%/compile}/download")
 done
 if [[ "${#download_targets[@]}" -gt 0 ]]; then
-    make_run "$sdk_dir" "${download_targets[@]}" NO_DEPS=1 -j"$jobs"
+    make_run "$sdk_dir" "${package_config_args[@]}" "${download_targets[@]}" NO_DEPS=1 -j"$jobs"
 fi
 
 # Compile in the topological order emitted by resolve-package-build-targets.py.
@@ -1108,9 +1072,9 @@ fi
 # have installed their Build/InstallDev output into the SDK staging directory.
 for target_path in "${ordered_targets[@]}"; do
     if [[ -n "${source_target_seen[$target_path]+x}" ]]; then
-        make_run "$sdk_dir" "$target_path" -j"$jobs"
+        make_run "$sdk_dir" "${package_config_args[@]}" "$target_path" -j"$jobs"
     else
-        make_run "$sdk_dir" "$target_path" NO_DEPS=1 -j"$jobs"
+        make_run "$sdk_dir" "${package_config_args[@]}" "$target_path" NO_DEPS=1 -j"$jobs"
     fi
 done
 

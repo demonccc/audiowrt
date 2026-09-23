@@ -32,12 +32,8 @@ grep -Fq 'stage_official_link_stub libmbedtls21 base' "$build_script" || {
     exit 1
 }
 
-grep -Fq './scripts/feeds update base packages audiowrt' "$build_script" || {
-    echo "ERROR: core builds must update the official base, package-helper, and AudioWRT feeds." >&2
-    exit 1
-}
-grep -Fq './scripts/feeds install "${audio_feed_roots[@]}"' "$build_script" || {
-    echo "ERROR: selected AudioWRT roots must install dependency sources for Kconfig." >&2
+grep -Fq './scripts/feeds update packages audiowrt' "$build_script" || {
+    echo "ERROR: core builds must update the package-helper and AudioWRT feeds." >&2
     exit 1
 }
 
@@ -122,7 +118,7 @@ grep -Fq 'make_run "$sdk_dir" package/toolchain/compile NO_DEPS=1 -j"$jobs"' "$b
     exit 1
 }
 
-grep -Fq 'make_run "$sdk_dir" "${download_targets[@]}" NO_DEPS=1 -j"$jobs"' "$build_script" || {
+grep -Fq 'make_run "$sdk_dir" "${package_config_args[@]}" "${download_targets[@]}" NO_DEPS=1 -j"$jobs"' "$build_script" || {
     echo "ERROR: all selected package downloads must use NO_DEPS=1." >&2
     exit 1
 }
@@ -135,11 +131,11 @@ grep -Fq 'if [[ -n "${source_target_seen[$target_path]+x}" ]]; then' "$build_scr
     echo "ERROR: ordered builds must distinguish genuine source targets." >&2
     exit 1
 }
-grep -Fq 'make_run "$sdk_dir" "$target_path" NO_DEPS=1 -j"$jobs"' "$build_script" || {
+grep -Fq 'make_run "$sdk_dir" "${package_config_args[@]}" "$target_path" NO_DEPS=1 -j"$jobs"' "$build_script" || {
     echo "ERROR: package-only compile targets must use NO_DEPS=1." >&2
     exit 1
 }
-grep -Fq 'make_run "$sdk_dir" "$target_path" -j"$jobs"' "$build_script" || {
+grep -Fq 'make_run "$sdk_dir" "${package_config_args[@]}" "$target_path" -j"$jobs"' "$build_script" || {
     echo "ERROR: genuine AudioWRT source packages must keep their explicit development dependency path." >&2
     exit 1
 }
