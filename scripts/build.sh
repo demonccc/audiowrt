@@ -799,9 +799,9 @@ prepare_hostap_sdk() {
         "$target_staging" --provider-name libmbedtls --all-dynamic-symbols
 }
 
-# Keep the SDK's official exact-release feed configuration intact. We only
-# update the feeds whose source trees are needed by AudioWRT package Makefiles:
-# packages (for shared build helpers such as rust-package.mk) and audiowrt.
+# Keep the SDK's official exact-release feed configuration intact. Update only
+# source trees needed by AudioWRT package Makefiles: packages for shared build
+# helpers, luci for its build-time jsmin source, and the AudioWRT feed itself.
 # Update base lazily only when source-build dependencies need it.
 [[ -s "$sdk_dir/feeds.conf.default" ]] || {
     echo "ERROR: official OpenWrt SDK is missing feeds.conf.default." >&2
@@ -810,6 +810,10 @@ prepare_hostap_sdk() {
 cp "$sdk_dir/feeds.conf.default" "$sdk_dir/feeds.conf"
 if ! grep -Eq '^[[:space:]]*src-git([[:space:]]+--root=package)?[[:space:]]+base[[:space:]]' "$sdk_dir/feeds.conf"; then
     echo "ERROR: official OpenWrt SDK feed config does not expose the base source feed." >&2
+    exit 5
+fi
+if ! grep -Eq '^[[:space:]]*src-git([[:space:]]+--root=package)?[[:space:]]+luci[[:space:]]' "$sdk_dir/feeds.conf"; then
+    echo "ERROR: official OpenWrt SDK feed config does not expose the LuCI source feed." >&2
     exit 5
 fi
 download_file "$feeds_buildinfo_url" "$official_feeds_buildinfo"
@@ -824,7 +828,7 @@ printf '\n# AudioWRT reusable packages\nsrc-git audiowrt %s\n' "$feed_source" >>
 
 (
     cd "$sdk_dir"
-    ./scripts/feeds update packages audiowrt
+    ./scripts/feeds update packages luci audiowrt
 )
 audiowrt_packages_commit="$(git -C "$sdk_dir/feeds/audiowrt" rev-parse HEAD)"
 
@@ -1182,6 +1186,16 @@ for package in "${build_packages[@]}"; do
     fi
 done
 
+package_size_report() {
+    local imagebuilder_path="${1:-$work_dir/imagebuilder-unavailable}"
+    python3 "$repo_root/scripts/package-size-report.py" \
+        "$sdk_dir/staging_dir/host/bin/apk" \
+        "$local_apks_dir" \
+        "$imagebuilder_path" \
+        "$output_dir/package-size-report.json" \
+        "$output_dir/package-size-report.txt"
+}
+
 if [[ "$build_mode" == "packages" ]]; then
     mkdir -p "$output_dir/packages"
     cp -f "$local_apks_dir"/*.apk "$output_dir/packages/"
@@ -1197,6 +1211,10 @@ if [[ "$build_mode" == "packages" ]]; then
     cp "$repo_root/config/build/source-build-packages" "$output_dir/source-build-packages"
     cp "$build_plan" "$output_dir/package-build-plan.txt"
     [[ -f "$sdk_dir/.config" ]] && cp "$sdk_dir/.config" "$output_dir/sdk.config"
+
+    package_size_report
+    printf '\n'
+    cat "$output_dir/package-size-report.txt"
 
     audiowrt_commit="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || printf unknown)"
     cache_enabled='no'
@@ -1311,7 +1329,18 @@ if [[ "$squashfs_block_size" != "default" ]]; then
     fi
 fi
 
-make_run "$imagebuilder_dir" image "${image_args[@]}"
+mkdir -p "$output_dir/local-apks"
+cp -f "$local_apks_dir"/*.apk "$output_dir/local-apks/"
+package_size_report "$imagebuilder_dir"
+printf '\nPre-image package sizes:\n'
+cat "$output_dir/package-size-report.txt"
+
+image_build_status=0
+make_run "$imagebuilder_dir" image "${image_args[@]}" || image_build_status=$?
+
+package_size_report "$imagebuilder_dir"
+printf '\nPost-image package sizes:\n'
+cat "$output_dir/package-size-report.txt"
 
 cp "$platform_metadata" "$output_dir/platform.json"
 cp "$resolved_profile" "$output_dir/audiowrt-profile.json"
@@ -1326,10 +1355,13 @@ cp "$packages_remove_file" "$output_dir/audiowrt-packages.remove"
 cp "$repo_root/config/build/package-build-targets" "$output_dir/package-build-targets"
 cp "$repo_root/config/build/source-build-packages" "$output_dir/source-build-packages"
 cp "$build_plan" "$output_dir/package-build-plan.txt"
-mkdir -p "$output_dir/local-apks"
-cp -f "$local_apks_dir"/*.apk "$output_dir/local-apks/"
 [[ -f "$sdk_dir/.config" ]] && cp "$sdk_dir/.config" "$output_dir/sdk.config"
 [[ -f "$imagebuilder_dir/.config" ]] && cp "$imagebuilder_dir/.config" "$output_dir/imagebuilder.config"
+
+if (( image_build_status != 0 )); then
+    echo "ERROR: ImageBuilder failed with status $image_build_status; package-size-report.* was preserved in $output_dir." >&2
+    exit "$image_build_status"
+fi
 
 python3 "$repo_root/scripts/image-size-report.py" \
     "$output_dir" \
