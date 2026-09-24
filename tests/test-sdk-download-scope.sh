@@ -40,8 +40,8 @@ grep -Fq 'stage_official_link_stub libmbedtls21 base' "$build_script" || {
     exit 1
 }
 
-grep -Fq './scripts/feeds update packages audiowrt' "$build_script" || {
-    echo "ERROR: core builds must update the package-helper and AudioWRT feeds." >&2
+grep -Fq './scripts/feeds update packages luci audiowrt' "$build_script" || {
+    echo "ERROR: core builds must update package helpers, LuCI build tools and the AudioWRT feed." >&2
     exit 1
 }
 
