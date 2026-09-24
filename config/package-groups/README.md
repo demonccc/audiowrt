@@ -17,6 +17,8 @@ Runtime mapping:
 | TLS | `libmbedtls21` | `libmbedtls21` |
 | SSH server | `dropbear` | `dropbear` |
 | Wi-Fi station | `audiowrt-wpad` | `wpad-basic-mbedtls` |
+| Network clients | `audiowrt-network-client` + `audiowrt-wifi-client` | `audiowrt-network-client` + `audiowrt-wifi-client` |
+| Network configuration UI | `luci-app-audiowrt-network-client` | `luci-app-audiowrt-network-client` |
 | Renderer + discovery | `audiowrt-renderer` | `audiowrt-renderer` |
 | Native codec players | FLAC + MP3 + WAV | FLAC + MP3 + WAV + Vorbis + AAC |
 | Renderer configuration | `luci-app-audiowrt-renderer` | `luci-app-audiowrt-renderer` |
