@@ -19,8 +19,10 @@ required = {
     "luci-mod-status",
     "luci-mod-system",
     "luci-app-package-manager",
+    "audiowrt-network-client",
+    "audiowrt-wifi-client",
     "luci-app-audiowrt",
-    "luci-app-audiowrt-wifi-client",
+    "luci-app-audiowrt-network-client",
     "luci-app-audiowrt-core",
     "luci-app-audiowrt-renderer",
 }
