@@ -28,6 +28,9 @@ for package in \
     audiowrt-branding \
     audiowrt-udhcpd \
     audiowrt-renderer \
+    audiowrt-network-client \
+    audiowrt-wifi-client \
+    luci-app-audiowrt-network-client \
     luci-app-audiowrt-renderer \
     luci-base \
     luci-mod-status \
@@ -35,7 +38,7 @@ for package in \
     luci-app-package-manager; do
     grep -q "^  - $package$" "$groups/common.yaml"
 done
-for package in dropbear wpad-basic-mbedtls mpd-mini upmpdcli; do
+for package in dropbear wpad-basic-mbedtls mpd-mini upmpdcli luci-app-audiowrt-wifi-client; do
     ! grep -q "^  - $package$" "$groups/common.yaml"
 done
 for package in \
