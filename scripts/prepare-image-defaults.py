@@ -9,15 +9,15 @@ def prepare(packages_file, feed, output, provisioning_ip="192.168.77.1"):
     packages = {line.strip() for line in packages_file.read_text().splitlines()
                 if line.strip() and not line.lstrip().startswith('#')}
     output.mkdir(parents=True, exist_ok=True)
-    templates = feed / 'audiowrt-extensions/files'
-    for extension, package, section in (
+    for module, package, section in (
         ('airplay', 'shairport-sync', 'shairport_sync'),
         ('spotify', 'librespot', 'main'),
     ):
-        if f'audiowrt-{extension}' not in packages:
+        if f'audiowrt-{module}' not in packages:
             continue
         lines = [f"config {package} '{section}'"]
-        for line in (templates / f'{extension}.settings').read_text().splitlines():
+        settings = feed / f'audiowrt-{module}' / 'files' / f'{module}.settings'
+        for line in settings.read_text().splitlines():
             if not line:
                 continue
             key, value = line.split('=', 1)
@@ -28,7 +28,7 @@ def prepare(packages_file, feed, output, provisioning_ip="192.168.77.1"):
         target.write_text('\n'.join(lines) + '\n')
     if 'audiowrt-mpd' in packages:
         (output / 'etc').mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(templates / 'mpd.conf', output / 'etc/mpd.conf')
+        shutil.copyfile(feed / 'audiowrt-mpd/files/mpd.conf', output / 'etc/mpd.conf')
     if 'audiowrt-provisioning' in packages:
         target = output / 'etc/audiowrt/provisioning-ip'
         target.parent.mkdir(parents=True, exist_ok=True)

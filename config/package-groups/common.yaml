@@ -7,7 +7,6 @@ packages_add:
   - audiowrt-identity
   - audiowrt-provisioning
   - audiowrt-audio
-  - audiowrt-extensions
   - audiowrt-network-client
   - audiowrt-wifi-client
   - audiowrt-renderer
