@@ -284,6 +284,7 @@ Installing the reusable feed on a normal OpenWrt system does not change its LAN,
 ```text
 AUDIOWRT_PROFILE         device + flavor profile ID
                          (default tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5)
+PROVISIONING_IP          temporary provisioning AP IPv4 address, using a /24 (default 192.168.77.1)
 AUDIOWRT_PACKAGES_REF    reusable package-feed branch/tag/commit (default main)
 JOBS                     package build parallelism
 VERBOSITY                normal, verbose or debug
@@ -340,12 +341,14 @@ Its main inputs are:
 ```text
 audiowrt_profile      default: tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
 audiowrt_packages_ref  default: main
+provisioning_ip       default: 192.168.77.1; temporary network uses its /24
 ```
 
 The builder image is fixed to `demonccc/openwrt-builder:latest` and is not shown as an editable workflow parameter.
 
 The workflow does not expose a separate OpenWrt version parameter; the selected
-profile is the complete build contract.
+profile pins the OpenWrt build, while `provisioning_ip` selects the temporary
+provisioning network address.
 
 ## License
 

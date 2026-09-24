@@ -23,6 +23,11 @@ on:
         required: true
         default: main
         type: string
+      provisioning_ip:
+        description: "IPv4 address for the temporary provisioning network (/24)"
+        required: true
+        default: 192.168.77.1
+        type: string
       jobs:
         description: "Number of parallel package build jobs"
         required: true
@@ -64,6 +69,8 @@ jobs:
             audiowrt-${{ runner.os }}-${{ inputs.audiowrt_profile }}-
 
       - name: Build AudioWRT
+        env:
+          PROVISIONING_IP: ${{ inputs.provisioning_ip }}
         run: |
           make build \
             AUDIOWRT_PROFILE='${{ inputs.audiowrt_profile }}' \

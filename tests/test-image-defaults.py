@@ -26,4 +26,7 @@ with tempfile.TemporaryDirectory() as directory:
     assert "option enabled '1'" in (root / 'image/etc/config/librespot').read_text()
     assert (root / 'image/etc/mpd.conf').read_bytes() == (templates / 'mpd.conf').read_bytes()
     assert not (root / 'image/etc/uci-defaults').exists()
+    packages.write_text('audiowrt-provisioning\n')
+    module.prepare(packages, feed, root / 'custom-ip', '10.42.17.1')
+    assert (root / 'custom-ip/etc/audiowrt/provisioning-ip').read_text() == '10.42.17.1\n'
 print('Build-time extension defaults passed')

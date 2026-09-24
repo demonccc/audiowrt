@@ -15,6 +15,7 @@ audiowrt_profile="${AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-usb-bluetooth
 openwrt_repo="${OPENWRT_REPOSITORY:-https://github.com/openwrt/openwrt.git}"
 packages_repo="${AUDIOWRT_PACKAGES_REPOSITORY:-https://github.com/demonccc/audiowrt-packages.git}"
 packages_ref="${AUDIOWRT_PACKAGES_REF:-main}"
+provisioning_ip="${AUDIOWRT_PROVISIONING_IP:-192.168.77.1}"
 jobs="${JOBS:-}"
 verbosity="${VERBOSITY:-normal}"
 builder_image="demonccc/openwrt-builder:latest"
@@ -27,6 +28,18 @@ package_request="${AUDIOWRT_PACKAGE:-all}"
     echo "Run 'make build ...' or 'make packages ...' so AudioWRT uses the published openwrt-builder Docker image." >&2
     exit 2
 }
+
+python3 - "$provisioning_ip" <<'PY'
+import ipaddress
+import sys
+
+try:
+    address = ipaddress.IPv4Address(sys.argv[1])
+except ipaddress.AddressValueError:
+    raise SystemExit("ERROR: PROVISIONING_IP must be a valid IPv4 address.")
+if (int(address) & 255) in (0, 255):
+    raise SystemExit("ERROR: PROVISIONING_IP must be a usable host address in its /24 network.")
+PY
 
 case "$build_mode" in
     firmware|packages) ;;
@@ -1258,7 +1271,7 @@ package_string="${package_args[*]}"
 image_defaults_dir="$work_dir/image-defaults"
 rm -rf "$image_defaults_dir"
 python3 "$repo_root/scripts/prepare-image-defaults.py" \
-    "$packages_add_file" "$sdk_dir/feeds/audiowrt" "$image_defaults_dir"
+    "$packages_add_file" "$sdk_dir/feeds/audiowrt" "$image_defaults_dir" "$provisioning_ip"
 
 image_args=(
     "FILES=$image_defaults_dir"
@@ -1309,6 +1322,7 @@ AUDIOWRT_VERSION=$audiowrt_version
 BUILDER_IMAGE=$builder_image
 PLATFORM=$platform
 AUDIOWRT_PROFILE=$audiowrt_profile
+AUDIOWRT_PROVISIONING_IP=$provisioning_ip
 AUDIOWRT_PACKAGE_GROUPS=$profile_package_groups
 TARGET=$target
 SUBTARGET=$subtarget
@@ -1349,6 +1363,7 @@ manifest = {
     "audiowrt_packages_ref": "$packages_ref",
     "audiowrt_packages_commit": "$audiowrt_packages_commit",
     "audiowrt_profile": "$audiowrt_profile",
+    "provisioning_ip": "$provisioning_ip",
     "package_groups": profile_data["package_groups"],
     "resolved_profile": profile_data,
     "openwrt_repository": "$openwrt_repo",
