@@ -29,7 +29,7 @@ The reference build must attempt to include:
 - Bluetooth A2DP Source output for speakers and headphones.
 - USB Audio Class output for USB DACs and sound cards.
 
-Bluetooth is an output/music capability, not an AudioWRT Extension.
+Bluetooth is a mandatory output/music capability in the constrained baseline.
 
 The first WDR4300 build with the generic OpenWrt BlueZ/SBC dependency chain reached `9,939,466` bytes against the device image limit of `7,861,804` bytes: an overage of `2,077,662` bytes (about 1.98 MiB). Storage was already absent from that measurement, so the result isolated Bluetooth as the next size problem.
 
@@ -66,16 +66,6 @@ Provisioning must work on both single-radio and multi-radio devices and must nev
 - Manual IPv4 requires address, netmask and default gateway; DNS servers are configurable explicitly.
 
 The provisioning wizard and the normal Wi-Fi Client UI must expose the same user model: grouped SSIDs, available bands, channel/signal information, access-point count, an expandable BSSID list, and the same DHCP/manual IPv4 controls.
-
-## Extension semantics
-
-Extensions are optional audio services, not hardware outputs. The UI must report package state from configured APK repositories:
-
-- `installed`: package is installed.
-- `installable`: package is available from a configured repository.
-- `unavailable`: package is neither installed nor currently available.
-
-The UI must not display an Install action for unavailable packages.
 
 ## Reference acceptance path
 
