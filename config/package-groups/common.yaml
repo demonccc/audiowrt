@@ -8,6 +8,7 @@ packages_add:
   - audiowrt-provisioning
   - audiowrt-audio
   - audiowrt-extensions
+  - audiowrt-network-client
   - audiowrt-wifi-client
   - audiowrt-renderer
   - luci-base
@@ -16,7 +17,7 @@ packages_add:
   - luci-mod-system
   - luci-app-package-manager
   - luci-app-audiowrt
-  - luci-app-audiowrt-wifi-client
+  - luci-app-audiowrt-network-client
   - luci-app-audiowrt-core
   - luci-app-audiowrt-renderer
   - uhttpd
