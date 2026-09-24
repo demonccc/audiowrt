@@ -31,7 +31,6 @@ audiowrt-player-vorbis|package/feeds/audiowrt/audiowrt-player-vorbis/compile
 audiowrt-player-aiff|package/feeds/audiowrt/audiowrt-player-aiff/compile
 audiowrt-player-opus|package/feeds/audiowrt/audiowrt-player-opus/compile
 audiowrt-player-ffmpeg|package/feeds/audiowrt/audiowrt-player-ffmpeg/compile
-audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
 audiowrt-network-client|package/feeds/audiowrt/audiowrt-network-client/compile
 audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 luci-app-audiowrt-network-client|package/feeds/audiowrt/luci-app-audiowrt-network-client/compile
@@ -63,8 +62,6 @@ Package: audiowrt-identity
 Depends: +libc
 Package: audiowrt-audio
 Depends: +uci
-Package: audiowrt-extensions
-Depends: +audiowrt-audio +apk-mbedtls
 Package: audiowrt-network-client
 Depends: +audiowrt-config +uci +ubus +netifd
 Package: audiowrt-wifi-client
@@ -74,7 +71,7 @@ Depends: +luci-base +audiowrt-network-client +audiowrt-wifi-client
 Package: luci-app-audiowrt-wifi-client
 Depends: +luci-app-audiowrt-network-client
 Package: audiowrt-spotify
-Depends: +audiowrt-extensions +librespot
+Depends: +audiowrt-config +librespot
 Package: librespot
 Depends: +alsa-lib
 Package: audiowrt-sbc
@@ -123,7 +120,7 @@ EOF
 resolver="$repo_root/scripts/resolve-package-build-targets.py"
 
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-core audiowrt-provisioning audiowrt-wpad audiowrt-extensions luci-app-audiowrt-network-client > "$tmp/core"
+    audiowrt-core audiowrt-provisioning audiowrt-wpad luci-app-audiowrt-network-client > "$tmp/core"
 
 grep -q '^audiowrt-audio|' "$tmp/core"
 grep -q '^audiowrt-core|' "$tmp/core"
@@ -134,7 +131,6 @@ grep -q '^audiowrt-busybox|' "$tmp/core"
 grep -q '^audiowrt-network-client|' "$tmp/core"
 grep -q '^audiowrt-wifi-client|' "$tmp/core"
 grep -q '^luci-app-audiowrt-network-client|' "$tmp/core"
-grep -q '^audiowrt-extensions|' "$tmp/core"
 if grep -Eq '^(audiowrt-storage|audiowrt-storage-luci|audiowrt-spotify|librespot|audiowrt-bluetooth|bluez-alsa|audiowrt-bluez|audiowrt-btctl)\|' "$tmp/core"; then
     echo "ERROR: non-Bluetooth core roots selected unrelated AudioWRT packages." >&2
     cat "$tmp/core" >&2
@@ -187,7 +183,7 @@ done
 
 
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-core audiowrt-extensions audiowrt-spotify > "$tmp/spotify"
+    audiowrt-core audiowrt-spotify > "$tmp/spotify"
 grep -q '^librespot|' "$tmp/spotify"
 grep -q '^audiowrt-spotify|' "$tmp/spotify"
 if grep -Eq '^(audiowrt-bluetooth|bluez-alsa|audiowrt-bluez|audiowrt-btctl)\|' "$tmp/spotify"; then
@@ -199,7 +195,7 @@ fi
 # minimal ALSA and Bluetooth kernel packages are part of
 # the AudioWRT-owned dependency closure.
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
-    audiowrt-core audiowrt-extensions libaudiowrt-alsa-minimal kmod-audiowrt-bluetooth \
+    audiowrt-core libaudiowrt-alsa-minimal kmod-audiowrt-bluetooth \
     kmod-audiowrt-sound-core kmod-audiowrt-usb-audio audiowrt-bluetooth > "$tmp/bluetooth"
 for package in libaudiowrt-alsa-minimal audiowrt-sbc audiowrt-bluez audiowrt-btctl bluez-alsa kmod-audiowrt-bluetooth audiowrt-bluetooth; do
     grep -q "^${package}|" "$tmp/bluetooth"
