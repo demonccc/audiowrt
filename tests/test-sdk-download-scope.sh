@@ -19,6 +19,14 @@ grep -Fq 'audiowrt-wpad' "$build_script" || {
     echo "ERROR: AudioWRT wpad must trigger hostap SDK staging." >&2
     exit 1
 }
+grep -Fq 'build_packages[*]' "$build_script" || {
+    echo "ERROR: special SDK staging must reconcile against the resolved AudioWRT build closure." >&2
+    exit 1
+}
+grep -Fq 'late_sdk_registration=1' "$build_script" || {
+    echo "ERROR: transitive wpad selection must register hostap SDK sources before compilation." >&2
+    exit 1
+}
 grep -Fq 'register_official_sdk_source base libs/mbedtls' "$build_script" || {
     echo "ERROR: wpad must use headers from the official OpenWrt mbedTLS source." >&2
     exit 1
