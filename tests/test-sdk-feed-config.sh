@@ -36,8 +36,8 @@ if grep -Fq './scripts/feeds install -a' "$build_script"; then
     exit 1
 fi
 
-grep -Fq './scripts/feeds update packages audiowrt' "$build_script" || {
-    echo "ERROR: core SDK setup must update only packages helpers and the AudioWRT feed." >&2
+grep -Fq './scripts/feeds update packages luci audiowrt' "$build_script" || {
+    echo "ERROR: core SDK setup must update only package helpers, LuCI build tools and the AudioWRT feed." >&2
     exit 1
 }
 
