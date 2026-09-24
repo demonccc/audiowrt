@@ -1009,6 +1009,30 @@ if [[ "${#source_packages[@]}" -gt 0 ]]; then
     printf '    %s\n' "${source_packages[@]}"
 fi
 
+# Some SDK preparation requirements are only visible after resolving the full
+# AudioWRT dependency closure. A package-only request such as the Network Client
+# can pull audiowrt-wpad transitively through the wpa-supplicant virtual
+# dependency. Reconcile the special SDK staging flags against build_packages
+# before compilation so transitive providers receive the same headers/link
+# stubs as explicitly requested roots.
+late_sdk_registration=0
+if [[ " ${build_packages[*]} " == *" audiowrt-wpad "* && "$hostap_sdk" -eq 0 ]]; then
+    hostap_sdk=1
+    register_official_sdk_source base libs/libnl-tiny
+    register_official_sdk_source base libs/libjson-c
+    register_official_sdk_source base libs/mbedtls
+    register_official_sdk_source base libs/libubox
+    register_official_sdk_source base system/ubus
+    register_official_sdk_source base utils/ucode
+    register_official_sdk_source base libs/udebug
+    late_sdk_registration=1
+fi
+
+if (( late_sdk_registration )); then
+    make_run "$sdk_dir" defconfig
+    packageinfo="$sdk_dir/tmp/.packageinfo"
+fi
+
 # Package-only AudioWRT packages need no OpenWrt source dependency compilation.
 # For the small set of AudioWRT-owned packages that compile upstream code, the
 # SDK must stage their actual build/link dependencies. Resolve those explicitly

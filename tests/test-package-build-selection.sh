@@ -141,6 +141,18 @@ if grep -Eq '^(audiowrt-storage|audiowrt-storage-luci|audiowrt-spotify|librespot
     exit 1
 fi
 
+# A standalone Network Client build still resolves the profile's AudioWRT wpad
+# provider through the virtual wpa-supplicant dependency. The builder must use
+# this resolved closure, not only the explicit package root, when deciding which
+# SDK development interfaces to stage.
+python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
+    luci-app-audiowrt-network-client \
+    --providers audiowrt-wpad > "$tmp/network-client"
+grep -q '^audiowrt-network-client|' "$tmp/network-client"
+grep -q '^audiowrt-wifi-client|' "$tmp/network-client"
+grep -q '^audiowrt-wpad|' "$tmp/network-client"
+grep -q '^luci-app-audiowrt-network-client|' "$tmp/network-client"
+
 # A standalone package request must include its AudioWRT-owned build dependency
 # closure without selecting unrelated packages.
 python3 "$resolver" "$tmp/targets" "$tmp/packageinfo" \
