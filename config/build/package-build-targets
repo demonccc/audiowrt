@@ -21,7 +21,6 @@ audiowrt-wpad|package/feeds/audiowrt/audiowrt-wpad/compile
 audiowrt-minimal-upmpdcli|package/feeds/audiowrt/audiowrt-minimal-upmpdcli/compile
 audiowrt-umdns|package/feeds/audiowrt/audiowrt-umdns/compile
 audiowrt-usb-audio|package/feeds/audiowrt/audiowrt-usb-audio/compile
-audiowrt-extensions|package/feeds/audiowrt/audiowrt-extensions/compile
 audiowrt-network-client|package/feeds/audiowrt/audiowrt-network-client/compile
 audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 audiowrt-udhcpd|package/feeds/audiowrt/audiowrt-udhcpd/compile
