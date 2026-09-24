@@ -203,7 +203,7 @@ core includes:
 - USB Audio Class and ALSA output management;
 - Bluetooth A2DP Source output;
 - minimal LuCI (`luci-base` + AudioWRT applications);
-- AudioWRT extension management.
+- AudioWRT audio output and service-module integration.
 
 Local USB storage/extroot, MPD, AirPlay and Spotify Connect are deliberately
 absent from the minimal flavor. `standard` adds MPD and storage; `full` adds
@@ -213,7 +213,7 @@ feature list.
 
 Bluetooth is a mandatory output capability for the current reference baseline rather than an optional feature. Its current BlueZ/BlueALSA implementation remains included so firmware-size reports expose its actual cost on constrained devices.
 
-OpenWrt ImageBuilder enforces the selected device's image-size limit. AudioWRT does not silently drop profile packages. AudioWRT additionally treats a successful ImageBuilder command that produces no firmware image as a failed build. On constrained devices, larger services can instead be installed later through AudioWRT Extensions and optional USB extension storage.
+OpenWrt ImageBuilder enforces the selected device's image-size limit. AudioWRT does not silently drop profile packages. AudioWRT additionally treats a successful ImageBuilder command that produces no firmware image as a failed build. On constrained devices, larger services can instead be installed later as individual AudioWRT service packages, with optional USB-backed storage where supported.
 
 ## Reference device
 
@@ -267,7 +267,6 @@ Every package maintained by AudioWRT lives in [`demonccc/audiowrt-packages`](htt
 ```text
 audiowrt-audio
 audiowrt-usb-audio
-audiowrt-extensions
 audiowrt-mpd
 audiowrt-airplay
 audiowrt-spotify
