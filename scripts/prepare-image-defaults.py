@@ -37,10 +37,10 @@ def prepare(packages_file, feed, output, provisioning_ip="192.168.77.1"):
 # AudioWRT factory defaults. Apply only while the device still has OpenWrt's
 # untouched factory identity/network values; never overwrite user settings.
 
-hostname="$(uci -q get system.@system[0].hostname 2>/dev/null || true)"
+hostname="$(uci -q get 'system.@system[0].hostname' 2>/dev/null || true)"
 case "$hostname" in
     ''|OpenWrt|openwrt)
-        uci -q set system.@system[0].hostname='audiowrt' || true
+        uci -q set 'system.@system[0].hostname=audiowrt' || true
         ;;
 esac
 
