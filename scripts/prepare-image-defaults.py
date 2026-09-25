@@ -41,7 +41,7 @@ def prepare(packages_file, feed, output, provisioning_ip="192.168.77.1"):
 #   no persistent Wi-Fi configuration
 # The setup AP is created later by provisioning entirely at runtime.
 
-uci -q set 'system.@system[0].hostname=audiowrt' || true
+uci -q set 'system.@system[0].hostname=AudioWRT' || true
 
 uci -q set network.lan.proto='dhcp' || true
 uci -q delete network.lan.ipaddr 2>/dev/null || true
