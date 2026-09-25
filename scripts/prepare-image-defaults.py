@@ -34,33 +34,43 @@ def prepare(packages_file, feed, output, provisioning_ip="192.168.77.1"):
         target = output / 'etc/uci-defaults/10-audiowrt-factory'
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text("""#!/bin/sh
-# AudioWRT factory defaults. Apply only while the device still has OpenWrt's
-# untouched factory identity/network values; never overwrite user settings.
+# AudioWRT factory network state:
+#   hostname audiowrt
+#   LAN DHCP client only
+#   no WAN
+#   no persistent Wi-Fi configuration
+# The setup AP is created later by provisioning entirely at runtime.
 
-hostname="$(uci -q get 'system.@system[0].hostname' 2>/dev/null || true)"
-case "$hostname" in
-    ''|OpenWrt|openwrt)
-        uci -q set 'system.@system[0].hostname=audiowrt' || true
-        ;;
-esac
+uci -q set 'system.@system[0].hostname=audiowrt' || true
 
-lan_proto="$(uci -q get network.lan.proto 2>/dev/null || true)"
-lan_ip="$(uci -q get network.lan.ipaddr 2>/dev/null || true)"
-if [ "$lan_proto" = 'static' ] && [ "$lan_ip" = '192.168.1.1' ]; then
-    uci -q set network.lan.proto='dhcp' || true
-    uci -q delete network.lan.ipaddr 2>/dev/null || true
-    uci -q delete network.lan.netmask 2>/dev/null || true
-    uci -q delete network.lan.ip6assign 2>/dev/null || true
-    uci -q delete network.lan.gateway 2>/dev/null || true
-    uci -q delete network.lan.dns 2>/dev/null || true
+uci -q set network.lan.proto='dhcp' || true
+uci -q delete network.lan.ipaddr 2>/dev/null || true
+uci -q delete network.lan.netmask 2>/dev/null || true
+uci -q delete network.lan.ip6assign 2>/dev/null || true
+uci -q delete network.lan.gateway 2>/dev/null || true
+uci -q delete network.lan.dns 2>/dev/null || true
 
-    if [ -f /etc/config/dhcp ] && uci -q get dhcp.lan >/dev/null 2>&1; then
-        uci -q set dhcp.lan.ignore='1' || true
-    fi
+# Factory image has no WAN interfaces.
+uci -q delete network.wan 2>/dev/null || true
+uci -q delete network.wan6 2>/dev/null || true
+
+# LAN is a client, never a DHCP server.
+if [ -f /etc/config/dhcp ] && uci -q get dhcp.lan >/dev/null 2>&1; then
+    uci -q set dhcp.lan.ignore='1' || true
 fi
+uci -q delete dhcp.wan 2>/dev/null || true
 
-# Wireless factory state intentionally remains untouched. OpenWrt keeps the
-# radios disabled; AudioWRT provisioning temporarily owns exactly one PHY.
+# Remove every stock/persistent wifi-iface. Keep wifi-device hardware sections:
+# provisioning resolves the PHY from them but creates its AP only in RAM.
+for section in $(uci -q show wireless 2>/dev/null |
+    sed -n "s/^wireless\.\([^.=]*\)=wifi-iface.*/\1/p"); do
+    uci -q delete "wireless.$section" 2>/dev/null || true
+done
+
+uci -q commit system || true
+uci -q commit network || true
+[ ! -f /etc/config/dhcp ] || uci -q commit dhcp || true
+[ ! -f /etc/config/wireless ] || uci -q commit wireless || true
 return 0
 """)
         target.chmod(0o755)
