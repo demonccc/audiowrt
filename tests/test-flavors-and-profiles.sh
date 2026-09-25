@@ -38,7 +38,7 @@ for package in \
     luci-app-package-manager; do
     grep -q "^  - $package$" "$groups/common.yaml"
 done
-for package in dropbear wpad-basic-mbedtls mpd-mini upmpdcli luci-app-audiowrt-wifi-client; do
+for package in dropbear wpad-basic-mbedtls mpd-mini upmpdcli; do
     ! grep -q "^  - $package$" "$groups/common.yaml"
 done
 for package in \
