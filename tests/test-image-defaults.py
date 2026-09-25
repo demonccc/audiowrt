@@ -45,13 +45,17 @@ with tempfile.TemporaryDirectory() as directory:
     uci.write_text("""#!/bin/sh
 printf '%s\\n' "$*" >> "$UCI_LOG"
 [ "$1" != "-q" ] || shift
-case "$1:$2" in
-    get:system.@system[0].hostname) printf '%s\\n' "$FAKE_HOSTNAME";;
-    get:network.lan.proto) printf '%s\\n' "$FAKE_LAN_PROTO";;
-    get:network.lan.ipaddr) printf '%s\\n' "$FAKE_LAN_IP";;
-    set:*|delete:*) exit 0;;
-    *) exit 1;;
-esac
+if [ "$1" = get ] && [ "$2" = 'system.@system[0].hostname' ]; then
+    printf '%s\\n' "$FAKE_HOSTNAME"
+elif [ "$1" = get ] && [ "$2" = network.lan.proto ]; then
+    printf '%s\\n' "$FAKE_LAN_PROTO"
+elif [ "$1" = get ] && [ "$2" = network.lan.ipaddr ]; then
+    printf '%s\\n' "$FAKE_LAN_IP"
+elif [ "$1" = set ] || [ "$1" = delete ]; then
+    exit 0
+else
+    exit 1
+fi
 """)
     uci.chmod(0o755)
 
