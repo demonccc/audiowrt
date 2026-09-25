@@ -38,7 +38,7 @@ for package in \
     luci-app-package-manager; do
     grep -q "^  - $package$" "$groups/common.yaml"
 done
-for package in dropbear wpad-basic-mbedtls mpd-mini upmpdcli luci-app-audiowrt-wifi-client; do
+for package in dropbear wpad-basic-mbedtls mpd-mini upmpdcli; do
     ! grep -q "^  - $package$" "$groups/common.yaml"
 done
 for package in \
@@ -65,7 +65,7 @@ done
 for package in \
     libaudiowrt-alsa-minimal \
     libmbedtls21 \
-    dropbear \
+    audiowrt-dropbear \
     audiowrt-wpad \
     libaudiowrt-player \
     audiowrt-player-flac \
@@ -78,6 +78,7 @@ for package in \
 done
 for package in \
     alsa-lib \
+    dropbear \
     wpad-basic-mbedtls \
     mpd-mini \
     mpd-full \
@@ -159,7 +160,7 @@ assert data["squashfs_block_size"] == "1024"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
-    "libaudiowrt-alsa-minimal", "libmbedtls21", "dropbear",
+    "libaudiowrt-alsa-minimal", "libmbedtls21", "audiowrt-dropbear",
     "audiowrt-wpad", "audiowrt-renderer", "libaudiowrt-player",
     "audiowrt-player-flac", "audiowrt-player-lpcm", "audiowrt-player-wav",
     "luci-app-audiowrt-renderer", "kmod-audiowrt-bluetooth"
@@ -171,7 +172,7 @@ assert "audiowrt-player-aac" in removed
 assert "audiowrt-player-m4a" not in added
 assert "audiowrt-player-m4a" in removed
 assert {
-    "alsa-lib", "wpad-basic-mbedtls", "mpd-mini",
+    "alsa-lib", "dropbear", "wpad-basic-mbedtls", "mpd-mini",
     "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli", "audiowrt-mpd",
     "minidlna", "umdns", "audiowrt-umdns", "dnsmasq", "kmod-bluetooth",
     "kmod-usb-audio", "libmpg123", "libltdl"
@@ -188,14 +189,14 @@ assert data["openwrt_profile"] == "tplink_tl-wdr4300-v1"
 added = set(data["packages_add"])
 removed = set(data["packages_remove"])
 assert {
-    "libaudiowrt-alsa-minimal", "libmbedtls21", "dropbear",
+    "libaudiowrt-alsa-minimal", "libmbedtls21", "audiowrt-dropbear",
     "audiowrt-wpad", "audiowrt-renderer", "libaudiowrt-player",
     "audiowrt-player-flac", "audiowrt-player-mp3", "audiowrt-player-aac",
     "audiowrt-player-m4a", "audiowrt-player-lpcm", "audiowrt-player-wav",
     "luci-app-audiowrt-renderer", "audiowrt-usb-audio", "kmod-usb-audio"
 } <= added
 assert {
-    "alsa-lib", "wpad-basic-mbedtls", "mpd-mini",
+    "alsa-lib", "dropbear", "wpad-basic-mbedtls", "mpd-mini",
     "mpd-full", "upmpdcli", "audiowrt-minimal-upmpdcli", "audiowrt-mpd",
     "minidlna", "umdns", "audiowrt-umdns", "dnsmasq", "kmod-bluetooth",
     "kmod-audiowrt-bluetooth", "libmpg123", "libltdl"

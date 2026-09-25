@@ -15,6 +15,7 @@ luci-app-audiowrt-core|package/feeds/audiowrt/luci-app-audiowrt-core/compile
 kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
 
 audiowrt-busybox|package/feeds/audiowrt/audiowrt-busybox/compile
+audiowrt-dropbear|package/feeds/audiowrt/audiowrt-dropbear/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 libaudiowrt-alsa-minimal|package/feeds/audiowrt/libaudiowrt-alsa-minimal/compile
 audiowrt-wpad|package/feeds/audiowrt/audiowrt-wpad/compile
@@ -47,5 +48,4 @@ bluez-alsa|package/feeds/audiowrt/bluez-alsa/compile
 audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-bluetooth/compile
 luci-app-audiowrt|package/feeds/audiowrt/luci-app-audiowrt/compile
 luci-app-audiowrt-network-client|package/feeds/audiowrt/luci-app-audiowrt-network-client/compile
-luci-app-audiowrt-wifi-client|package/feeds/audiowrt/luci-app-audiowrt-wifi-client/compile
 librespot|package/feeds/audiowrt/librespot/compile

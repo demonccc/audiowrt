@@ -34,7 +34,6 @@ audiowrt-player-ffmpeg|package/feeds/audiowrt/audiowrt-player-ffmpeg/compile
 audiowrt-network-client|package/feeds/audiowrt/audiowrt-network-client/compile
 audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 luci-app-audiowrt-network-client|package/feeds/audiowrt/luci-app-audiowrt-network-client/compile
-luci-app-audiowrt-wifi-client|package/feeds/audiowrt/luci-app-audiowrt-wifi-client/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
 librespot|package/feeds/audiowrt/librespot/compile
 audiowrt-sbc|package/feeds/audiowrt/audiowrt-sbc/compile
@@ -68,8 +67,6 @@ Package: audiowrt-wifi-client
 Depends: +audiowrt-config +uci +ubus +rpcd-mod-iwinfo +wpa-supplicant
 Package: luci-app-audiowrt-network-client
 Depends: +luci-base +audiowrt-network-client +audiowrt-wifi-client
-Package: luci-app-audiowrt-wifi-client
-Depends: +luci-app-audiowrt-network-client
 Package: audiowrt-spotify
 Depends: +audiowrt-config +librespot
 Package: librespot

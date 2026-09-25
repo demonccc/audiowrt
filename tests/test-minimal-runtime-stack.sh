@@ -23,7 +23,7 @@ removed = set(data["packages_remove"])
 assert {
     "libaudiowrt-alsa-minimal",
     "libmbedtls21",
-    "dropbear",
+    "audiowrt-dropbear",
     "audiowrt-wpad",
     "audiowrt-renderer",
     "libaudiowrt-player",
@@ -41,6 +41,7 @@ assert "audiowrt-player-m4a" not in added
 assert "audiowrt-player-m4a" in removed
 assert {
     "alsa-lib",
+    "dropbear",
     "wpad-basic-mbedtls",
     "mpd-mini",
     "mpd-full",
@@ -94,6 +95,7 @@ assert not ({"mpd-mini", "mpd-full", "upmpdcli", "audiowrt-mpd", "minidlna", "um
 
 for package in \
     libaudiowrt-alsa-minimal \
+    audiowrt-dropbear \
     audiowrt-wpad \
     audiowrt-sbc \
     audiowrt-renderer \
@@ -119,6 +121,7 @@ grep -qx 'kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth
 # not turn into source-build roots.
 for package in \
     libaudiowrt-alsa-minimal \
+    audiowrt-dropbear \
     audiowrt-wpad \
     audiowrt-busybox \
     audiowrt-sbc \
