@@ -48,5 +48,4 @@ bluez-alsa|package/feeds/audiowrt/bluez-alsa/compile
 audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-bluetooth/compile
 luci-app-audiowrt|package/feeds/audiowrt/luci-app-audiowrt/compile
 luci-app-audiowrt-network-client|package/feeds/audiowrt/luci-app-audiowrt-network-client/compile
-luci-app-audiowrt-wifi-client|package/feeds/audiowrt/luci-app-audiowrt-wifi-client/compile
 librespot|package/feeds/audiowrt/librespot/compile
