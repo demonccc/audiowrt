@@ -33,4 +33,9 @@ with tempfile.TemporaryDirectory() as directory:
     packages.write_text('audiowrt-provisioning\n')
     module.prepare(packages, feed, root / 'custom-ip', '10.42.17.1')
     assert (root / 'custom-ip/etc/audiowrt/provisioning-ip').read_text() == '10.42.17.1\n'
+    factory = (root / 'custom-ip/etc/uci-defaults/10-audiowrt-factory').read_text()
+    assert "hostname='audiowrt'" in factory
+    assert "network.lan.proto='dhcp'" in factory
+    assert "192.168.1.1" in factory
+    assert "wireless." not in factory
 print('Build-time module defaults passed')
