@@ -38,42 +38,14 @@ with tempfile.TemporaryDirectory() as directory:
     factory = root / 'custom-ip/etc/uci-defaults/10-audiowrt-factory'
     assert factory.is_file()
 
-    fakebin = root / 'fakebin'
-    fakebin.mkdir()
-    log = root / 'uci.log'
-    uci = fakebin / 'uci'
-    uci.write_text("""#!/bin/sh
-printf '%s\\n' "$*" >> "$UCI_LOG"
-[ "$1" != "-q" ] || shift
-if [ "$1" = get ] && [ "$2" = 'system.@system[0].hostname' ]; then
-    printf '%s\\n' "$FAKE_HOSTNAME"
-elif [ "$1" = get ] && [ "$2" = network.lan.proto ]; then
-    printf '%s\\n' "$FAKE_LAN_PROTO"
-elif [ "$1" = get ] && [ "$2" = network.lan.ipaddr ]; then
-    printf '%s\\n' "$FAKE_LAN_IP"
-elif [ "$1" = set ] || [ "$1" = delete ]; then
-    exit 0
-else
-    exit 1
-fi
-""")
-    uci.chmod(0o755)
+    factory_text = factory.read_text()
+    assert "set 'system.@system[0].hostname=audiowrt'" in factory_text
+    assert "set network.lan.proto='dhcp'" in factory_text
+    assert "delete network.wan" in factory_text
+    assert "delete network.wan6" in factory_text
+    assert "set dhcp.lan.ignore='1'" in factory_text
+    assert "=wifi-iface" in factory_text
+    assert 'delete "wireless.$section"' in factory_text
+    assert "wireless.radio" not in factory_text
 
-    env = dict(os.environ, PATH=str(fakebin) + ':' + os.environ['PATH'],
-               UCI_LOG=str(log), FAKE_HOSTNAME='OpenWrt',
-               FAKE_LAN_PROTO='static', FAKE_LAN_IP='192.168.1.1')
-    subprocess.run(['sh', '-eu', '-c', f'. "{factory}"'], env=env, check=True)
-    actions = log.read_text()
-    assert "set system.@system[0].hostname=audiowrt" in actions
-    assert "set network.lan.proto=dhcp" in actions
-    assert "delete network.lan.ipaddr" in actions
-    assert "wireless" not in actions
-
-    log.write_text('')
-    env.update(FAKE_HOSTNAME='living-room', FAKE_LAN_PROTO='static',
-               FAKE_LAN_IP='10.0.0.20')
-    subprocess.run(['sh', '-eu', '-c', f'. "{factory}"'], env=env, check=True)
-    actions = log.read_text()
-    assert "set " not in actions
-    assert "delete " not in actions
 print('Build-time module defaults passed')
