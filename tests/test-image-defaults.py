@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Check selective, build-time defaults without fetching feeds or building firmware."""
 import importlib.util
+import os
 from pathlib import Path
+import subprocess
 import tempfile
 
 repo = Path(__file__).resolve().parents[1]
@@ -33,9 +35,41 @@ with tempfile.TemporaryDirectory() as directory:
     packages.write_text('audiowrt-provisioning\n')
     module.prepare(packages, feed, root / 'custom-ip', '10.42.17.1')
     assert (root / 'custom-ip/etc/audiowrt/provisioning-ip').read_text() == '10.42.17.1\n'
-    factory = (root / 'custom-ip/etc/uci-defaults/10-audiowrt-factory').read_text()
-    assert "hostname='audiowrt'" in factory
-    assert "network.lan.proto='dhcp'" in factory
-    assert "192.168.1.1" in factory
-    assert "wireless." not in factory
+    factory = root / 'custom-ip/etc/uci-defaults/10-audiowrt-factory'
+    assert factory.is_file()
+
+    fakebin = root / 'fakebin'
+    fakebin.mkdir()
+    log = root / 'uci.log'
+    uci = fakebin / 'uci'
+    uci.write_text("""#!/bin/sh
+printf '%s\\n' "$*" >> "$UCI_LOG"
+[ "$1" != "-q" ] || shift
+case "$1:$2" in
+    get:system.@system[0].hostname) printf '%s\\n' "$FAKE_HOSTNAME";;
+    get:network.lan.proto) printf '%s\\n' "$FAKE_LAN_PROTO";;
+    get:network.lan.ipaddr) printf '%s\\n' "$FAKE_LAN_IP";;
+    set:*|delete:*) exit 0;;
+    *) exit 1;;
+esac
+""")
+    uci.chmod(0o755)
+
+    env = dict(os.environ, PATH=str(fakebin) + ':' + os.environ['PATH'],
+               UCI_LOG=str(log), FAKE_HOSTNAME='OpenWrt',
+               FAKE_LAN_PROTO='static', FAKE_LAN_IP='192.168.1.1')
+    subprocess.run(['sh', '-eu', '-c', f'. "{factory}"'], env=env, check=True)
+    actions = log.read_text()
+    assert "set system.@system[0].hostname=audiowrt" in actions
+    assert "set network.lan.proto=dhcp" in actions
+    assert "delete network.lan.ipaddr" in actions
+    assert "wireless" not in actions
+
+    log.write_text('')
+    env.update(FAKE_HOSTNAME='living-room', FAKE_LAN_PROTO='static',
+               FAKE_LAN_IP='10.0.0.20')
+    subprocess.run(['sh', '-eu', '-c', f'. "{factory}"'], env=env, check=True)
+    actions = log.read_text()
+    assert "set " not in actions
+    assert "delete " not in actions
 print('Build-time module defaults passed')
