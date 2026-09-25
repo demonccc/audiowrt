@@ -15,7 +15,7 @@ Runtime mapping:
 | --- | --- | --- |
 | ALSA | `libaudiowrt-alsa-minimal` | `alsa-lib` |
 | TLS | `libmbedtls21` | `libmbedtls21` |
-| SSH server | `dropbear` | `dropbear` |
+| SSH server | `audiowrt-dropbear` (server-only) | `dropbear` |
 | Wi-Fi station | `audiowrt-wpad` | `wpad-basic-mbedtls` |
 | Network clients | `audiowrt-network-client` + `audiowrt-wifi-client` | `audiowrt-network-client` + `audiowrt-wifi-client` |
 | Network configuration UI | `luci-app-audiowrt-network-client` | `luci-app-audiowrt-network-client` |
