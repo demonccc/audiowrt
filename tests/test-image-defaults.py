@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Check selective, build-time defaults without fetching feeds or building firmware."""
 import importlib.util
+import os
 from pathlib import Path
+import subprocess
 import tempfile
 
 repo = Path(__file__).resolve().parents[1]
@@ -33,4 +35,17 @@ with tempfile.TemporaryDirectory() as directory:
     packages.write_text('audiowrt-provisioning\n')
     module.prepare(packages, feed, root / 'custom-ip', '10.42.17.1')
     assert (root / 'custom-ip/etc/audiowrt/provisioning-ip').read_text() == '10.42.17.1\n'
+    factory = root / 'custom-ip/etc/uci-defaults/10-audiowrt-factory'
+    assert factory.is_file()
+
+    factory_text = factory.read_text()
+    assert "set 'system.@system[0].hostname=audiowrt'" in factory_text
+    assert "set network.lan.proto='dhcp'" in factory_text
+    assert "delete network.wan" in factory_text
+    assert "delete network.wan6" in factory_text
+    assert "set dhcp.lan.ignore='1'" in factory_text
+    assert "=wifi-iface" in factory_text
+    assert 'delete "wireless.$section"' in factory_text
+    assert "wireless.radio" not in factory_text
+
 print('Build-time module defaults passed')

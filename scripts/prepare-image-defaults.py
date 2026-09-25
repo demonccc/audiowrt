@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bake package defaults and the selected provisioning IP into the image."""
+"""Bake AudioWRT factory/package defaults into the image."""
 from pathlib import Path
 import shutil
 import sys
@@ -29,6 +29,51 @@ def prepare(packages_file, feed, output, provisioning_ip="192.168.77.1"):
     if 'audiowrt-mpd' in packages:
         (output / 'etc').mkdir(parents=True, exist_ok=True)
         shutil.copyfile(feed / 'audiowrt-mpd/files/mpd.conf', output / 'etc/mpd.conf')
+
+    if 'audiowrt-provisioning' in packages:
+        target = output / 'etc/uci-defaults/10-audiowrt-factory'
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("""#!/bin/sh
+# AudioWRT factory network state:
+#   hostname audiowrt
+#   LAN DHCP client only
+#   no WAN
+#   no persistent Wi-Fi configuration
+# The setup AP is created later by provisioning entirely at runtime.
+
+uci -q set 'system.@system[0].hostname=audiowrt' || true
+
+uci -q set network.lan.proto='dhcp' || true
+uci -q delete network.lan.ipaddr 2>/dev/null || true
+uci -q delete network.lan.netmask 2>/dev/null || true
+uci -q delete network.lan.ip6assign 2>/dev/null || true
+uci -q delete network.lan.gateway 2>/dev/null || true
+uci -q delete network.lan.dns 2>/dev/null || true
+
+# Factory image has no WAN interfaces.
+uci -q delete network.wan 2>/dev/null || true
+uci -q delete network.wan6 2>/dev/null || true
+
+# LAN is a client, never a DHCP server.
+if [ -f /etc/config/dhcp ] && uci -q get dhcp.lan >/dev/null 2>&1; then
+    uci -q set dhcp.lan.ignore='1' || true
+fi
+uci -q delete dhcp.wan 2>/dev/null || true
+
+# Remove every stock/persistent wifi-iface. Keep wifi-device hardware sections:
+# provisioning resolves the PHY from them but creates its AP only in RAM.
+for section in $(uci -q show wireless 2>/dev/null |
+    sed -n "s/^wireless\.\([^.=]*\)=wifi-iface.*/\1/p"); do
+    uci -q delete "wireless.$section" 2>/dev/null || true
+done
+
+uci -q commit system || true
+uci -q commit network || true
+[ ! -f /etc/config/dhcp ] || uci -q commit dhcp || true
+[ ! -f /etc/config/wireless ] || uci -q commit wireless || true
+return 0
+""")
+        target.chmod(0o755)
     if 'audiowrt-provisioning' in packages:
         target = output / 'etc/audiowrt/provisioning-ip'
         target.parent.mkdir(parents=True, exist_ok=True)
