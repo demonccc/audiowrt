@@ -15,8 +15,8 @@ VALID_STATUSES = {"reference", "tested", "candidate", "community"}
 GITHUB_USER = re.compile(r"^(?!-)(?!.*--)[A-Za-z0-9-]{1,39}(?<!-)$")
 PROFILE_KEYS = {
     "schema_version", "status", "maintainer_github", "openwrt_profile",
-    "target", "subtarget", "squashfs_block_size", "package_groups",
-    "packages_add", "packages_remove",
+    "target", "subtarget", "squashfs_block_size", "provisioning_radio",
+    "package_groups", "packages_add", "packages_remove",
 }
 GROUP_KEYS = {"schema_version", "include", "packages_add", "packages_remove"}
 
@@ -82,7 +82,8 @@ def identifier_list(value: object, field: str) -> list[str]:
 
 def read_profile(path: Path) -> dict[str, object]:
     data = read_small_yaml(path, PROFILE_KEYS, {"package_groups", "packages_add", "packages_remove"})
-    missing = sorted((PROFILE_KEYS - {"squashfs_block_size"}) - data.keys())
+    optional = {"squashfs_block_size", "provisioning_radio"}
+    missing = sorted((PROFILE_KEYS - optional) - data.keys())
     if missing:
         fail(f"missing profile keys in {path}: {', '.join(missing)}")
     if data.get("schema_version") != 1:
@@ -200,6 +201,10 @@ def main() -> int:
     if not isinstance(squashfs_block_size, str) or squashfs_block_size not in {"default", "256", "512", "1024"}:
         fail("squashfs_block_size must be default, 256, 512 or 1024")
 
+    provisioning_radio = data.get("provisioning_radio", "")
+    if provisioning_radio:
+        provisioning_radio = require_string(provisioning_radio, "provisioning_radio")
+
     json.dump({
         "schema_version": 1,
         "id": args.profile_id,
@@ -212,6 +217,7 @@ def main() -> int:
         "target": require_string(data.get("target"), "target"),
         "subtarget": require_string(data.get("subtarget"), "subtarget"),
         "squashfs_block_size": squashfs_block_size,
+        "provisioning_radio": provisioning_radio,
         "packages_add": resolved_add,
         "packages_remove": resolved_remove,
     }, sys.stdout, indent=2, sort_keys=True)
