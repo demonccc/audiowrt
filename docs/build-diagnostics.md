@@ -16,7 +16,7 @@ Example:
 
 ```sh
 make build \
-  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5 \
   JOBS=1 \
   VERBOSITY=debug
 ```
@@ -29,7 +29,7 @@ Local builds can tee the complete build output to a host file while keeping the 
 
 ```sh
 make build \
-  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5 \
   JOBS=1 \
   VERBOSITY=debug \
   LOG_FILE=logs/wdr4300.log
@@ -43,11 +43,11 @@ GitHub Actions intentionally does not expose a log-file input. The workflow is m
 
 ## Persistent local download cache
 
-The current `openwrt-builder` supports an optional persistent cache for downloaded build inputs. AudioWRT now follows the same rule with `CACHE_DIR`:
+The current `openwrt-builder` supports an optional persistent cache for downloaded build inputs. AudioWRT follows the same rule with `CACHE_DIR`:
 
 ```sh
 make build \
-  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5 \
   CACHE_DIR=.cache/audiowrt
 ```
 
@@ -73,7 +73,7 @@ For repeated troubleshooting runs, combine the cache with a local log and ordere
 
 ```sh
 make build \
-  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-25.12.5 \
+  AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5 \
   CACHE_DIR=.cache/audiowrt \
   JOBS=1 \
   VERBOSITY=debug \
@@ -82,12 +82,10 @@ make build \
 
 GitHub Actions intentionally does not set `CACHE_DIR`; runner builds remain clean and ephemeral.
 
-## Relationship to recent openwrt-builder changes
+## Relationship to openwrt-builder
 
-The newest `release-patched` stabilization changes how `openwrt-builder` combines SDK host tools with the generated custom ImageBuilder: source compilation keeps the SDK host tools/toolchain coherent, while the generated ImageBuilder receives the host-tool tree from the official ImageBuilder matching the base release.
+`openwrt-builder` owns the canonical Docker build environment used by AudioWRT. AudioWRT itself never generates a custom ImageBuilder: it compiles AudioWRT-owned packages with the official SDK and then runs the official ImageBuilder for the same exact release directly.
 
-AudioWRT does not need equivalent host-tool replacement logic because it never generates a custom ImageBuilder. It compiles AudioWRT-owned packages with the official SDK and then runs the official ImageBuilder for the same exact release directly.
-
-The persistent download-cache idea does apply to AudioWRT, because our build repeatedly downloads the same SDK, ImageBuilder and package source archives during local iteration. That behavior is implemented independently in the AudioWRT build wrapper rather than by invoking `openwrt-builder`'s profile/build CLI.
+The persistent download-cache idea applies to AudioWRT because local iteration repeatedly needs the same SDK, ImageBuilder and package source archives. That behavior is implemented in the AudioWRT build wrapper.
 
 The reusable Docker image remains environment-only. AudioWRT scripts come from the mounted AudioWRT checkout, so script-only changes do not require rebuilding the `openwrt-builder` image.
