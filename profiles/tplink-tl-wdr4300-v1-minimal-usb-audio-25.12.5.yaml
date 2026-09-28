@@ -4,6 +4,7 @@ maintainer_github: demonccc
 openwrt_profile: tplink_tl-wdr4300-v1
 target: ath79
 subtarget: generic
+provisioning_radio: radio0
 package_groups:
   - minimal-usb-audio
 packages_add: []
