@@ -12,6 +12,7 @@ audiowrt-identity|package/feeds/audiowrt/audiowrt-identity/compile
 audiowrt-core|package/feeds/audiowrt/audiowrt-core/compile
 audiowrt-provisioning|package/feeds/audiowrt/audiowrt-provisioning/compile
 luci-app-audiowrt-core|package/feeds/audiowrt/luci-app-audiowrt-core/compile
+luci-theme-audiowrt|package/feeds/audiowrt/luci-theme-audiowrt/compile
 kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
 
 audiowrt-busybox|package/feeds/audiowrt/audiowrt-busybox/compile
