@@ -1,84 +1,145 @@
 # AudioWRT 8 MB Functional Baseline
 
-The TP-Link TL-WDR4300 v1 is the reference low-end target for AudioWRT. The purpose of the baseline is not to enable every AudioWRT feature on 8 MB flash, but to guarantee a useful network-audio endpoint on constrained hardware.
+The TP-Link TL-WDR4300 v1 is the reference constrained target for AudioWRT. The objective is not to carry every AudioWRT feature on 8 MB flash; it is to preserve a useful network-audio appliance with predictable provisioning, administration and playback.
 
-## Product direction
+## Product baseline
 
-AudioWRT is primarily a network audio endpoint. Network protocols provide audio to the device and AudioWRT routes it to one of the supported physical outputs.
+The constrained device remains a network-audio endpoint:
 
 ```text
-Network audio receiver
-        |
-        v
-   AudioWRT output
-      /      \
-Bluetooth    USB Audio
-A2DP Source  USB DAC
+network controller
+      |
+      v
+AudioWRT DLNA Renderer
+      |
+      v
+AudioWRT output
+   /        \
+Bluetooth  USB Audio
+A2DP       USB DAC
 ```
 
-MIDI is intentionally outside the constrained baseline. A usable MIDI feature would require a synthesizer, sound bank or a complete USB/BLE routing workflow; transport support alone does not provide an end-user capability and does not justify its flash cost.
+MIDI, local media-library features and large optional receivers are outside the mandatory 8 MB baseline.
 
-Local USB storage and extroot are not part of the mandatory 8 MB core. They
-remain available in the `standard` and `full` flavors; the storage CLI,
-filesystem/USB dependencies and LuCI page are absent from `minimal`.
+## Current constrained profiles
 
-## Mandatory output/music baseline
+The WDR4300 is intentionally split into separate constrained profiles instead of forcing every physical output into one image:
 
-The reference build must attempt to include:
+- `tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5`
+- `tplink-tl-wdr4300-v1-minimal-usb-audio-25.12.5`
 
-- Bluetooth A2DP Source output for speakers and headphones.
-- USB Audio Class output for USB DACs and sound cards.
+The Bluetooth profile is the current reference for the minimized Bluetooth runtime. The USB Audio profile provides the smaller USB-DAC path.
 
-Bluetooth is a mandatory output/music capability in the constrained baseline.
+Package composition is driven by package groups under `config/package-groups/`, not by the historical flavor model.
 
-The first WDR4300 build with the generic OpenWrt BlueZ/SBC dependency chain reached `9,939,466` bytes against the device image limit of `7,861,804` bytes: an overage of `2,077,662` bytes (about 1.98 MiB). Storage was already absent from that measurement, so the result isolated Bluetooth as the next size problem.
+## Constrained runtime policy
 
-The 8 MB baseline therefore uses an AudioWRT-specific minimal Bluetooth stack instead of dropping Bluetooth:
+The minimal runtime uses AudioWRT-owned replacements only when the compiled feature set or footprint genuinely needs to differ from standard OpenWrt.
 
-- a minimal BlueZ `bluetoothd` with classic A2DP/AVRCP retained while MIDI, unrelated profiles, tools, monitor, OBEX and the generic CLI are disabled;
-- an AudioWRT-owned `libbluetooth` built from the same minimal BlueZ source;
-- a library-only SBC package without `libsndfile` or SBC command-line tools;
-- BlueALSA restricted to the A2DP Source/SBC path;
-- a compact AudioWRT D-Bus controller for discovery, pairing and connection instead of `bluetoothctl`/`hciconfig`.
+The current policy includes:
 
-The minimized stack compiled end-to-end on the WDR4300 SDK with Bluetooth MIDI, SBC, BlueALSA and the compact D-Bus controller. That historical measurement produced a `5,763.81 KiB` SquashFS root filesystem but still exceeded the TP-Link firmware limit by `780,394` bytes (about 762 KiB). MIDI has since been removed; the next build is authoritative for the new size.
+- `audiowrt-busybox` with unused applets removed while retaining practical diagnostics such as `vi`, `top` and `which`;
+- `audiowrt-wpad` for the required Wi-Fi station/setup paths without carrying the full generic hostap feature set;
+- `audiowrt-dropbear` as the constrained SSH server;
+- minimized ALSA runtime;
+- minimized Bluetooth/BlueALSA stack for A2DP Source;
+- native lightweight codec players;
+- no MIDI support;
+- no separate `umdns` daemon in the default renderer path.
 
-The next size pass keeps the explicitly requested generic LuCI pages for Status, System and Package Manager, but does not preinstall `luci-mod-network`. Network configuration is an AudioWRT-owned product flow: the dedicated Wi-Fi Client UI handles SSID/AP selection and IPv4 configuration directly. This avoids carrying the generic network UI while preserving the appliance administration pages that are intentionally part of the product.
+The `minimal-usb-bluetooth` capability group removes heavier MP3/AAC/M4A player packages from the shared minimal set to reduce flash pressure further.
 
-This removes the generic dependency chains through `bluez-utils`, readline/ncurses, libical, libsndfile, LAME and mpg123. The firmware build remains authoritative: these changes are not considered sufficient for the 8 MB target until ImageBuilder produces valid WDR4300 images and the resulting size is measured.
+The firmware build remains authoritative for fit. Package intent is not considered sufficient until ImageBuilder produces a valid target image.
 
-## Network input baseline
+## Network renderer baseline
 
-The first network input target is a lightweight audio-only DLNA/UPnP MediaRenderer. This enables Home Assistant / Music Assistant and other UPnP controllers to send audio to AudioWRT without requiring Spotify Connect, local storage or a full media framework on the router.
+DLNA/UPnP MediaRenderer is the mandatory public network-audio path on the constrained image.
 
-AirPlay is the next receiver candidate after the DLNA baseline is measured. Spotify Connect remains optional because its runtime/package footprint is substantially larger on constrained devices.
+The AudioWRT renderer is native and lightweight. MPD and `upmpdcli` are not part of the default constrained renderer stack. Installed player packages register their codec/MIME capabilities, and the renderer advertises only formats that can actually be played.
 
-## Provisioning rules
+This keeps Home Assistant / Music Assistant and other UPnP controllers usable without bringing a general media framework into the 8 MB baseline.
 
-Provisioning must work on both single-radio and multi-radio devices and must never depend on concurrent AP+STA support on one PHY.
+## Provisioning baseline
 
-- If the target STA radio differs from the setup AP radio, keep the setup AP while connecting.
-- If the target STA uses the setup radio and another radio exists, move the setup AP to the alternate radio first.
-- If only one radio exists, stop the setup AP, switch to STA, and restore the setup AP after timeout if association/DHCP fails.
-- Selecting an SSID does not pin a BSSID by default, allowing normal roaming on the selected radio.
-- Selecting a specific access point explicitly stores its BSSID.
-- IPv4 configuration is part of the AudioWRT Wi-Fi flow: users can select automatic DHCP or manual IPv4 configuration.
-- Manual IPv4 requires address, netmask and default gateway; DNS servers are configurable explicitly.
+A fresh constrained image must be recoverable without assuming a router-style default network.
 
-The provisioning wizard and the normal Wi-Fi Client UI must expose the same user model: grouped SSIDs, available bands, channel/signal information, access-point count, an expandable BSSID list, and the same DHCP/manual IPv4 controls.
+Factory state:
 
-## Reference acceptance path
+- hostname `AudioWRT`;
+- LAN is a DHCP client;
+- no `192.168.1.1` default LAN address;
+- WAN disabled;
+- no stock Wi-Fi SSID;
+- radios disabled until runtime/provisioning needs them.
 
-The final 8 MB functional milestone is:
+Provisioning checks connectivity in this order:
+
+1. persistent Wi-Fi client has link + IP;
+2. LAN has link + IP;
+3. otherwise start the temporary setup network.
+
+The temporary network uses:
+
+```text
+SSID: AudioWRT-<MAC suffix>
+IPv4: 192.168.77.1/24
+```
+
+The setup AP must remain runtime-only. It must not leave temporary UCI Wi-Fi sections behind after provisioning finishes.
+
+Selecting a Wi-Fi network normally stores the SSID and lets the station choose the best matching access point. The provisioning UI should not force users to understand or pin individual BSSIDs for a normal setup flow.
+
+## Administration baseline
+
+The constrained image retains the essential LuCI administration surface and the AudioWRT-owned pages required to operate the appliance.
+
+The AudioWRT LuCI theme and provisioning wizard share the same visual language and branding so the device does not switch between unrelated interfaces after setup.
+
+Generic pages that pull large dependency chains are avoided unless they provide enough operational value to justify their footprint.
+
+## Audio output baseline
+
+Bluetooth profile:
+
+- classic Bluetooth stack required for A2DP Source;
+- BlueALSA output path;
+- saved/paired-device management through AudioWRT;
+- firmware support may be included for validated USB Bluetooth adapters where needed.
+
+USB Audio profile:
+
+- USB Audio Class kernel/runtime support;
+- ALSA route managed by AudioWRT;
+- native players write PCM through the selected AudioWRT output.
+
+The runtime always creates a valid AudioWRT ALSA configuration, even when no output device is currently selected, so player/renderer startup does not depend on a stale or missing device file.
+
+## Storage and flash discipline
+
+The WDR4300 has very little writable overlay headroom. Experimental package installs must not be used as a normal validation mechanism on this target.
+
+During development:
+
+- test replacement scripts/UI/assets from `/tmp` with bind mounts;
+- avoid writing large temporary packages to overlay;
+- treat ImageBuilder composition as the source of truth for the next firmware;
+- measure the resulting SquashFS/rootfs-data boundary after each size-sensitive change.
+
+This is particularly important because crossing a flash erase-block boundary can reduce writable overlay by an entire block even when the added compressed payload is small.
+
+## Acceptance path
+
+A constrained image is useful when this flow works:
 
 ```text
 fresh flash
-  -> provision Wi-Fi/Ethernet
-  -> network controller discovers AudioWRT
+  -> obtain network through configured Wi-Fi or Ethernet
+     OR expose temporary AudioWRT setup network
+  -> provision hostname / Wi-Fi / administrator access
+  -> network controller discovers DLNA Renderer
   -> controller starts playback
-  -> AudioWRT routes audio to Bluetooth A2DP Source
-  -> optionally switch to a USB Audio Class DAC
-  -> MIDI is omitted until AudioWRT can provide a complete synthesizer or routing feature
+  -> AudioWRT routes decoded PCM to the selected physical output
+  -> LuCI remains available with the AudioWRT theme for administration
 ```
 
-The Bluetooth minimization is a size-driven implementation step toward this acceptance path. DLNA remains the next network-input milestone after the output baseline produces a valid WDR4300 firmware.
+The 8 MB baseline should optimize for this complete product path before optional services are added.
