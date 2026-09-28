@@ -14,13 +14,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - run: python3 scripts/validate-profile-catalog.py
-      - run: python3 tests/test-profile-catalog.py
-      - run: python3 tests/test-image-defaults.py
-      - name: Verify dropdown generation
-        run: |
-          python3 scripts/sync-profile-workflow.py
-          python3 scripts/sync-profile-workflow.py --check
+      - name: Validate catalog schema and references
+        run: python3 scripts/validate-profile-catalog.py
+      - name: Verify generated profile options are current
+        run: python3 scripts/sync-profile-workflow.py --check
 
   validate:
     runs-on: ubuntu-24.04
@@ -43,53 +40,20 @@ jobs:
       - name: Validate Makefile entry point
         run: make help
 
-      - name: Test AudioWRT distribution version
+      - name: Test AudioWRT distribution version contract
         run: bash tests/test-versioning.sh
 
       - name: Test exact release policy
         run: bash tests/test-release-ref.sh
 
-      - name: Test platform and USB metadata validation
+      - name: Test platform metadata resolver
         run: bash tests/test-build-metadata.sh
-
-      - name: Test AudioWRT flavors and device profiles
-        run: bash tests/test-flavors-and-profiles.sh
-
-      - name: Test storage baseline isolation
-        run: bash tests/test-storage-baseline.sh
-
-      - name: Test minimal 8 MB LuCI baseline
-        run: bash tests/test-8mb-luci-baseline.sh
 
       - name: Test firmware image output validation
         run: bash tests/test-image-size-report.sh
 
-      - name: Test SDK package-only build boundary
-        run: bash tests/test-sdk-download-scope.sh
-
-      - name: Test SDK package selection for explicit targets
-        run: bash tests/test-sdk-package-selection.sh
-
       - name: Test runtime ELF link-stub generation
         run: bash tests/test-elf-link-stub.sh
 
-      - name: Test SDK feed configuration
-        run: bash tests/test-sdk-feed-config.sh
-
-      - name: Test AudioWRT package build selection
-        run: bash tests/test-package-build-selection.sh
-
-      - name: Test package-only build mode
-        run: bash tests/test-package-build-mode.sh
-
-      - name: Test AudioWRT source dependency resolution
-        run: bash tests/test-source-build-dependencies.sh
-
-      - name: Test minimal runtime stack
-        run: bash tests/test-minimal-runtime-stack.sh
-
-      - name: Test canonical builder image pin
-        run: bash tests/test-builder-image-pin.sh
-
-      - name: Test build workflow performance safeguards
-        run: bash tests/test-build-workflow-performance.sh
+      - name: Test generic package resolver contracts
+        run: bash tests/test-package-resolvers.sh

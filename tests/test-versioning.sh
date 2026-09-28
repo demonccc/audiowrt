@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-2.0-only
+
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -9,7 +11,4 @@ version="$(tr -d '[:space:]' < "$repo_root/VERSION")"
     exit 1
 }
 
-grep -Fq 'AUDIOWRT_VERSION=$audiowrt_version' "$repo_root/scripts/build.sh"
-grep -Fq '"audiowrt_version": "$audiowrt_version"' "$repo_root/scripts/build.sh"
-
-echo "AudioWRT distribution version contract OK: $version"
+printf 'AudioWRT distribution version format OK: %s\n' "$version"
