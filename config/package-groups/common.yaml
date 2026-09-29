@@ -12,7 +12,7 @@ packages_add:
   - audiowrt-renderer
   - luci-base
   - luci-theme-audiowrt
-  - luci-mod-status
+  - luci-mod-status-audiowrt
   - luci-mod-system
   - luci-app-package-manager
   - luci-app-audiowrt
