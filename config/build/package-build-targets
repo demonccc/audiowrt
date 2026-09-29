@@ -27,7 +27,7 @@ audiowrt-network-client|package/feeds/audiowrt/audiowrt-network-client/compile
 audiowrt-wifi-client|package/feeds/audiowrt/audiowrt-wifi-client/compile
 audiowrt-udhcpd|package/feeds/audiowrt/audiowrt-udhcpd/compile
 audiowrt-mpd|package/feeds/audiowrt/audiowrt-mpd/compile
-audiowrt-renderer|package/feeds/audiowrt/audiowrt-dlna/compile
+audiowrt-dlna-renderer|package/feeds/audiowrt/audiowrt-dlna/compile
 libaudiowrt-player|package/feeds/audiowrt/libaudiowrt-player/compile
 audiowrt-player-flac|package/feeds/audiowrt/audiowrt-player-flac/compile
 audiowrt-player-mp3|package/feeds/audiowrt/audiowrt-player-mp3/compile
@@ -39,7 +39,7 @@ audiowrt-player-vorbis|package/feeds/audiowrt/audiowrt-player-vorbis/compile
 audiowrt-player-aiff|package/feeds/audiowrt/audiowrt-player-aiff/compile
 audiowrt-player-opus|package/feeds/audiowrt/audiowrt-player-opus/compile
 audiowrt-player-ffmpeg|package/feeds/audiowrt/audiowrt-player-ffmpeg/compile
-luci-app-audiowrt-renderer|package/feeds/audiowrt/luci-app-audiowrt-dlna/compile
+luci-app-audiowrt-dlna-renderer|package/feeds/audiowrt/luci-app-audiowrt-dlna/compile
 audiowrt-airplay|package/feeds/audiowrt/audiowrt-airplay/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
 audiowrt-sbc|package/feeds/audiowrt/audiowrt-sbc/compile
