@@ -1,10 +1,9 @@
 schema_version: 1
 packages_add:
-  - audiowrt-branding
-  - audiowrt-busybox
+  - audiowrt-distro-branding
+  - busybox-udhcpd-tailored
   - audiowrt-core
   - audiowrt-config
-  - audiowrt-identity
   - audiowrt-provisioning
   - audiowrt-audio
   - audiowrt-network-client
@@ -12,7 +11,7 @@ packages_add:
   - audiowrt-dlna-renderer
   - luci-base
   - luci-theme-audiowrt
-  - luci-mod-status-audiowrt
+  - luci-mod-status-tailored
   - luci-mod-system
   - luci-app-package-manager
   - luci-app-audiowrt
@@ -21,7 +20,6 @@ packages_add:
   - luci-app-audiowrt-dlna-renderer
   - uhttpd
   - uhttpd-mod-ubus
-  - audiowrt-udhcpd
 packages_remove:
   - busybox
   - dnsmasq
@@ -40,4 +38,3 @@ packages_remove:
   - luci-proto-ppp
   - minidlna
   - umdns
-  - audiowrt-umdns
