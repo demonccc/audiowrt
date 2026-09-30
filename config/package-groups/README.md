@@ -1,35 +1,52 @@
 # AudioWRT package groups
 
-AudioWRT firmware composition is based on package groups, not flavors.
+AudioWRT firmware composition is based on package groups. `common` is applied automatically to every AudioWRT profile; selectable groups add runtime/capability policy.
 
-`common` is the mandatory AudioWRT baseline and is applied automatically to every profile. It is not selected explicitly. It contains product-wide functionality that is identical in every AudioWRT image, including provisioning, the native DLNA Renderer, the AudioWRT LuCI applications and the AudioWRT theme.
+## Common baseline
 
-Reusable runtime groups:
+The common AudioWRT distribution baseline includes provisioning, the native DLNA renderer, the AudioWRT LuCI applications, the reusable AudioWRT theme and the explicit `audiowrt-distro-branding` layer.
 
-- `minimal`: constrained-device runtime using AudioWRT-owned replacements where the compiled feature set or footprint genuinely needs to differ.
-- `standard`: ordinary OpenWrt runtime packages for devices where flash pressure is not the primary constraint.
+The constrained common base selects:
 
-Runtime mapping:
+- `busybox-udhcpd-tailored`, which provides both `busybox` and `udhcpd`;
+- `luci-mod-status-tailored`, which provides `luci-mod-status` without the unused constrained-device status dependencies.
+
+Device identity is part of `audiowrt-core`; there is no separate identity package.
+
+## Runtime mapping
 
 | Function | Minimal | Standard |
 | --- | --- | --- |
-| ALSA | `libaudiowrt-alsa-minimal` | `alsa-lib` |
+| ALSA | `alsa-lib-trimmed` | `alsa-lib` |
 | TLS | `libmbedtls21` | `libmbedtls21` |
-| SSH server | `audiowrt-dropbear` | `dropbear` |
-| Wi-Fi station | `audiowrt-wpad` | `wpad-basic-mbedtls` |
+| SSH server | `dropbear-trimmed` | `dropbear` |
+| Wi-Fi station / setup AP | `hostapd-wpa-supplicant-tailored` | `wpad-basic-mbedtls` |
 | Network clients | `audiowrt-network-client` + `audiowrt-wifi-client` | same AudioWRT client layer |
-| Network configuration UI | `luci-app-audiowrt-network-client` | `luci-app-audiowrt-network-client` |
 | DLNA Renderer + discovery | `audiowrt-dlna-renderer` | `audiowrt-dlna-renderer` |
-| DLNA Renderer configuration | `luci-app-audiowrt-dlna-renderer` | `luci-app-audiowrt-dlna-renderer` |
 | LuCI theme | `luci-theme-audiowrt` | `luci-theme-audiowrt` |
+| Distribution branding | `audiowrt-distro-branding` | `audiowrt-distro-branding` |
 
-`audiowrt-dlna-renderer` is the public DLNA network-audio service. It owns SSDP/DLNA, the UPnP MediaRenderer control services, lightweight discovery required by the appliance, playback status and player selection.
+`audiowrt-dlna-renderer` owns SSDP/DLNA, UPnP MediaRenderer services, lightweight discovery, playback status and player selection. It does not require MPD or upmpdcli.
 
-Player packages register their codec/MIME/extension support and executable in AudioWRT runtime registries. Codec capability and installed-player metadata are kept separate so both the DLNA Renderer and local playback can resolve the same installed capabilities while keeping their own preferred-player settings. The DLNA Renderer advertises only codecs that have at least one compatible installed player.
+Player packages remain intentionally granular. Codec capability and installed-player metadata are shared through `libaudiowrt-player`; each consumer keeps its own preferred-player settings.
 
-MPD and `upmpdcli` are not part of the default DLNA Renderer stack. MPD, VLC or another engine can be integrated through a wrapper that obeys the common foreground `player <URL>` contract and registers its supported codecs. LuCI selects the preferred player per codec; compatible alternatives remain automatic fallbacks.
+`audiowrt-player-mpd` is an optional integration package for an independently installed OpenWrt MPD provider. It does not build or replace MPD. Both `mpd-mini` and `mpd-full` provide the `mpd` capability.
 
-Selectable capability groups are:
+The obsolete `audiowrt-minimal-upmpdcli` package is not part of any runtime group.
+
+## Bluetooth mapping
+
+Minimal Bluetooth profiles select:
+
+- `dbus-trimmed`;
+- `kmod-bluetooth-trimmed`;
+- `bluez-trimmed` through the AudioWRT Bluetooth dependency chain;
+- `sbc-trimmed` and ported `bluez-alsa` as required by that chain;
+- `audiowrt-bluetooth` as the AudioWRT integration layer.
+
+Standard Bluetooth profiles keep the official OpenWrt Bluetooth kernel packages while retaining `dbus-trimmed` and the reusable AudioWRT Bluetooth integration.
+
+## Selectable groups
 
 - `minimal-usb-audio`
 - `minimal-usb-bluetooth`
@@ -38,30 +55,15 @@ Selectable capability groups are:
 - `usb-bluetooth`
 - `usb-audio-bluetooth`
 
-Package groups may declare `include` entries to reuse another package group. Includes are resolved recursively before the current group's own `packages_add` / `packages_remove` entries are applied. Include cycles are rejected.
+The three `minimal-*` groups include `minimal`; the three standard `usb-*` groups include `standard`.
 
-The three `minimal-*` groups include `minimal`. The three standard `usb-*` groups include `standard`. This keeps runtime implementation policy separate from USB Audio/Bluetooth capability selection.
+Package groups may recursively include another group. Includes are resolved before the current group's `packages_add` / `packages_remove` entries. Include cycles are rejected.
 
-`minimal-usb-bluetooth` removes the heavier MP3/AAC/M4A players from the shared minimal set to reduce flash use on constrained Bluetooth devices. Other groups retain the formats selected by their runtime policy.
-
-A profile selects the package group or groups it needs through `package_groups`. Package groups define package selection only. Device-specific exceptions belong in the profile's `packages_add` / `packages_remove` overrides.
-
-Example:
-
-```yaml
-package_groups:
-  - minimal-usb-bluetooth
-```
-
-Resolution order is:
+Resolution order:
 
 1. automatic `common` baseline;
 2. recursively included groups;
-3. each selected group's own package changes;
-4. device profile `packages_add` / `packages_remove` overrides.
+3. selected group package changes;
+4. profile-specific `packages_add` / `packages_remove` overrides.
 
-Runtime files and package-specific configuration do not belong in this repository. They must be owned by a package under `audiowrt-packages`.
-
-## Hardware responsibility
-
-AudioWRT does not infer every physical audio capability from OpenWrt metadata. A profile maintainer must verify that the target hardware can expose the audio path required by the selected package group, such as USB Audio or a supported USB Bluetooth adapter.
+Runtime files and package-specific configuration belong in `audiowrt-packages`, not in firmware profile definitions.
