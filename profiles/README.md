@@ -10,6 +10,7 @@ openwrt_profile: vendor_example-device
 target: ath79
 subtarget: generic
 squashfs_block_size: default
+provisioning_radio: radio0
 package_groups:
   - usb-audio
 packages_add:
@@ -39,6 +40,8 @@ Shared composition belongs in `config/package-groups/`. Runtime files and packag
 
 `squashfs_block_size` is optional. Omit it or set it to `default` to preserve the OpenWrt target configuration. Set it to `256`, `512` or `1024` to override the target's block size for that profile.
 
+`provisioning_radio` is optional and identifies the OpenWrt `wifi-device` used for the temporary setup AP. When set, AudioWRT bakes that radio name into the image. The provisioning wizard scans and offers networks only from the other radios, so testing a Wi-Fi client connection never has to reuse the PHY carrying the setup session. Normal Wi-Fi Client behavior is independent of this setting.
+
 Status values are:
 
 - `reference`: primary AudioWRT development device;
@@ -52,7 +55,7 @@ Status values are:
 
 1. Confirm that the exact `openwrt_profile`, `target` and `subtarget` exist in the selected OpenWrt release.
 2. Confirm that the target hardware provides the physical audio path required by the selected package group. AudioWRT does not reject a build automatically when USB-host capability cannot be inferred.
-3. Select the required `package_groups`.
+3. Select the required `package_groups` and, when provisioning is included, set `provisioning_radio` to the intended setup AP radio.
 4. Use `packages_add` / `packages_remove` only for genuine device-specific exceptions.
 5. Run `python3 scripts/validate-profile-catalog.py` and `python3 tests/test-profile-catalog.py`.
 6. Build the new profile and include the device revision and basic runtime validation in the pull request.

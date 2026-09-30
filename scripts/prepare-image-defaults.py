@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Bake AudioWRT factory/package defaults into the image."""
 from pathlib import Path
+import json
 import shutil
 import sys
 
@@ -35,7 +36,7 @@ def prepare(packages_file, feed, output, provisioning_ip="192.168.77.1"):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text("""#!/bin/sh
 # AudioWRT factory network state:
-#   hostname audiowrt
+#   hostname AudioWRT
 #   LAN DHCP client only
 #   no WAN
 #   no persistent Wi-Fi configuration
@@ -74,10 +75,17 @@ uci -q commit network || true
 return 0
 """)
         target.chmod(0o755)
-    if 'audiowrt-provisioning' in packages:
-        target = output / 'etc/audiowrt/provisioning-ip'
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(provisioning_ip + '\n')
+
+        audiowrt_dir = output / 'etc/audiowrt'
+        audiowrt_dir.mkdir(parents=True, exist_ok=True)
+        (audiowrt_dir / 'provisioning-ip').write_text(provisioning_ip + '\n')
+
+        resolved_profile = packages_file.parent / 'audiowrt-profile.json'
+        if resolved_profile.is_file():
+            profile = json.loads(resolved_profile.read_text(encoding='utf-8'))
+            provisioning_radio = profile.get('provisioning_radio', '')
+            if provisioning_radio:
+                (audiowrt_dir / 'provisioning-radio').write_text(provisioning_radio + '\n')
 
 
 if __name__ == '__main__':
