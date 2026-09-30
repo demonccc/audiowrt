@@ -16,10 +16,9 @@ packages_add:
   - audiowrt-player-opus
   - audiowrt-player-ffmpeg
 packages_remove:
-  - libaudiowrt-alsa-minimal
-  - audiowrt-wpad
+  - alsa-lib-trimmed
+  - hostapd-wpa-supplicant-tailored
   - mpd-mini
   - mpd-full
   - upmpdcli
-  - audiowrt-mpd
-  - audiowrt-minimal-upmpdcli
+  - audiowrt-player-mpd
