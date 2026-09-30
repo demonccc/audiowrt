@@ -2,7 +2,7 @@ schema_version: 1
 include:
   - standard
 packages_add:
-  - audiowrt-dbus
+  - dbus-trimmed
   - audiowrt-usb-audio
   - audiowrt-bluetooth
   - kmod-sound-core
@@ -11,4 +11,4 @@ packages_add:
   - kmod-btusb
 packages_remove:
   - dbus
-  - kmod-audiowrt-bluetooth
+  - kmod-bluetooth-trimmed
