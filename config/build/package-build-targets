@@ -17,6 +17,7 @@ kmod-audiowrt-bluetooth|package/feeds/audiowrt/audiowrt-kmod-bluetooth/compile
 
 audiowrt-busybox|package/feeds/audiowrt/audiowrt-busybox/compile
 audiowrt-dropbear|package/feeds/audiowrt/audiowrt-dropbear/compile
+audiowrt-dbus|package/feeds/audiowrt/audiowrt-dbus/compile
 audiowrt-audio|package/feeds/audiowrt/audiowrt-audio/compile
 libaudiowrt-alsa-minimal|package/feeds/audiowrt/libaudiowrt-alsa-minimal/compile
 audiowrt-wpad|package/feeds/audiowrt/audiowrt-wpad/compile
