@@ -2,12 +2,14 @@ schema_version: 1
 include:
   - minimal
 packages_add:
+  - audiowrt-dbus
   - audiowrt-usb-audio
   - audiowrt-bluetooth
   - kmod-audiowrt-bluetooth
   - kmod-sound-core
   - kmod-usb-audio
 packages_remove:
+  - dbus
   - kmod-bluetooth
   - kmod-btusb
   - kmod-btmtk
