@@ -7,12 +7,12 @@ packages_add:
   - kmod-usb-audio
 packages_remove:
   - audiowrt-bluetooth
-  - audiowrt-bluez
+  - bluez-trimmed
   - bluez-libs
   - audiowrt-btctl
   - bluez-alsa
-  - sbc
-  - kmod-audiowrt-bluetooth
+  - sbc-trimmed
+  - kmod-bluetooth-trimmed
   - kmod-bluetooth
   - kmod-btusb
   - kmod-btmtk
