@@ -344,7 +344,7 @@ fi
 # them without RFCOMM, BNEP or HIDP. This preserves binary compatibility and
 # avoids compiling or patching the release kernel.
 prepare_bluetooth_package() {
-bluetooth_module_source="$sdk_dir/feeds/audiowrt/audiowrt-kmod-bluetooth"
+bluetooth_module_source="$sdk_dir/feeds/audiowrt/kmod-bluetooth-trimmed"
 [[ -d "$bluetooth_module_source" ]] || {
     echo "ERROR: AudioWRT minimal Bluetooth kernel package source is missing." >&2
     exit 5
@@ -846,7 +846,7 @@ fi
 # The constrained AudioWRT Wi-Fi provider is one multicall wpad binary built
 # from the exact OpenWrt hostap source. Stage its development interfaces once
 # without turning OpenWrt runtime dependencies into source-build roots.
-if [[ " ${firmware_packages[*]} " == *" audiowrt-wpad "* ]]; then
+if [[ " ${firmware_packages[*]} " == *" hostapd-wpa-supplicant-tailored "* ]]; then
     hostap_sdk=1
 fi
 
@@ -885,7 +885,7 @@ if (( hostap_sdk )); then
     register_official_sdk_source base libs/udebug
 fi
 
-if [[ " ${firmware_packages[*]} " == *" kmod-audiowrt-bluetooth "* ]]; then
+if [[ " ${firmware_packages[*]} " == *" kmod-bluetooth-trimmed "* ]]; then
     prepare_bluetooth_package
 fi
 
@@ -990,8 +990,8 @@ for spec in "${build_specs[@]}"; do
 done
 
 # A single SDK target can emit multiple AudioWRT packages. If any package from
-# that target is an explicit source root (for example audiowrt-bluez while
-# audiowrt-bluez-libs is another output of the same recipe), compile the target
+# that target is an explicit source root (for example bluez-trimmed while
+# bluez-trimmed-libs is another output of the same recipe), compile the target
 # exactly once through the source path and remove it from the NO_DEPS target set.
 if [[ "${#package_only_targets[@]}" -gt 0 && "${#source_targets[@]}" -gt 0 ]]; then
     filtered_package_only_targets=()
@@ -1015,12 +1015,12 @@ fi
 
 # Some SDK preparation requirements are only visible after resolving the full
 # AudioWRT dependency closure. A package-only request such as the Network Client
-# can pull audiowrt-wpad transitively through the wpa-supplicant virtual
+# can pull hostapd-wpa-supplicant-tailored transitively through the wpa-supplicant virtual
 # dependency. Reconcile the special SDK staging flags against build_packages
 # before compilation so transitive providers receive the same headers/link
 # stubs as explicitly requested roots.
 late_sdk_registration=0
-if [[ " ${build_packages[*]} " == *" audiowrt-wpad "* && "$hostap_sdk" -eq 0 ]]; then
+if [[ " ${build_packages[*]} " == *" hostapd-wpa-supplicant-tailored "* && "$hostap_sdk" -eq 0 ]]; then
     hostap_sdk=1
     register_official_sdk_source base libs/libnl-tiny
     register_official_sdk_source base libs/libjson-c
@@ -1149,9 +1149,9 @@ for target_path in "${ordered_targets[@]}"; do
         # compiling userspace source targets must not build the SDK kernel or
         # either official/custom Bluetooth module package. Keep the selected
         # AudioWRT userspace symbols enabled: later source targets depend on
-        # providers built earlier (for example bluez-alsa on audiowrt-bluez).
+        # providers built earlier (for example bluez-alsa on bluez-trimmed).
         target_package_config_args+=("CONFIG_PACKAGE_kmod-bluetooth=n")
-        target_package_config_args+=("CONFIG_PACKAGE_kmod-audiowrt-bluetooth=n")
+        target_package_config_args+=("CONFIG_PACKAGE_kmod-bluetooth-trimmed=n")
         make_run "$sdk_dir" "${target_package_config_args[@]}" "$target_path" -j"$jobs"
     else
         make_run "$sdk_dir" "${target_package_config_args[@]}" "$target_path" NO_DEPS=1 -j"$jobs"
