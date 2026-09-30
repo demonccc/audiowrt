@@ -2,9 +2,11 @@ schema_version: 1
 include:
   - minimal
 packages_add:
+  - audiowrt-dbus
   - audiowrt-bluetooth
   - kmod-audiowrt-bluetooth
 packages_remove:
+  - dbus
   - audiowrt-player-mp3
   - audiowrt-player-aac
   - audiowrt-player-m4a

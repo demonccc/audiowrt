@@ -2,7 +2,7 @@
 
 AudioWRT firmware composition is based on package groups, not flavors.
 
-`common` is the mandatory AudioWRT baseline and is applied automatically to every profile. It is not selected explicitly. It contains product-wide functionality that is identical in every AudioWRT image, including provisioning, the native renderer, the AudioWRT LuCI applications and the AudioWRT theme.
+`common` is the mandatory AudioWRT baseline and is applied automatically to every profile. It is not selected explicitly. It contains product-wide functionality that is identical in every AudioWRT image, including provisioning, the native DLNA Renderer, the AudioWRT LuCI applications and the AudioWRT theme.
 
 Reusable runtime groups:
 
@@ -19,15 +19,15 @@ Runtime mapping:
 | Wi-Fi station | `audiowrt-wpad` | `wpad-basic-mbedtls` |
 | Network clients | `audiowrt-network-client` + `audiowrt-wifi-client` | same AudioWRT client layer |
 | Network configuration UI | `luci-app-audiowrt-network-client` | `luci-app-audiowrt-network-client` |
-| Renderer + discovery | `audiowrt-renderer` | `audiowrt-renderer` |
-| Renderer configuration | `luci-app-audiowrt-renderer` | `luci-app-audiowrt-renderer` |
+| DLNA Renderer + discovery | `audiowrt-dlna-renderer` | `audiowrt-dlna-renderer` |
+| DLNA Renderer configuration | `luci-app-audiowrt-dlna-renderer` | `luci-app-audiowrt-dlna-renderer` |
 | LuCI theme | `luci-theme-audiowrt` | `luci-theme-audiowrt` |
 
-`audiowrt-renderer` is the public network-audio service. It owns SSDP/DLNA, the UPnP MediaRenderer control services, lightweight discovery required by the appliance, playback status and player selection.
+`audiowrt-dlna-renderer` is the public DLNA network-audio service. It owns SSDP/DLNA, the UPnP MediaRenderer control services, lightweight discovery required by the appliance, playback status and player selection.
 
-Player packages register their codec/MIME/extension support and executable in AudioWRT runtime registries. Codec capability and installed-player metadata are kept separate so both the renderer and local playback can resolve the same installed capabilities while keeping their own preferred-player settings. The renderer advertises only codecs that have at least one compatible installed player.
+Player packages register their codec/MIME/extension support and executable in AudioWRT runtime registries. Codec capability and installed-player metadata are kept separate so both the DLNA Renderer and local playback can resolve the same installed capabilities while keeping their own preferred-player settings. The DLNA Renderer advertises only codecs that have at least one compatible installed player.
 
-MPD and `upmpdcli` are not part of the default renderer stack. MPD, VLC or another engine can be integrated through a wrapper that obeys the common foreground `player <URL>` contract and registers its supported codecs. LuCI selects the preferred player per codec; compatible alternatives remain automatic fallbacks.
+MPD and `upmpdcli` are not part of the default DLNA Renderer stack. MPD, VLC or another engine can be integrated through a wrapper that obeys the common foreground `player <URL>` contract and registers its supported codecs. LuCI selects the preferred player per codec; compatible alternatives remain automatic fallbacks.
 
 Selectable capability groups are:
 

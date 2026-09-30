@@ -9,16 +9,16 @@ packages_add:
   - audiowrt-audio
   - audiowrt-network-client
   - audiowrt-wifi-client
-  - audiowrt-renderer
+  - audiowrt-dlna-renderer
   - luci-base
   - luci-theme-audiowrt
-  - luci-mod-status
+  - luci-mod-status-audiowrt
   - luci-mod-system
   - luci-app-package-manager
   - luci-app-audiowrt
   - luci-app-audiowrt-network-client
   - luci-app-audiowrt-core
-  - luci-app-audiowrt-renderer
+  - luci-app-audiowrt-dlna-renderer
   - uhttpd
   - uhttpd-mod-ubus
   - audiowrt-udhcpd
