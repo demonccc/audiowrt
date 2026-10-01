@@ -14,8 +14,8 @@ Every release profile pins one exact OpenWrt release and one OpenWrt device mapp
 AudioWRT profile
    -> exact OpenWrt release
    -> target / subtarget / device profile
-   -> official SDK
-   -> official ImageBuilder
+   -> official SDK for package builds
+   -> official ImageBuilder for firmware builds
 ```
 
 Release candidates, implicit branch aliases and caller-provided OpenWrt-version overrides are not part of a release profile. Snapshot profiles are explicitly named as snapshots.
@@ -42,6 +42,19 @@ If AudioWRT changes policy, scripts, LuCI or runtime configuration but not the u
 
 Software without a canonical supported OpenWrt recipe may be owned directly by AudioWRT and compiled with the SDK selected by the device profile.
 
+## Published package repository
+
+Package compilation is independent from firmware composition.
+
+`demonccc/audiowrt-packages` builds APKs incrementally with the exact official OpenWrt SDK selected for the target context. GitHub Release assets are immutable binary storage. GitHub Pages exposes the current logical repository metadata for two channels:
+
+- `stable`: packages published from `main`;
+- `testing`: packages published from `testing`.
+
+The published metadata is scoped by exact OpenWrt version plus target/subtarget and records package architecture, version, SHA256, source commit and immutable Release URL.
+
+A package Release represents one incremental build only. It is not an AudioWRT software release and does not imply semantic versioning.
+
 ## Firmware composition
 
 Firmware composition is based on package groups.
@@ -65,6 +78,8 @@ The current groups are:
 - `usb-audio-bluetooth`
 
 `config/package-groups/README.md` is the authoritative composition document.
+
+Firmware builds use the official OpenWrt ImageBuilder and published APKs. They do not compile AudioWRT package sources. The selected package channel is resolved before ImageBuilder runs, every downloaded AudioWRT APK is SHA256-verified, and the package-repository revision/hash is recorded in the firmware provenance.
 
 ## Runtime architecture
 
@@ -164,20 +179,42 @@ Examples include:
 
 The constrained Bluetooth capability group additionally removes heavier player formats that do not justify their flash cost on that profile.
 
-## Build flow
+## Build flows
+
+Package build:
+
+```text
+1. validate package source and requested OpenWrt context
+2. obtain the exact official OpenWrt SDK
+3. resolve changed packages plus declared rebuild dependents
+4. compile only that package set
+5. publish immutable APK assets + repository-update metadata
+6. rebuild the stable/testing GitHub Pages repository view
+```
+
+Firmware build:
 
 ```text
 1. validate AudioWRT profile
-2. resolve exact OpenWrt release + target
-3. obtain official SDK and ImageBuilder
-4. resolve package groups and profile overrides
-5. build only selected AudioWRT APKs
-6. inject local APKs into official ImageBuilder
-7. assemble firmware using official release repositories
-8. record provenance, package plan and image-size diagnostics
+2. resolve exact OpenWrt release + target/subtarget
+3. obtain the exact official ImageBuilder
+4. resolve the selected stable/testing AudioWRT package metadata
+5. download and SHA256-verify published APKs
+6. compose the image with ImageBuilder PACKAGES
+7. record package repository revision/hash and image-size diagnostics
 ```
 
 A successful ImageBuilder invocation that produces no firmware image is treated as a failed build.
+
+## Branching
+
+Both repositories use:
+
+- `main` for stable/releasable state;
+- `testing` for integration and hardware-test state;
+- temporary `feature/*` and `fix/*` branches for development.
+
+Normal development PRs target `testing`. Promotion from `testing` to `main` is explicit. Git tags are not required for ordinary package/profile changes.
 
 ## Hardware ownership
 
@@ -194,4 +231,6 @@ AudioWRT profiles describe required product capabilities; maintainers are respon
 
 ## Reproducibility
 
-For a reproducible release build, pin an exact AudioWRT commit, an exact `audiowrt-packages` commit and an exact-release device profile. Snapshot profiles are intentionally moving builds.
+Firmware identity is its provenance rather than a repository tag. A reproducible build records the exact AudioWRT commit, profile, OpenWrt release, package channel, package repository revision and package metadata SHA256.
+
+See `docs/build-strategy.md` for the operational branching and publication model.
