@@ -41,6 +41,7 @@ luci-app-audiowrt-dlna-renderer|package/feeds/audiowrt/luci-app-audiowrt-dlna/co
 audiowrt-airplay|package/feeds/audiowrt/audiowrt-airplay/compile
 audiowrt-spotify|package/feeds/audiowrt/audiowrt-spotify/compile
 sbc-trimmed|package/feeds/audiowrt/sbc-trimmed/compile
+glib2-trimmed|package/feeds/audiowrt/glib2-trimmed/compile
 bluez-trimmed|package/feeds/audiowrt/bluez-trimmed/compile
 audiowrt-btctl|package/feeds/audiowrt/audiowrt-btctl/compile
 bluez-alsa|package/feeds/audiowrt/bluez-alsa/compile
