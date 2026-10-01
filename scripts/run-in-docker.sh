@@ -8,6 +8,7 @@ builder_image="demonccc/openwrt-builder:latest"
 log_file="${LOG_FILE:-}"
 cache_dir="${CACHE_DIR:-}"
 container_cache_dir=""
+build_mode="${AUDIOWRT_BUILD_MODE:-firmware}"
 
 if [[ -n "$log_file" ]]; then
     if [[ "$log_file" = /* ]]; then
@@ -73,22 +74,31 @@ fi
 
 uid="$(id -u)"
 gid="$(id -g)"
+entrypoint="scripts/build.sh"
+if [[ "$build_mode" == firmware ]]; then
+    entrypoint="scripts/build-firmware.sh"
+elif [[ "$build_mode" != packages ]]; then
+    echo "ERROR: AUDIOWRT_BUILD_MODE must be firmware or packages." >&2
+    exit 2
+fi
 
 docker run --rm \
     --user "$uid:$gid" \
     -e HOME=/tmp \
     -e AUDIOWRT_IN_CONTAINER=1 \
-    -e AUDIOWRT_BUILD_MODE="${AUDIOWRT_BUILD_MODE:-firmware}" \
+    -e AUDIOWRT_BUILD_MODE="$build_mode" \
     -e AUDIOWRT_PACKAGE="${AUDIOWRT_PACKAGE:-all}" \
-    -e AUDIOWRT_PROFILE="${AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-25.12.5}" \
+    -e AUDIOWRT_PROFILE="${AUDIOWRT_PROFILE:-tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5}" \
     -e AUDIOWRT_PROVISIONING_IP="${PROVISIONING_IP:-192.168.77.1}" \
     -e OPENWRT_REPOSITORY="${OPENWRT_REPOSITORY:-https://github.com/openwrt/openwrt.git}" \
     -e AUDIOWRT_PACKAGES_REPOSITORY="${AUDIOWRT_PACKAGES_REPOSITORY:-https://github.com/demonccc/audiowrt-packages.git}" \
     -e AUDIOWRT_PACKAGES_REF="${AUDIOWRT_PACKAGES_REF:-main}" \
+    -e AUDIOWRT_PACKAGES_CHANNEL="${AUDIOWRT_PACKAGES_CHANNEL:-stable}" \
+    -e AUDIOWRT_PACKAGES_BASE_URL="${AUDIOWRT_PACKAGES_BASE_URL:-https://demonccc.github.io/audiowrt-packages}" \
     -e JOBS="${JOBS:-}" \
     -e VERBOSITY="${VERBOSITY:-normal}" \
     -e CACHE_DIR="$container_cache_dir" \
     -v "$repo_root:/workspace" \
     -w /workspace \
     "$builder_image" \
-    bash scripts/build.sh
+    bash "$entrypoint"
