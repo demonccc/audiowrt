@@ -1,5 +1,7 @@
 AUDIOWRT_PROFILE ?= tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5
 AUDIOWRT_PACKAGES_REF ?= main
+AUDIOWRT_PACKAGES_CHANNEL ?= stable
+AUDIOWRT_PACKAGES_BASE_URL ?= https://demonccc.github.io/audiowrt-packages
 PROVISIONING_IP ?= 192.168.77.1
 export PROVISIONING_IP
 JOBS ?=
@@ -14,29 +16,31 @@ help:
 	@printf '%s\n' \
 	  'AudioWRT build targets:' \
 	  '' \
-	  '  make build AUDIOWRT_PROFILE=<profile> [PROVISIONING_IP=192.168.77.1] [AUDIOWRT_PACKAGES_REF=main] [JOBS=N] [VERBOSITY=normal|verbose|debug] [LOG_FILE=logs/build.log] [CACHE_DIR=.cache/audiowrt]' \
+	  '  make build AUDIOWRT_PROFILE=<profile> [AUDIOWRT_PACKAGES_CHANNEL=stable|testing] [PROVISIONING_IP=192.168.77.1] [LOG_FILE=logs/build.log] [CACHE_DIR=.cache/audiowrt]' \
 	  '  make packages AUDIOWRT_PROFILE=<profile> PACKAGE="<all|package-name ...>" [AUDIOWRT_PACKAGES_REF=main] [JOBS=N] [VERBOSITY=normal|verbose|debug] [CACHE_DIR=.cache/audiowrt]' \
 	  '  make package ...  (alias of make packages)' \
 	  '  make clean' \
 	  '' \
+	  'Firmware builds use the official OpenWrt ImageBuilder plus published AudioWRT APKs.' \
+	  'Package builds use the official OpenWrt SDK and AudioWRT package sources.' \
+	  '' \
 	  'Reference device:' \
-	  '  make build AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5' \
+	  '  make build AUDIOWRT_PROFILE=tplink-tl-wdr4300-v1-minimal-usb-bluetooth-25.12.5 AUDIOWRT_PACKAGES_CHANNEL=stable' \
 	  '' \
 	  'Diagnostics:' \
 	  '  JOBS=1 VERBOSITY=debug LOG_FILE=logs/wdr4300.log CACHE_DIR=.cache/audiowrt' \
 	  '  LOG_FILE is for local builds only and must stay outside .work/ and output/.' \
-	  '  CACHE_DIR is optional, local-only, and reuses SDK, ImageBuilder and OpenWrt source downloads.' \
+	  '  CACHE_DIR is optional, local-only, and reuses downloaded build artifacts.' \
 	  '' \
 	  'Build environment:' \
-	  '  demonccc/openwrt-builder:latest (fixed by AudioWRT; not configurable)' \
-	  '' \
-	  'The selected profile pins its OpenWrt release or explicitly opts into snapshot.'
+	  '  demonccc/openwrt-builder:latest (fixed by AudioWRT; not configurable)'
 
 build:
 	@if [ -z "$(AUDIOWRT_PROFILE)" ]; then echo 'ERROR: AUDIOWRT_PROFILE is required.' >&2; exit 2; fi
 	@AUDIOWRT_BUILD_MODE="firmware" \
 	 AUDIOWRT_PROFILE="$(AUDIOWRT_PROFILE)" \
-	 AUDIOWRT_PACKAGES_REF="$(AUDIOWRT_PACKAGES_REF)" \
+	 AUDIOWRT_PACKAGES_CHANNEL="$(AUDIOWRT_PACKAGES_CHANNEL)" \
+	 AUDIOWRT_PACKAGES_BASE_URL="$(AUDIOWRT_PACKAGES_BASE_URL)" \
 	 JOBS="$(JOBS)" \
 	 VERBOSITY="$(VERBOSITY)" \
 	 LOG_FILE="$(LOG_FILE)" \
