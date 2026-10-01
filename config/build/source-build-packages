@@ -14,7 +14,10 @@
 # Bluetooth ownership:
 # - bluez-trimmed builds only the constrained bluetoothd daemon; runtime
 #   libbluetooth comes from the official OpenWrt bluez-libs package.
-# - audiowrt-btctl is AudioWRT-owned C code but needs glib2/GIO development
+# - bluez-trimmed, audiowrt-btctl and bluez-alsa compile against the official
+#   OpenWrt glib2 development interface through PKG_BUILD_DEPENDS, while their
+#   firmware runtime dependency is glib2-trimmed.
+# - audiowrt-btctl is AudioWRT-owned C code but needs GLib/GIO development
 #   headers, so it uses the explicit development-dependency path.
 # - bluez-alsa is a port from official upstream source and uses the selected
 #   OpenWrt development interfaces.
