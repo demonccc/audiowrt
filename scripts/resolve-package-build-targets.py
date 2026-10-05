@@ -29,10 +29,12 @@ def load_targets(path: Path):
 
 def normalize_dependency(token: str) -> str:
     token = token.strip().lstrip("+@")
+    if not token or token.startswith("$(") or token.startswith("("):
+        return ""
     if ":" in token:
         token = token.rsplit(":", 1)[1]
     token = token.lstrip("+@")
-    return re.split(r"[<>= ]", token, maxsplit=1)[0]
+    return re.split(r"[<>= ()]", token, maxsplit=1)[0]
 
 
 def load_package_metadata(path: Path):
@@ -61,6 +63,55 @@ def load_package_metadata(path: Path):
     return dependencies, provides
 
 
+def logical_make_lines(text: str):
+    pending = ""
+    for raw in text.splitlines():
+        line = raw.rstrip()
+        if pending:
+            line = pending + line.lstrip()
+        if line.endswith("\\"):
+            pending = line[:-1] + " "
+            continue
+        yield line
+        pending = ""
+    if pending:
+        yield pending
+
+
+def load_extra_dependencies(repo_root: Path, owned_packages: set[str]):
+    package_makefiles = {}
+    feed_root = repo_root / ".work"
+    candidate_roots = [repo_root / "packages", repo_root]
+    for root in candidate_roots:
+        if not root.is_dir() or root == feed_root:
+            continue
+        for makefile in root.glob("**/Makefile"):
+            if "/.work/" in str(makefile) or "/output/" in str(makefile):
+                continue
+            text = makefile.read_text(encoding="utf-8", errors="replace")
+            for match in re.finditer(r"^define (?:Package|KernelPackage)/([^\s]+)", text, re.M):
+                name = match.group(1)
+                if match.group(0).startswith("define KernelPackage/"):
+                    name = "kmod-" + name
+                if name in owned_packages:
+                    package_makefiles.setdefault(name, makefile)
+
+    extra_dependencies = {package: [] for package in owned_packages}
+    for package in owned_packages:
+        makefile = package_makefiles.get(package)
+        if makefile is None:
+            continue
+        for line in logical_make_lines(makefile.read_text(encoding="utf-8", errors="replace")):
+            match = re.match(r"\s*EXTRA_DEPENDS\s*(?::|\+)?=\s*(.*)$", line)
+            if not match:
+                continue
+            for token in match.group(1).split():
+                dependency = normalize_dependency(token)
+                if dependency and dependency in owned_packages and dependency not in extra_dependencies[package]:
+                    extra_dependencies[package].append(dependency)
+    return extra_dependencies
+
+
 def main() -> None:
     if len(sys.argv) < 4:
         fail(
@@ -69,14 +120,14 @@ def main() -> None:
             "[--providers <package> ...]"
         )
 
-    targets_path = Path(sys.argv[1])
+    targets_path = Path(sys.argv[1]).resolve()
     packageinfo_path = Path(sys.argv[2])
     arguments = sys.argv[3:]
     providers = []
     if "--providers" in arguments:
         index = arguments.index("--providers")
         roots = arguments[:index]
-        providers = arguments[index + 1:]
+        providers = arguments[index + 1 :]
     else:
         roots = arguments
     if not roots:
@@ -89,6 +140,8 @@ def main() -> None:
 
     targets = load_targets(targets_path)
     dependencies, package_provides = load_package_metadata(packageinfo_path)
+    repo_root = targets_path.parents[2]
+    extra_dependencies = load_extra_dependencies(repo_root, set(targets))
     selected = []
     state = {}
 
@@ -109,7 +162,15 @@ def main() -> None:
             fail("AudioWRT package dependency cycle: " + " -> ".join([*chain, package]))
 
         state[package] = 1
-        for dependency in dependencies.get(package, []):
+        package_dependencies = [
+            *dependencies.get(package, []),
+            *extra_dependencies.get(package, []),
+        ]
+        seen_dependencies = set()
+        for dependency in package_dependencies:
+            if dependency in seen_dependencies:
+                continue
+            seen_dependencies.add(dependency)
             if dependency in targets:
                 visit(dependency, [*chain, package])
                 continue
@@ -128,7 +189,7 @@ def main() -> None:
         visit(root, [])
 
     if not selected:
-        fail("none of the requested firmware packages are AudioWRT-owned build roots")
+        fail("none of the requested packages are AudioWRT-owned build roots")
 
     for package in selected:
         print(f"{package}|{targets[package]}")
