@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Resolve an AudioWRT device profile and its package groups."""
+"""Resolve an AudioWRT device profile or a profile-free package build context."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -121,7 +122,7 @@ def apply_overlay(base_add: list[str], base_remove: list[str], add: list[str], r
     return resolved_add, resolved_remove
 
 
-def resolve_group(groups_dir: Path, group_name: str, stack: list[str] | None = None) -> tuple[list[str], list[str]]:
+def resolve_group(groups_dir: Path, group_name: str, stack: list[str] | None = None) -> tuple[list[str], list[str], list[str]]:
     stack = stack or []
     if group_name in stack:
         fail("package group include cycle: " + " -> ".join([*stack, group_name]))
@@ -147,6 +148,29 @@ def require_string(value: object, field: str, pattern: re.Pattern[str] = IDENTIF
     return value
 
 
+def package_context(profile_id: str, openwrt_version: str, openwrt_source: str) -> dict[str, object]:
+    target = require_string(os.environ.get("AUDIOWRT_PACKAGE_TARGET", ""), "AUDIOWRT_PACKAGE_TARGET")
+    subtarget = require_string(os.environ.get("AUDIOWRT_PACKAGE_SUBTARGET", ""), "AUDIOWRT_PACKAGE_SUBTARGET")
+    arch = require_string(os.environ.get("AUDIOWRT_PACKAGE_ARCH", ""), "AUDIOWRT_PACKAGE_ARCH")
+    return {
+        "schema_version": 1,
+        "id": profile_id,
+        "status": "candidate",
+        "maintainer_github": "demonccc",
+        "package_groups": [],
+        "openwrt_source": openwrt_source,
+        "openwrt_version": openwrt_version,
+        "openwrt_profile": "package_context",
+        "target": target,
+        "subtarget": subtarget,
+        "squashfs_block_size": "default",
+        "provisioning_radio": "",
+        "packages_add": [],
+        "packages_remove": [],
+        "package_arch": arch,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("profiles_dir", type=Path)
@@ -157,6 +181,17 @@ def main() -> int:
     if not PROFILE_ID.fullmatch(args.profile_id):
         fail("profile ID must contain only lowercase letters, digits, dots and hyphens")
 
+    version_match = re.search(r"-(snapshot|\d+\.\d+\.\d+)$", args.profile_id)
+    if not version_match:
+        fail("profile ID must end with an OpenWrt release or -snapshot")
+    openwrt_version = version_match.group(1)
+    openwrt_source = "snapshot" if openwrt_version == "snapshot" else "release"
+
+    if args.profile_id.startswith("package-context-"):
+        json.dump(package_context(args.profile_id, openwrt_version, openwrt_source), sys.stdout, indent=2, sort_keys=True)
+        sys.stdout.write("\n")
+        return 0
+
     profile_path = args.profiles_dir / f"{args.profile_id}.yaml"
     if not profile_path.is_file():
         available = sorted(path.stem for path in args.profiles_dir.glob("*.yaml"))
@@ -164,12 +199,6 @@ def main() -> int:
         fail(f"unknown AudioWRT profile: {args.profile_id}.{suffix}")
 
     data = read_profile(profile_path)
-    version_match = re.search(r"-(snapshot|\d+\.\d+\.\d+)$", args.profile_id)
-    if not version_match:
-        fail("profile ID must end with an OpenWrt release or -snapshot")
-    openwrt_version = version_match.group(1)
-    openwrt_source = "snapshot" if openwrt_version == "snapshot" else "release"
-
     status = data.get("status")
     if not isinstance(status, str) or status not in VALID_STATUSES:
         fail(f"status must be one of: {', '.join(sorted(VALID_STATUSES))}")
