@@ -78,16 +78,10 @@ def logical_make_lines(text: str):
         yield pending
 
 
-def load_extra_dependencies(repo_root: Path, owned_packages: set[str]):
+def load_extra_dependencies(feed_root: Path, owned_packages: set[str]):
     package_makefiles = {}
-    feed_root = repo_root / ".work"
-    candidate_roots = [repo_root / "packages", repo_root]
-    for root in candidate_roots:
-        if not root.is_dir() or root == feed_root:
-            continue
-        for makefile in root.glob("**/Makefile"):
-            if "/.work/" in str(makefile) or "/output/" in str(makefile):
-                continue
+    if feed_root.is_dir():
+        for makefile in feed_root.glob("**/Makefile"):
             text = makefile.read_text(encoding="utf-8", errors="replace")
             for match in re.finditer(r"^define (?:Package|KernelPackage)/([^\s]+)", text, re.M):
                 name = match.group(1)
@@ -121,7 +115,7 @@ def main() -> None:
         )
 
     targets_path = Path(sys.argv[1]).resolve()
-    packageinfo_path = Path(sys.argv[2])
+    packageinfo_path = Path(sys.argv[2]).resolve()
     arguments = sys.argv[3:]
     providers = []
     if "--providers" in arguments:
@@ -140,8 +134,8 @@ def main() -> None:
 
     targets = load_targets(targets_path)
     dependencies, package_provides = load_package_metadata(packageinfo_path)
-    repo_root = targets_path.parents[2]
-    extra_dependencies = load_extra_dependencies(repo_root, set(targets))
+    sdk_root = packageinfo_path.parent.parent
+    extra_dependencies = load_extra_dependencies(sdk_root / "feeds" / "audiowrt", set(targets))
     selected = []
     state = {}
 
