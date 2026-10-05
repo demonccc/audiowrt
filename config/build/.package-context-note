@@ -1,1 +1,0 @@
-Package builds are selected by OpenWrt version, target/subtarget and architecture; firmware profiles are not used.
