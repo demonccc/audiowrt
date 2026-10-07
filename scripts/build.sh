@@ -344,7 +344,7 @@ fi
 # them without RFCOMM, BNEP or HIDP. This preserves binary compatibility and
 # avoids compiling or patching the release kernel.
 prepare_bluetooth_package() {
-bluetooth_module_source="$sdk_dir/feeds/audiowrt/kmod-bluetooth-trimmed"
+bluetooth_module_source="$sdk_dir/feeds/audiowrt/kmod-bluetooth-tailored"
 [[ -d "$bluetooth_module_source" ]] || {
     echo "ERROR: AudioWRT minimal Bluetooth kernel package source is missing." >&2
     exit 5
@@ -885,7 +885,7 @@ if (( hostap_sdk )); then
     register_official_sdk_source base libs/udebug
 fi
 
-if [[ " ${firmware_packages[*]} " == *" kmod-bluetooth-trimmed "* ]]; then
+if [[ " ${firmware_packages[*]} " == *" kmod-bluetooth-tailored "* ]]; then
     prepare_bluetooth_package
 fi
 
@@ -1151,7 +1151,7 @@ for target_path in "${ordered_targets[@]}"; do
         # AudioWRT userspace symbols enabled: later source targets depend on
         # providers built earlier (for example bluez-alsa on bluez-trimmed).
         target_package_config_args+=("CONFIG_PACKAGE_kmod-bluetooth=n")
-        target_package_config_args+=("CONFIG_PACKAGE_kmod-bluetooth-trimmed=n")
+        target_package_config_args+=("CONFIG_PACKAGE_kmod-bluetooth-tailored=n")
         make_run "$sdk_dir" "${target_package_config_args[@]}" "$target_path" -j"$jobs"
     else
         make_run "$sdk_dir" "${target_package_config_args[@]}" "$target_path" NO_DEPS=1 -j"$jobs"
