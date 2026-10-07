@@ -13,4 +13,4 @@ packages_remove:
   - kmod-sound-midi2
   - kmod-sound-midi2-usb
   - kmod-usb-audio
-  - kmod-bluetooth-trimmed
+  - kmod-bluetooth-tailored
