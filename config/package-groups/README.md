@@ -39,7 +39,7 @@ The obsolete `audiowrt-minimal-upmpdcli` package is not part of any runtime grou
 Minimal Bluetooth profiles select:
 
 - `dbus-trimmed`;
-- `kmod-bluetooth-trimmed`;
+- `kmod-bluetooth-tailored`;
 - `bluez-trimmed` through the AudioWRT Bluetooth dependency chain;
 - `sbc-trimmed` and ported `bluez-alsa` as required by that chain;
 - `audiowrt-bluetooth` as the AudioWRT integration layer.

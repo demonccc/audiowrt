@@ -4,7 +4,7 @@ include:
 packages_add:
   - dbus-trimmed
   - audiowrt-bluetooth
-  - kmod-bluetooth-trimmed
+  - kmod-bluetooth-tailored
 packages_remove:
   - dbus
   - audiowrt-player-mp3
