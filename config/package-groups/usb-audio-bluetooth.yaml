@@ -11,4 +11,4 @@ packages_add:
   - kmod-btusb
 packages_remove:
   - dbus
-  - kmod-bluetooth-trimmed
+  - kmod-bluetooth-tailored
